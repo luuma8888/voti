@@ -25,7 +25,7 @@ export class RelayClient {
       adminCapability: connection.adminCapability, expectedRevision: connection.remoteRevision });
     return response.remoteRef ? this.#remember(response) : response;
   }
-  async preparePublication(input, pollId) {
+  async preparePublication(input, pollId, humanVerificationToken) {
     const state = structuredClone(input);
     try { await validateState(state); } catch { throw new RelayError('INVALID_DEFINITION'); }
     const poll = state.polls.find(item => item.id === pollId);
@@ -41,7 +41,8 @@ export class RelayClient {
     }
     relayEnsure(connection.adminCapability, 'INVALID_CAPABILITY');
     return this.#remember(await this.#relay.preparePublication({ poll, localBallots,
-      adminCapability: connection.adminCapability, expectedRevision: connection.remoteRevision }));
+      adminCapability: connection.adminCapability, expectedRevision: connection.remoteRevision,
+      ...(humanVerificationToken === undefined ? {} : { humanVerificationToken }) }));
   }
   async uploadMissingAssets(pollId, assetIds, assets, expectedRevision) {
     const missing = await this.#admin('getMissingAssets', pollId, { assetIds: [...assetIds] });
@@ -67,6 +68,12 @@ export class RelayClient {
   async updateDefinition(pollId, definition, resultRules) { return this.#admin('updateDefinition', pollId, { definition, resultRules }); }
   async updateStyle(pollId, style) { return this.#admin('updateStyle', pollId, { style }); }
   async closePoll(pollId) { return this.#admin('closePoll', pollId); }
+  async deletePoll(pollId) {
+    let result;
+    try { result = await this.#admin('deletePoll', pollId); }
+    catch (error) { if (error.code !== 'NOT_FOUND') throw error; result = { deleted: true }; }
+    await this.#connections.delete(this.#key(pollId)); return result;
+  }
   async castVote(pollId, choiceId, actionId) { return this.#remember(await this.#relay.castVote({ pollId, choiceId, actionId })); }
   async getResults(pollId) { return this.#relay.getResults({ pollId }); }
   async getAsset(pollId, assetId) { return this.#relay.getAsset({ pollId, assetId }); }

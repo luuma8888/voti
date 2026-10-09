@@ -34,11 +34,11 @@ export class LocalStorageRemoteConnectionAdapter extends RemoteConnectionAdapter
       catch { throw new RelayError('RELAY_UNAVAILABLE', 'Impossible de conserver la capacité locale : stockage plein ou indisponible.'); }
     });
   }
-  async put(input) {
+  async put(input, options = {}) {
     const valid = validateRemoteConnection(input), key = connectionKey(valid);
     return this.change(data => {
       const index = data.connections.findIndex(item => connectionKey(item) === key);
-      const next = validateConnectionReplacement(data.connections[index], valid);
+      const next = validateConnectionReplacement(data.connections[index], valid, options);
       if (index < 0) data.connections.push(next); else data.connections[index] = next;
     });
   }

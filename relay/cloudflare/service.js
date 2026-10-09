@@ -3,12 +3,14 @@ import { emptyState, canonical, semanticHash } from '../../shared/model.js';
 import { validateState, validateDefinition, validateRules, validateStyle, object, isAssetId } from '../../shared/validation.js';
 import { assetReferences, contentId, metadata, validateReferences } from '../../shared/assets.js';
 import { decodeAsset, encodeAsset } from '../../shared/relay-wire.js';
+import { validateServerImage } from './image-validation.js';
 
 const NOW = () => Math.floor(Date.now() / 1000);
 const fields = {
   preparePublication: ['poll', 'localBallots', 'expectedRevision'], getMissingAssets: ['assetIds', 'expectedRevision'],
   putAssets: ['assets', 'expectedRevision'], publishPoll: ['expectedRevision'], discardPublication: ['expectedRevision'],
   closePoll: ['expectedRevision'], updateDefinition: ['definition', 'resultRules', 'expectedRevision'],
+  deletePoll: ['expectedRevision'], verifyAdmin: [],
   updateStyle: ['style', 'expectedRevision'], castVote: ['actionId', 'choiceId'], getPoll: [], getResults: [], getAsset: [],
 };
 export async function capabilityDigest(relayId, pollId, capability) {
@@ -134,7 +136,14 @@ export class CloudflareRelay {
       const view = await this.projection(id);
       return { accepted: true, alreadyAccepted: out[0].meta.changes === 0, remoteRef: view.remoteRef, status: view.status, locked: view.locked, results: view.results };
     }
-    const row = await this.admin(id, capability, body.expectedRevision, method !== 'getMissingAssets');
+    const row = await this.admin(id, capability, body.expectedRevision, !['getMissingAssets', 'verifyAdmin'].includes(method));
+    if (method === 'verifyAdmin') { need(row.status !== 'draft', 'NOT_FOUND'); return this.projection(id); }
+    if (method === 'deletePoll') {
+      need(row.status !== 'draft', 'NOT_FOUND');
+      // Garde + bulletins + cascades/liens/garbage dans UN batch. Aucune dépendance R2.
+      await this.mutate(row, [this.sql('DELETE FROM ballots WHERE poll_id=?', id), this.sql('DELETE FROM polls WHERE poll_id=?', id)]);
+      return { deleted: true };
+    }
     if (method === 'getMissingAssets') {
       need(Array.isArray(body.assetIds) && body.assetIds.length <= 14 && body.assetIds.every(isAssetId), 'INVALID_REQUEST');
       const { results } = await this.sql('SELECT asset_id FROM asset_links WHERE poll_id=?', id).all();
@@ -147,7 +156,9 @@ export class CloudflareRelay {
     if (method === 'putAssets') {
       need(row.status !== 'closed', 'POLL_CLOSED'); need(!row.locked, 'POLL_LOCKED');
       need(Array.isArray(body.assets) && body.assets.length <= 14, 'ASSET_INVALID');
-      const assets = await Promise.all(body.assets.map(decodeAsset));
+      const assets = [];
+      // Sérialisé pour borner la mémoire/CPU par image avant toute écriture R2.
+      for (const value of body.assets) assets.push(await validateServerImage(await decodeAsset(value)));
       need(new Set(assets.map(a => a.id)).size === assets.length, 'ASSET_INVALID');
       const old = (await this.sql('SELECT asset_id FROM asset_links WHERE poll_id=?', id).all()).results.map(a => a.asset_id);
       const fresh = assets.filter(a => !old.includes(a.id)); need(old.length + fresh.length <= 14, 'PAYLOAD_TOO_LARGE');
@@ -198,10 +209,15 @@ export class CloudflareRelay {
 /** GC borné, rejouable : D1 délie d'abord, R2 efface ensuite. Pas de suppression par préfixe. */
 export async function cleanup(env) {
   const db = env.DB;
-  await db.prepare("DELETE FROM polls WHERE status='draft' AND poll_id IN (SELECT poll_id FROM publications WHERE expires_at<=unixepoch() LIMIT 25)").run();
-  const { results } = await db.prepare('SELECT object_key FROM r2_garbage WHERE delete_after<=unixepoch() LIMIT 100').all();
+  const removed = await db.prepare("DELETE FROM polls WHERE status='draft' AND poll_id IN (SELECT poll_id FROM publications WHERE expires_at<=unixepoch() ORDER BY expires_at,poll_id LIMIT 25)").run();
+  const { results } = await db.prepare('SELECT object_key FROM r2_garbage WHERE delete_after<=unixepoch() ORDER BY delete_after,object_key LIMIT 100').all();
+  const summary = { preparations: removed?.meta?.changes || 0, assets: 0, failures: 0 };
   for (const row of results) {
-    await env.ASSETS.delete(row.object_key);
-    await db.prepare('DELETE FROM r2_garbage WHERE object_key=?').bind(row.object_key).run();
+    try {
+      await env.ASSETS.delete(row.object_key);
+      await db.prepare('DELETE FROM r2_garbage WHERE object_key=?').bind(row.object_key).run();
+      summary.assets++;
+    } catch { summary.failures++; /* Entrée durable conservée ; les autres objets peuvent progresser. */ }
   }
+  return summary;
 }

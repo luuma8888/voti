@@ -3,11 +3,13 @@
 Prototype de sondages locaux pour choisir ensemble. Création guidée, 2 à 6 choix,
 vote confirmé, verrouillage au premier bulletin accepté et résultats conditionnels.
 
-v0.3B ajoute un relais HTTP optionnel Worker/D1/R2, testé **uniquement en local**.
+v0.3C durcit le relais HTTP optionnel Worker/D1/R2, testé **uniquement en local** :
+Turnstile à la création, quota indépendant des capacités, cache/quota par image,
+suppression distante, nettoyage cron et transfert explicite des clés secrètes.
 Aucun service distant n'est déployé. Le HTML livré reste sans relais configuré.
 Voir [le guide local](docs/CLOUDFLARE_RELAY_V0.md),
 [les instructions de déploiement non exécutées](docs/CLOUDFLARE_DEPLOYMENT_V0.md)
-et [le rapport v0.3B](docs/CODEX_RELAY_V0_3B_REPORT.md).
+et [le rapport v0.3C](docs/CODEX_RELAY_V0_3C_REPORT.md).
 
 L'accueil v0.2A présente une liste compacte avec recherche (question, description,
 choix), filtres de statut/résultats et tri. Les résultats sont accessibles directement
@@ -44,6 +46,8 @@ npm run worker:migrate # migrations D1 locales seulement
 npm run worker:local   # Worker + D1/R2 locaux sur 127.0.0.1:8787
 npm run test:relay     # tests HTTP/D1/R2 locaux, avec redémarrage
 npm run test:integration # même suite + deux contextes navigateur
+npm run worker:cleanup # scheduled explicite du Worker local
+npm run audit:bundle # ZIP léger, uniquement fichiers Git admissibles, après tests/rapport
 ```
 
 Relancer `npm run dev` après modification des sources. Le serveur de développement
@@ -76,6 +80,10 @@ Ouvrir « Sauvegarde » puis « Exporter une sauvegarde » et conserver une copi
 en lecture seule derrière « Options avancées » ; elles ne sont pas affichées à l'accueil.
 L’export inclut les bulletins et les images référencées ; ce fichier doit être protégé comme vos données.
 Il n'inclut ni les bulletins distants ni les capacités créateur du relais.
+Pour celles-ci, gestion → « Exporter la clé d’administration », gestion/Sauvegarde
+→ « Importer une clé d’administration ». Fichier SECRET séparé, vérifié auprès du
+relais, sans écrasement silencieux. Toute personne le possédant peut supprimer
+le sondage. Perdre toutes ses copies empêche la récupération par compte.
 Le stockage local n’est pas une sauvegarde durable. L’import valide entièrement le
 fichier avant écriture et accepte uniquement un espace vide ; aucune fusion ni
 remplacement. Utiliser un autre profil vide pour tester une restauration, après export.

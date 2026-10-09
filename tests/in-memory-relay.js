@@ -10,6 +10,7 @@ const keys = {
   preparePublication: ['poll', 'localBallots', 'adminCapability', 'expectedRevision'],
   getMissingAssets: [...ADMIN, 'assetIds'], putAssets: [...ADMIN, 'assets'],
   publishPoll: ADMIN, discardPublication: ADMIN, closePoll: ADMIN,
+  deletePoll: ADMIN, verifyAdmin: ['pollId', 'adminCapability'],
   updateDefinition: [...ADMIN, 'definition', 'resultRules'], updateStyle: [...ADMIN, 'style'],
   getPoll: ['pollId'], getResults: ['pollId'], getAsset: ['pollId', 'assetId'],
   castVote: ['pollId', 'actionId', 'choiceId'],
@@ -29,7 +30,7 @@ export class InMemoryRelayAdapter extends RelayAdapter {
     let request;
     try {
       request = structuredClone(input);
-      object(request, keys[method], 'Requête relais');
+      object(request, [...keys[method], ...(method === 'preparePublication' && Object.hasOwn(request, 'humanVerificationToken') ? ['humanVerificationToken'] : [])], 'Requête relais');
       need(JSON.stringify(request).length <= 65_536, 'PAYLOAD_TOO_LARGE');
     } catch (error) { return Promise.reject(error instanceof RelayError ? error : new RelayError('INVALID_REQUEST')); }
     const result = this.#tail.then(() => this.#execute(method, request)).catch(error => {
@@ -98,10 +99,12 @@ export class InMemoryRelayAdapter extends RelayAdapter {
       need(await this.#digest(request.pollId, request.adminCapability) === record.capabilityHash, 'INVALID_CAPABILITY');
       // Lecture authentifiée : permet aussi de retrouver une préparation après
       // perte de réponse. Seules les mutations imposent la révision exacte.
-      if (method !== 'getMissingAssets') need(Number.isSafeInteger(request.expectedRevision) && request.expectedRevision === record.revision,
+      if (!['getMissingAssets', 'verifyAdmin'].includes(method)) need(Number.isSafeInteger(request.expectedRevision) && request.expectedRevision === record.revision,
         'REVISION_CONFLICT', 'Rechargez l’état distant.', { remoteRef: this.#ref(record) });
     } else need(record.public, 'NOT_FOUND');
     const poll = record.state.polls[0];
+    if (method === 'verifyAdmin') { need(record.public, 'NOT_FOUND'); return this.#view(record); }
+    if (method === 'deletePoll') { need(record.public, 'NOT_FOUND'); this.#records.delete(poll.id); return { deleted: true }; }
     if (method === 'getPoll') return this.#view(record);
     if (method === 'getResults') {
       const result = { remoteRef: this.#ref(record), ...getResults(record.state, poll.id) };
@@ -191,5 +194,7 @@ export class InMemoryRelayAdapter extends RelayAdapter {
   async updateDefinition(request) { return this.#run('updateDefinition', request); }
   async updateStyle(request) { return this.#run('updateStyle', request); }
   async closePoll(request) { return this.#run('closePoll', request); }
+  async deletePoll(request) { return this.#run('deletePoll', request); }
+  async verifyAdmin(request) { return this.#run('verifyAdmin', request); }
   async castVote(request) { return this.#run('castVote', request); }
 }

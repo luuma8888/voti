@@ -27,7 +27,7 @@ test('HttpRelayAdapter : protocole JSON, Bearer séparé, aucune cookie ou redir
   await adapter.publishPoll({pollId:poll.id,expectedRevision:0,adminCapability:cap});
   assert.equal((await adapter.getPoll({pollId:poll.id})).definition.question,poll.definition.question);
   assert.equal(requests,3);
-  assert.equal(Object.keys(HTTP_ROUTES).length,12);
+  assert.equal(Object.keys(HTTP_ROUTES).length,14);
 });
 test('HttpRelayAdapter : timeout, coupure, erreur HTTP inconnue et réponse malformée', async () => {
   const id=crypto.randomUUID();

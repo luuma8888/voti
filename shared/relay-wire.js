@@ -13,6 +13,7 @@ export const HTTP_ROUTES = {
   updateStyle: ['PATCH', 'polls/:id/style'], closePoll: ['POST', 'polls/:id/close'],
   castVote: ['POST', 'polls/:id/votes'], getResults: ['GET', 'polls/:id/results'],
   getAsset: ['GET', 'polls/:id/assets/:asset'],
+  deletePoll: ['DELETE', 'polls/:id'], verifyAdmin: ['GET', 'polls/:id/admin'],
 };
 export async function encodeAsset(asset) {
   await validateAsset(asset);
@@ -56,6 +57,7 @@ export function validateProjection(value) {
   if ('totalBallots' in value) need(Number.isSafeInteger(value.totalBallots) && value.totalBallots >= 0, 'RELAY_UNAVAILABLE');
 }
 export function validateRelayResponse(method, value, relayId, pollId) {
+  if (method === 'deletePoll') { object(value, ['deleted'], 'Réponse'); need(value.deleted === true, 'RELAY_UNAVAILABLE'); return value; }
   if (method === 'discardPublication') { object(value, ['discarded'], 'Réponse'); need(value.discarded === true, 'RELAY_UNAVAILABLE'); return value; }
   const ref = value?.remoteRef;
   object(ref, ['relayId', 'pollId', 'revision'], 'Référence'); remoteRef(ref.relayId, ref.pollId, ref.revision);

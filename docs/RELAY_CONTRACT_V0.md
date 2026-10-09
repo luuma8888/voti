@@ -1,5 +1,35 @@
 # Voti — contrat de relais Internet v0
 
+## Extensions normatives v0.3C
+
+Les sections historiques v0.3A ci-dessous décrivent la fondation du contrat.
+v0.3B a activé le transport/UI optionnels ; v0.3C ajoute, sans modifier les
+bulletins, définitionHash ou sauvegardes métier :
+
+- `deletePoll({pollId, adminCapability, expectedRevision})` → `{deleted:true}`.
+  Capacité/révision exigées, même après verrouillage/fermeture. Le client retire
+  sa connexion après succès (ou NOT_FOUND au retry). Le relais réel retire métier
+  D1 et réserve la suppression R2 durablement ; toutes lectures publiques/votes
+  renvoient NOT_FOUND. Aucun accès à des bulletins bruts.
+- `verifyAdmin({pollId, adminCapability})` → PublicPoll : vraie lecture authentifiée
+  d'un sondage publié/fermé, sans révision attendue ni mutation. Le créateur n'a
+  toujours pas de privilège de consultation des résultats sous seuil.
+- `preparePublication` accepte un `humanVerificationToken` supplémentaire pour
+  les relais exigeant un challenge de nouvelle création ; le Worker le vérifie
+  et ne le conserve pas dans l'état. Le simulateur mémoire n'est pas une
+  implémentation d'anti-abus de production.
+- Codes : HUMAN_VERIFICATION_REQUIRED, HUMAN_VERIFICATION_FAILED,
+  CREATION_RATE_LIMITED ; CAPABILITY_CONFLICT pour import de clé contradictoire.
+- `RelayClient.deletePoll(pollId)` et option token au prepare ; helpers
+  `shared/admin-key.js` pour export/import SECRET versionné séparé.
+- `RemoteConnectionAdapter.put(connection, {replaceCapability})` : remplacement
+  explicite vérifiant l'ancienne clé sous le verrou ; aucun remplacement implicite.
+
+HTTP exact, quotas, Turnstile, rétention/cache/suppression et limites des images :
+`CLOUDFLARE_RELAY_V0.md`, `PRIVACY_AND_ABUSE_V0.md`. Les assertions historiques
+« sans backend/UI », « transfert à concevoir » et « contrôle futur des images »
+ne décrivent pas les extensions livrées ; elles restent le contexte du lot v0.3A.
+
 Autorité : `VOTI_RELAY_V0_3A_SPEC.md`. Contrat préparatoire, sans backend, transport
 HTTP, activation dans l’interface ni promesse de partage entre appareils aujourd’hui.
 

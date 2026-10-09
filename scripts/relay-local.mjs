@@ -12,6 +12,7 @@ export function wrangler(args, options = {}) {
 }
 export const configArgs = ['--config', 'relay/cloudflare/wrangler.jsonc'];
 export const persistence = ['--persist-to', '.relay-local/state'];
+export const localTestArgs = ['--var', 'TURNSTILE_MODE:local-test'];
 if (process.argv[1] === import.meta.filename) {
   await mkdir(resolve(root, '.relay-local/logs'), { recursive: true });
   const action = process.argv[2];
@@ -21,7 +22,7 @@ if (process.argv[1] === import.meta.filename) {
     console.log('Nettoyage local demandé.');
   } else {
   const commands = {
-    dev: ['dev', ...configArgs, '--local', '--test-scheduled', '--ip', '127.0.0.1', '--port', '8787', ...persistence],
+    dev: ['dev', ...configArgs, ...localTestArgs, '--local', '--test-scheduled', '--ip', '127.0.0.1', '--port', '8787', ...persistence],
     migrate: ['d1', 'migrations', 'apply', 'voti-local', ...configArgs, '--local', ...persistence],
   };
   if (!commands[action]) throw new Error('Action locale inconnue. Seuls dev/migrate sont autorisés.');

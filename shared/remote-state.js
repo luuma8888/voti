@@ -20,11 +20,13 @@ export function validateRemoteConnection(input) {
 }
 
 /** Empêche un cache retardataire d'écraser une révision ou une capacité connue. */
-export function validateConnectionReplacement(previous, next) {
+export function validateConnectionReplacement(previous, next, { replaceCapability } = {}) {
   const valid = validateRemoteConnection(next);
   if (previous) {
     relayEnsure(valid.remoteRevision >= previous.remoteRevision, 'REVISION_CONFLICT', 'Le cache distant serait rétrogradé.');
-    relayEnsure(previous.adminCapability === null || previous.adminCapability === valid.adminCapability, 'INVALID_CAPABILITY', 'Une capacité connue ne peut pas être remplacée silencieusement.');
+    if (replaceCapability !== undefined) relayEnsure(previous.adminCapability === replaceCapability, 'CAPABILITY_CONFLICT');
+    relayEnsure(previous.adminCapability === null || previous.adminCapability === valid.adminCapability ||
+      (replaceCapability === previous.adminCapability && isAdminCapability(valid.adminCapability)), 'INVALID_CAPABILITY', 'Une capacité connue ne peut pas être remplacée silencieusement.');
   }
   return valid;
 }
@@ -39,9 +41,9 @@ export class RemoteConnectionAdapter {
 export class MemoryRemoteConnectionAdapter extends RemoteConnectionAdapter {
   #records = new Map();
   async get(ref) { return structuredClone(this.#records.get(connectionKey(ref)) || null); }
-  async put(connection) {
+  async put(connection, options = {}) {
     const key = connectionKey(connection);
-    this.#records.set(key, validateConnectionReplacement(this.#records.get(key), connection));
+    this.#records.set(key, validateConnectionReplacement(this.#records.get(key), connection, options));
   }
   async delete(ref) { this.#records.delete(connectionKey(ref)); }
   async list() { return structuredClone([...this.#records.values()]); }

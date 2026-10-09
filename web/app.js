@@ -13,6 +13,8 @@ import { RELAY_CONFIG } from './relay-config.js';
 import { RelayClient } from '../shared/relay-client.js';
 import { LocalStorageRemoteConnectionAdapter, REMOTE_STORAGE_KEY } from './remote-storage.js';
 import { assetReferences } from '../shared/assets.js';
+import { humanVerification } from './human-verification.js';
+import { exportAdminKey, importAdminKey, parseAdminKey } from '../shared/admin-key.js';
 
 const connections = new LocalStorageRemoteConnectionAdapter(localStorage, navigator.locks);
 const relay = RELAY_CONFIG ? new RelayClient(new HttpRelayAdapter(RELAY_CONFIG), connections) : null;
@@ -53,11 +55,27 @@ async function remoteAction(node, operation, after = () => render()) {
 }
 async function publishOnline(id) {
   if (!relay) throw new Error('Relais non configuré.');
+  const initial = await connections.get({ relayId: RELAY_CONFIG.relayId, pollId: id });
+  let needsPreparation = !initial;
+  if (initial) {
+    try { await new HttpRelayAdapter(RELAY_CONFIG).getMissingAssets({ pollId: id, adminCapability: initial.adminCapability, expectedRevision: initial.remoteRevision, assetIds: [] }); }
+    catch (error) { if (error.code !== 'NOT_FOUND') throw error; needsPreparation = true; }
+  }
+  if (needsPreparation && initial && (initial.remoteRevision !== 0 || initial.lastKnownRemoteState !== null)) {
+    throw new Error('La publication précédente est introuvable ou expirée. Abandonnez la préparation avant de recommencer ; aucun sondage distant ne sera recréé automatiquement.');
+  }
+  let token;
+  if (needsPreparation) {
+    const challenge = el('div', null, { class: 'human-verification', role: 'status' }); app.append(challenge);
+    try { token = await humanVerification(RELAY_CONFIG, challenge); }
+    catch { throw new Error('La publication en ligne n’est momentanément pas disponible. Réessayez plus tard ; vos sondages locaux restent utilisables.'); }
+    finally { challenge.remove(); }
+  }
   await repository.exclusive(async () => {
     const current = await repository.load(), poll = localPoll(current, id);
     if (current.ballots.some(b => b.pollId === id)) throw new Error('Publication en ligne impossible : ce sondage contient déjà des votes locaux.');
     const connection = await connections.get({ relayId: RELAY_CONFIG.relayId, pollId: id });
-    if (!connection) await relay.preparePublication(current, id);
+    if (!connection || needsPreparation) await relay.preparePublication(current, id, token);
     // Une réponse de commit perdue se résout par une lecture, jamais une seconde histoire locale.
     try { await relay.getPoll(id); return; } catch (error) { if (error.code !== 'NOT_FOUND') throw error; }
     await relay.uploadMissingAssets(id, [...assetReferences({ polls: [poll] }).keys()], assets);
@@ -101,7 +119,16 @@ function button(label, onClick, className = '') {
 }
 function link(label, hash, className = '') { return el('a', label, { href: hash, class: `button ${className}` }); }
 function actions(...children) { return append(el('div', null, { class: 'actions' }), ...children); }
-function showError(error) { message.textContent = error.message || String(error); message.hidden = false; }
+function showError(error) {
+  const french = { HUMAN_VERIFICATION_REQUIRED: 'Une vérification est nécessaire pour démarrer la publication en ligne.',
+    HUMAN_VERIFICATION_FAILED: 'La vérification a expiré ou a échoué. Réessayez la publication.',
+    CREATION_RATE_LIMITED: 'Trop de publications démarrent en ce moment. Réessayez dans une minute.',
+    RATE_LIMITED: 'Le relais reçoit trop de demandes. Réessayez dans une minute.',
+    INVALID_CAPABILITY: 'Cette clé ne permet pas d’administrer ce sondage.',
+    RELAY_UNAVAILABLE: 'Le relais est momentanément indisponible. Le mode local reste utilisable.',
+    CAPABILITY_CONFLICT: 'Une autre clé est déjà conservée. Son remplacement nécessite votre confirmation.' };
+  message.textContent = french[error.code] || error.message || String(error); message.hidden = false;
+}
 function clearError() { message.textContent = ''; message.hidden = true; }
 function notify(text) { notice.textContent = text; notice.hidden = !text; }
 function heading(text) {
@@ -128,6 +155,34 @@ function download(raw, name) {
   const anchor = el('a', '', { href: url, download: name });
   document.body.append(anchor); anchor.click(); anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function adminKeyImport(expectedPollId) {
+  const panel = el('section', null, { class: 'admin-key-panel' });
+  const input = el('input', null, { type: 'file', accept: '.json,application/json', hidden: '', 'aria-label': 'Choisir une clé d’administration secrète' });
+  const control = button('Importer une clé d’administration', () => input.click());
+  input.addEventListener('change', async () => {
+    const file = input.files[0]; if (!file) return;
+    control.disabled = true; clearError();
+    try {
+      if (file.size > 4096) throw new Error('Fichier de clé trop volumineux.');
+      const raw = await file.text(), key = parseAdminKey(raw, RELAY_CONFIG.relayId);
+      if (expectedPollId && key.pollId !== expectedPollId) throw new Error('Cette clé concerne un autre sondage. Utilisez Sauvegarde & transfert.');
+      const adapter = new HttpRelayAdapter(RELAY_CONFIG);
+      let view;
+      try { view = await importAdminKey(raw, adapter, connections); }
+      catch (error) {
+        if (error.code !== 'CAPABILITY_CONFLICT') throw error;
+        const previous = await connections.get(key);
+        if (!window.confirm('Une autre clé est déjà conservée pour ce sondage. La clé importée a été vérifiée par le relais. Remplacer la clé locale existante ?')) return;
+        view = await importAdminKey(raw, adapter, connections, { replaceCapability: previous.adminCapability });
+      }
+      remoteViews.set(key.pollId, { ...view, id: key.pollId, lockedAt: view.locked ? 'remote' : null });
+      navigate(`#poll/${key.pollId}`); notify('Clé vérifiée et importée. Vous pouvez administrer ce sondage.');
+    } catch (error) { showError(error); }
+    finally { control.disabled = false; input.value = ''; }
+  });
+  panel.append(control, input, el('p', 'Import séparé des sauvegardes : le fichier est secret et sa clé est vérifiée auprès du relais.', { class: 'help' }));
+  return panel;
 }
 async function transact(node, operation, after = () => render(), staged = []) {
   if (node.disabled) return;
@@ -211,6 +266,12 @@ function home() {
   sort.addEventListener('change', () => { libraryView.sort = sort.value; refreshList(); });
   app.append(toolbar, filters, count, list);
   refreshList();
+  const recovered = [...bindings.values()].filter(c => c.adminCapability && !state.polls.some(p => p.id === c.pollId));
+  if (recovered.length) {
+    const section = append(el('section', null, { class: 'admin-key-panel' }), el('h2', 'Administrations en ligne retrouvées'));
+    for (const item of recovered) section.append(actions(link(remoteViews.get(item.pollId)?.definition.question || 'Sondage en ligne', `#poll/${item.pollId}`)));
+    app.append(section);
+  }
 }
 
 function backup() {
@@ -251,6 +312,7 @@ function backup() {
     try { json.value = await repository.exclusive(async () => exportBackup(await repository.load(), assets)); } catch (error) { showError(error); }
   });
   app.append(panel, advanced, actions(link('Retour à l’accueil', '#home')));
+  if (relay) app.append(adminKeyImport());
   if (bindings.size) panel.append(el('p', 'Les votes en ligne et les capacités créateur ne sont pas inclus dans cette sauvegarde locale. Ne comptez pas sur ce fichier pour récupérer l’administration distante.', { class: 'help' }));
 }
 
@@ -285,6 +347,16 @@ function management(id) {
     const url = new URL(publicLink(id), location.href).href;
     const copy = button('Copier le lien', async () => { try { await navigator.clipboard.writeText(url); notify('Lien copié.'); } catch { notify(`Lien public : ${url}`); } });
     card.append(el('p', 'En ligne · Le relais fait autorité.'), actions(link('Ouvrir le lien public', publicLink(id), 'primary'), copy, link('Résultats', publicLink(id, true))));
+    const keyExport = button('Exporter la clé d’administration', async () => {
+      try { download(await exportAdminKey(connections, RELAY_CONFIG.relayId, id), `voti-admin-${id}.json`); notify('Clé secrète exportée. Vérifiez son enregistrement et conservez-la en lieu sûr.'); }
+      catch (error) { showError(error); }
+    });
+    const remove = button('Supprimer en ligne', () => {
+      if (!window.confirm('Supprimer définitivement ce sondage en ligne, ses votes et ses images distantes ? La copie locale sans votes distants sera conservée.')) return;
+      remoteAction(remove, () => relay.deletePoll(id), async () => { remoteViews.delete(id); navigate('#home'); notify('Sondage supprimé du relais. La copie locale est conservée.'); });
+    }, 'danger');
+    card.append(el('p', 'Cette clé permet d’administrer ce sondage. Toute personne qui la possède peut le modifier ou le supprimer. Conservez-la en lieu sûr.', { class: 'help' }),
+      actions(keyExport, remove), adminKeyImport(id));
   } else if (relay && poll.status === 'published') {
     if (state.ballots.some(b => b.pollId === id)) card.append(el('p', 'Publication en ligne impossible : ce sondage contient déjà des votes locaux.'));
     else {
@@ -552,7 +624,7 @@ async function render() {
         bindings = new Map((await connections.list()).map(c => [c.pollId, c]));
         remoteImages = new ImageViews({ get: assetId => relay.getAsset(id, assetId) });
       } catch (error) {
-        if (error.code === 'NOT_FOUND' && view === 'poll' && bindings.get(id)?.adminCapability && state.polls.some(p => p.id === id)) {
+        if (error.code === 'NOT_FOUND' && view === 'poll' && bindings.get(id)?.adminCapability && !bindings.get(id).lastKnownRemoteState && state.polls.some(p => p.id === id)) {
           heading('Publication en attente');
           const resume = button('Reprendre la publication', () => remoteAction(resume, () => publishOnline(id)));
           const discard = button('Abandonner la préparation', () => remoteAction(discard, () => relay.discardPublication(id)), 'danger');

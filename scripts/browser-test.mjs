@@ -8,6 +8,7 @@ import { votes, published, libraryFixture } from '../tests/fixtures.js';
 import { navigateAndWait, waitForApplication } from './browser-navigation.mjs';
 import { browserAssetScenario } from './browser-assets.mjs';
 import { graphicFixtures, graphicChecks, remoteBrowserAction } from './browser-relay.mjs';
+import { browserKeyExport, browserKeyImport, browserDelete } from './browser-hardening.mjs';
 
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
@@ -511,6 +512,10 @@ try {
     }
     await navigateReady(sessionId, servedUrl+'?visit='+crypto.randomUUID()+'#poll/'+id);
     relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('closed',${JSON.stringify(id)})`);
+    const exported = await evaluate(sessionId, `(${browserKeyExport.toString()})()`); relayChecks += exported.checks;
+    await command('Emulation.setDeviceMetricsOverride', { width: 360, height: 820, deviceScaleFactor: 1, mobile: true }, voter.sessionId);
+    relayChecks += await evaluate(voter.sessionId, `(${browserKeyImport.toString()})(${JSON.stringify(exported.key)})`);
+    relayChecks += await evaluate(sessionId, `(${browserDelete.toString()})(${JSON.stringify(id)})`);
     await command('Target.disposeBrowserContext', { browserContextId:context.browserContextId });
   }
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);

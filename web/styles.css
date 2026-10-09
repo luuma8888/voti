@@ -245,3 +245,6 @@ footer details { margin-top:6px; } footer summary { font-size:12px; font-weight:
   footer { font-size:9pt; } progress { print-color-adjust:exact; }
   @page { size:A4; margin:15mm; }
 }
+/* Le challenge est ajouté seulement dans le parcours de nouvelle publication. */
+.human-verification, .admin-key-panel { margin-top: 1rem; max-width: 100%; }
+.human-verification { min-height: 44px; overflow: hidden; }

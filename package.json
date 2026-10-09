@@ -16,7 +16,8 @@
     "worker:migrate": "node scripts/relay-local.mjs migrate",
     "worker:cleanup": "node scripts/relay-local.mjs cleanup",
     "test:relay": "node scripts/relay-integration.mjs",
-    "test:integration": "node scripts/relay-integration.mjs --browser"
+    "test:integration": "node scripts/relay-integration.mjs --browser",
+    "audit:bundle": "node scripts/audit-bundle.mjs"
   },
   "devDependencies": {
     "node": "22.23.3",

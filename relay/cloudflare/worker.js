@@ -1,10 +1,12 @@
 import { RelayError, relayEnsure as need } from '../../shared/relay.js';
 import { HTTP_ROUTES, readBoundedJson } from '../../shared/relay-wire.js';
-import { CloudflareRelay, cleanup, capabilityDigest } from './service.js';
+import { CloudflareRelay, cleanup } from './service.js';
+import { verifyHuman, limitRoute } from './abuse.js';
 
 const statuses = { NOT_FOUND: 404, INVALID_CAPABILITY: 403, REVISION_CONFLICT: 409, POLL_CLOSED: 409,
   POLL_LOCKED: 409, RESULTS_LOCKED: 423, IDEMPOTENCY_CONFLICT: 409, PUBLICATION_CONFLICT: 409,
-  PAYLOAD_TOO_LARGE: 413, RATE_LIMITED: 429, RELAY_UNAVAILABLE: 503 };
+  PAYLOAD_TOO_LARGE: 413, RATE_LIMITED: 429, CREATION_RATE_LIMITED: 429, RELAY_UNAVAILABLE: 503,
+  HUMAN_VERIFICATION_REQUIRED: 403, HUMAN_VERIFICATION_FAILED: 403 };
 export default {
   async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin');
@@ -27,19 +29,34 @@ export default {
       need(selected, 'NOT_FOUND');
       const { name, id, assetId } = selected;
       const capability = request.headers.get('Authorization')?.replace(/^Bearer /, '');
-      const admin = !['getPoll','getResults','getAsset','castVote'].includes(name);
-      let limitKey = `${id || 'publication'}:${name}`;
-      if (admin) limitKey = await capabilityDigest(env.RELAY_ID, id || 'publication', capability);
-      need(env.LIMITER && (await env.LIMITER.limit({ key: limitKey })).success, 'RATE_LIMITED');
+      const service = new CloudflareRelay(env);
+      // Limiter avant lecture du corps et toute validation coûteuse (y compris Siteverify).
+      await limitRoute(env, name, id, assetId, capability, name === 'preparePublication');
       const body = request.method === 'GET' ? {} : await readBoundedJson(request, name === 'putAssets' ? 20_000_000 : 65_536);
-      const result = await new CloudflareRelay(env).execute(name, id, body, capability, assetId);
-      ctx.waitUntil(cleanup(env).catch(() => {}));
+      if (name === 'preparePublication') {
+        const token = body.humanVerificationToken; delete body.humanVerificationToken;
+        const existing = await service.row(body.poll?.id || '');
+        // Une reprise existante est authentifiée ; elle ne démarre aucune nouvelle publication.
+        if (existing) await service.admin(existing.poll_id, capability, body.expectedRevision);
+        else await verifyHuman(request, env, token);
+      }
+      const result = await service.execute(name, id, body, capability, assetId);
+      // Scheduled est le seul mécanisme automatique : aucun GC sur GET ou vote.
+      if (name === 'getAsset') {
+        // Cache privé navigateur court : suppression/retrait vérifié avant chaque réponse réseau.
+        // Pas de cache edge qui court-circuiterait l'autorisation contextuelle.
+        headers['Cache-Control'] = 'private, max-age=300, immutable';
+        headers.ETag = `"${assetId}"`;
+        headers['Access-Control-Expose-Headers'] = 'ETag';
+      }
       return Response.json(result, { headers });
     } catch (failure) {
       const error = failure instanceof RelayError ? failure : new RelayError('RELAY_UNAVAILABLE');
-      if (error.code === 'RATE_LIMITED') headers['Retry-After'] = '60';
+      if (['RATE_LIMITED', 'CREATION_RATE_LIMITED'].includes(error.code)) headers['Retry-After'] = '60';
       return Response.json({ error: error.toJSON() }, { status: statuses[error.code] || 400, headers });
     }
   },
-  async scheduled(_event, env, ctx) { ctx.waitUntil(cleanup(env)); },
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(cleanup(env).then(summary => { need(summary.failures === 0, 'RELAY_UNAVAILABLE'); }));
+  },
 };

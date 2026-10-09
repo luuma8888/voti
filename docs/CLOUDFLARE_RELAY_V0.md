@@ -1,7 +1,7 @@
-# Voti — relais Cloudflare v0.3B
+# Voti — relais Cloudflare v0.3C
 
 Cette implémentation est testée avec Worker, D1 et R2 **locaux**. Elle n'est pas
-déployée. `VOTI_RELAY_V0_3B_SPEC.md` autorise ce lot au-delà des exclusions des
+déployée. `VOTI_RELAY_V0_3C_SPEC.md` autorise ce lot au-delà des exclusions des
 anciennes fondations. `RelayAdapter` reste le contrat indépendant du fournisseur.
 
 ## Architecture
@@ -14,8 +14,8 @@ HTML Voti → RelayClient → HttpRelayAdapter → /api/v1 → Worker
 
 `shared/` n'importe aucune API Cloudflare. Le protocole transportable est défini
 dans `shared/relay-wire.js`. L'implémentation fournisseur est exclusivement dans
-`relay/cloudflare/`. Le moteur local et le simulateur InMemoryRelayAdapter restent
-inchangés. L'application et ses ressources de marque restent un HTML autonome.
+`relay/cloudflare/`. Le moteur local reste inchangé ; le simulateur mémoire suit
+aussi les extensions suppression/admin. L'application reste un HTML autonome.
 
 ## Lancement entièrement local
 
@@ -29,7 +29,7 @@ npm run worker:local
 Dans un second terminal, pour le site connecté au Worker local :
 
 ```sh
-VOTI_RELAY_ID=voti-local VOTI_RELAY_URL=http://127.0.0.1:8787 npm run dev
+VOTI_RELAY_ID=voti-local VOTI_RELAY_URL=http://127.0.0.1:8787 VOTI_TURNSTILE_MODE=local-test npm run dev
 ```
 
 Ouvrir `http://127.0.0.1:4173/voti/`. Ne pas ouvrir le HTML `file://` pour joindre
@@ -60,7 +60,8 @@ Les profils/captures Chromium restent dans `.browser-tests/`.
 
 ## D1 et atomicité
 
-Migration : `relay/cloudflare/migrations/0001_initial.sql`.
+Migrations : `relay/cloudflare/migrations/0001_initial.sql`, puis
+`0002_cleanup_indexes.sql` (index d'échéance des préparations et du garbage).
 
 | Table | Rôle |
 | --- | --- |
@@ -127,11 +128,10 @@ plus 14 assets par sondage, staging compris ; 1 Mo/1600 px pour une question,
 lot ; le surcoût de taille est assumé pour ce prototype. Le transport conserve
 les octets normalisés WebP/PNG, sans réencodage distant ni modification du hash.
 
-Le contrôle serveur inspecte la structure binaire et le hash, mais **ne décode pas
-les pixels**. Le navigateur effectue le vrai décodage et la normalisation avant
-publication. Cela ne protège pas d'un client malveillant qui fabrique un fichier
-structurellement plausible mais indécodable. Avant ouverture publique large,
-prévoir un décodeur serveur borné et un audit de la surface d'upload.
+Le contrôle serveur v0.3C renforce conteneurs WebP/PNG, CRC PNG et inflation zlib
+bornée avec vérification des scanlines/filtres. **Pas de décodage complet WebP**
+ni reconstruction des pixels PNG. Le navigateur réalise toujours le vrai décodage
+et réencodage. Garanties et limites exactes dans `PRIVACY_AND_ABUSE_V0.md`.
 
 Avant chaque PUT R2, une ligne durable de garbage est réservée (échéance d'une
 heure). La transaction D1 qui lie l'objet efface cette réservation. Échec :
@@ -144,9 +144,10 @@ l'échéance dans la transaction. Le nettoyage supprime d'abord les préparation
 expirées dans D1, puis leurs objets via la file garbage. Il traite au plus 25
 préparations et 100 objets par passage. Il est rejouable et idempotent.
 
-Il est lancé après une opération réussie, et par cron horaire à la minute 17.
-Un échec opportuniste n'annule pas une opération métier déjà commise ; le prochain
-passage reprend la file. En local, le Worker lancé avec `--test-scheduled` accepte :
+Le cron horaire à la minute 17 est le seul déclencheur automatique. Aucun cleanup
+après GET poll/résultats/assets, vote ou mutation HTTP. Les échéances sont indexées
+et les lots ordonnés. Une panne R2 laisse le garbage, sans empêcher les autres
+objets ; le scheduled signale ensuite une erreur générique. En local :
 
 ```sh
 npm run worker:cleanup
@@ -170,6 +171,8 @@ pas une atomicité distribuée ni une garantie face à toute panne prolongée.
 | PATCH `/polls/:id/definition` | updateDefinition |
 | PATCH `/polls/:id/style` | updateStyle |
 | POST `/polls/:id/close` | closePoll |
+| DELETE `/polls/:id` | deletePoll, capacité + expectedRevision |
+| GET `/polls/:id/admin` | verifyAdmin, lecture authentifiée |
 | POST `/polls/:id/votes` | castVote |
 | GET `/polls/:id/results` | getResults |
 | GET `/polls/:id/assets/:assetId` | getAsset |
@@ -203,11 +206,13 @@ limité aux méthodes nécessaires et en-têtes Authorization/Content-Type,
 `Vary: Origin`, aucun cookie ni Allow-Credentials. Les clients sans Origin sont
 possibles : **CORS n'est pas une authentification**.
 
-Le binding LIMITER applique 120 appels/60 s : clé pollId/catégorie pour le public,
-dérivé de capacité pour l'administration. Aucune table d'IP. HTTP 429 et
-`Retry-After: 60`. C'est un frein collectif, local au point de présence et non
-un quota exact ou une protection absolue contre DoS. Choisir son namespace de
-production pour ne pas le partager involontairement avec un autre Worker.
+Trois bindings, namespaces distincts, période 60 s : CREATION_LIMITER 30 appels
+prepare (clé fixe relayId:creation) ; LIMITER 120 appels poll/catégorie public ou
+dérivé contextualisé de capacité admin ; ASSET_LIMITER 600 lectures par poll/asset.
+La création compte aussi les retries, conservativement. Les autres opérations
+admin n'y participent pas. Aucune IP lue/persistée. HTTP 429 + Retry-After: 60,
+CREATION_RATE_LIMITED pour création, RATE_LIMITED ailleurs. Frein collectif local
+au point de présence, pas plafond financier mondial exact ni anti-DoS absolu.
 [Limites du binding Cloudflare](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/).
 
 Le code du Worker ne journalise ni Authorization, capacité, IP, User-Agent, corps
@@ -223,8 +228,8 @@ son stockage séparé, pas dans PollDefinition, Ballot, URL ou sauvegarde JSON.
 
 ## UI et configuration
 
-`web/relay-config.js` vaut null par défaut. Le build peut substituer seulement
-`relayId/baseUrl` via les deux variables documentées. Aucune URL Worker dispersée.
+`web/relay-config.js` vaut null par défaut. Le build substitue relayId/baseUrl et
+turnstileSiteKey/turnstileMode, paramètres publics centralisés. Aucun secret Worker.
 
 Sondage local publié sans votes : Publier en ligne. Avec bulletins locaux : refus
 expliqué. Publication préparée : blocage des écritures locales sous le verrou du
@@ -237,4 +242,56 @@ confirmation et vote HTTP. `#/p/<pollId>/results` charge les résultats distants
 Le votant n'écrit aucun bulletin local. L'édition distante réutilise le formulaire
 et le traitement d'images ; une révision obsolète recharge sans renvoyer l'édition.
 La sauvegarde locale affiche un avertissement : ni capacités ni bulletins distants
-ne sont inclus. Leur transfert/récupération n'est pas résolu dans ce lot.
+ne sont inclus. Les clés disposent désormais d'un export/import SECRET séparé.
+
+## Turnstile et configuration v0.3C
+
+Nouvelle préparation : humanVerificationToken dans le JSON du POST, retiré avant
+la logique métier/D1. Siteverify Worker : POST avec secret, timeout 8 s, réponse
+bornée, hostname exact autorisé, action `voti-publication`, âge ≤5 minutes.
+Token absent/échoué : HUMAN_VERIFICATION_REQUIRED/FAILED (403). Secret/service
+absents : RELAY_UNAVAILABLE, échec fermé. Pas de remoteip envoyé. Préparation
+existante : capacité requise, reprise sans nouveau challenge.
+
+Le script Turnstile est chargé seulement après Publier en ligne nécessitant une
+nouvelle préparation. Jamais au chargement, vote, résultats ou administration.
+Dépendance réseau volontaire de ce seul parcours, pas un CDN nécessaire au mode
+local offline. Le vote reste sans compte/challenge. Publication indisponible :
+message simple et mode local conservé, sans faux succès.
+
+Variables publiques : VOTI_RELAY_ID, VOTI_RELAY_URL, VOTI_TURNSTILE_SITE_KEY,
+VOTI_TURNSTILE_MODE (`siteverify` par défaut). Worker : TURNSTILE_SECRET via secret,
+TURNSTILE_HOSTNAMES (liste exacte), TURNSTILE_MODE=siteverify. Secret jamais lu au build.
+
+Le wrapper ajoute `--var TURNSTILE_MODE:local-test` seulement à wrangler dev.
+Ce simulateur offline exige token horodaté/UUID, vérifie expiration et replay en
+mémoire et refuse une URL non loopback. Il ne protège pas contre des robots réels :
+jamais en production. Siteverify est aussi testé avec réponses injectées, sans
+appel Internet ; les clés officielles factices sont refusées en production.
+
+## Suppression, rétention et clé secrète
+
+deletePoll : garde capacité/révision du batch D1 existant, DELETE ballots puis poll.
+Cascades : relations et préparations ; triggers : garbage R2 réservé dans cette
+transaction. Pas de dépendance R2 avant succès : panne R2 ne ressuscite pas le
+sondage. Les nouvelles lectures/votes/résultats/assets renvoient NOT_FOUND. Le
+client retire sa connexion après succès ou NOT_FOUND au retry. Copie locale
+conservée sans bulletins distants ; une nouvelle publication reste une action explicite.
+
+Préparations : 24 h ; publiés/fermés : aucune expiration automatique. Garbage
+repris au cron/commande locale après panne/redémarrage. Pas de journaux personnels
+applicatifs, aucune durée de rétention promise pour les logs propres à Cloudflare.
+
+Assets : réponse contextualisée puis `Cache-Control: private, max-age=300, immutable`,
+ETag sha256 ; HttpRelayAdapter autorise ce cache navigateur. Pas de cache edge
+court-circuitant l'autorisation ni de R2 public. Chaque requête réseau vérifie les
+références. Une copie reçue n'est pas révocable : cache frais jusqu'à 5 minutes
+après suppression/retrait, durée volontairement courte malgré les octets immuables.
+
+Clé : fichier version 1, exactement version/relayId/pollId/adminCapability.
+Gestion → Exporter ; Gestion/Sauvegarde → Importer. Limite 4096 octets, structure
+stricte, GET admin réellement authentifié avant stockage, confirmation en cas
+d'autre clé puis comparaison atomique sous Web Lock. Aucune inclusion au backup
+ou URL. Toute personne possédant ce fichier peut modifier/fermer/supprimer.
+Pas de compte ni chiffrement du fichier ; conserver en lieu sûr. Les administrations
+importées restent accessibles à l'accueil même sans snapshot local.

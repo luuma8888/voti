@@ -4,6 +4,8 @@ export const RELAY_ERROR_CODES = Object.freeze([
   'INVALID_DEFINITION', 'RESULTS_LOCKED', 'INVALID_CAPABILITY', 'ASSET_MISSING',
   'ASSET_INVALID', 'PAYLOAD_TOO_LARGE', 'RATE_LIMITED', 'RELAY_UNAVAILABLE',
   'LOCAL_VOTES_PRESENT', 'IDEMPOTENCY_CONFLICT', 'INVALID_REQUEST', 'PUBLICATION_CONFLICT',
+  'HUMAN_VERIFICATION_REQUIRED', 'HUMAN_VERIFICATION_FAILED', 'CREATION_RATE_LIMITED',
+  'CAPABILITY_CONFLICT',
 ]);
 
 export class RelayError extends Error {
@@ -61,6 +63,8 @@ export class RelayAdapter {
   async updateDefinition(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
   async updateStyle(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
   async closePoll(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
+  async deletePoll(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
+  async verifyAdmin(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
   async castVote(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
   async getResults(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
   async getAsset(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }

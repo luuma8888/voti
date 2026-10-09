@@ -23,7 +23,7 @@ export class HttpRelayAdapter extends RelayAdapter {
     const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       const response = await this.fetchImpl.call(globalThis, `${this.baseUrl}/api/v1/${path.replace(':id', pollId).replace(':asset', encodeURIComponent(assetId || ''))}`,
-        { method: verb, headers, body: payload, credentials: 'omit', redirect: 'error', cache: 'no-store', signal: controller.signal });
+        { method: verb, headers, body: payload, credentials: 'omit', redirect: 'error', cache: method === 'getAsset' ? 'default' : 'no-store', signal: controller.signal });
       const value = await readBoundedJson(response, method === 'getAsset' ? 1_400_000 : 65_536);
       if (!response.ok) {
         need(value?.error && RELAY_ERROR_CODES.includes(value.error.code), 'RELAY_UNAVAILABLE');
@@ -45,6 +45,8 @@ export class HttpRelayAdapter extends RelayAdapter {
   async updateDefinition(r) { return this.call('updateDefinition', r); }
   async updateStyle(r) { return this.call('updateStyle', r); }
   async closePoll(r) { return this.call('closePoll', r); }
+  async deletePoll(r) { return this.call('deletePoll', r); }
+  async verifyAdmin(r) { return this.call('verifyAdmin', r); }
   async castVote(r) { return this.call('castVote', r); }
   async getResults(r) { return this.call('getResults', r); }
   async getAsset(r) { return this.call('getAsset', r); }

@@ -26,10 +26,13 @@ export async function build() {
   for (const file of files) {
     let source = await readFile(resolve(ROOT, file), 'utf8');
     if (file === 'web/relay-config.js' && process.env.VOTI_RELAY_URL) {
-      const config = { relayId: process.env.VOTI_RELAY_ID || 'voti-local', baseUrl: process.env.VOTI_RELAY_URL };
+      const config = { relayId: process.env.VOTI_RELAY_ID || 'voti-local', baseUrl: process.env.VOTI_RELAY_URL,
+        turnstileSiteKey: process.env.VOTI_TURNSTILE_SITE_KEY || null, turnstileMode: process.env.VOTI_TURNSTILE_MODE || 'siteverify' };
       const url = new URL(config.baseUrl);
       if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(config.relayId) || url.username || url.password || url.search || url.hash ||
         !(url.protocol === 'https:' || (url.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(url.hostname)))) throw new Error('Configuration relais invalide.');
+      if (!['siteverify', 'local-test'].includes(config.turnstileMode) || (config.turnstileSiteKey !== null && !/^[a-zA-Z0-9_-]{10,100}$/.test(config.turnstileSiteKey)) ||
+        (config.turnstileMode === 'local-test' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)))) throw new Error('Configuration Turnstile invalide.');
       source = `export const RELAY_CONFIG = ${JSON.stringify(config)};`;
     }
     source = source.replace(/\bfrom\s+(['"])(\.[^'"\n]+)\1/g, (_match, quote, specifier) => {
