@@ -45,23 +45,14 @@ Afficher 2 choix minimum.
 
 Actions :
 - ajouter une réponse ;
-- supprimer une réponse avant publication ;
+- supprimer une réponse tant qu’aucun bulletin n’a été accepté, même après publication ;
 - réordonner.
 
 Limiter à 6 dans le MVP.
 
-### Écran 3 — Secret ou visible
+### Confidentialité du prototype
 
-Formulation enfant-compatible :
-
-`Le vote est-il secret ?`
-
-Options :
-
-`Oui, les choix restent secrets`
-`Non, c'est un vote nominatif`
-
-Ajouter une explication courte.
+Pas de choix nominatif. Indiquer simplement : aucun nom demandé ; les données restent dans ce navigateur et peuvent être inspectées par le propriétaire de l’appareil. Ne pas promettre un secret fort.
 
 ### Écran 4 — Résultats
 
@@ -73,14 +64,14 @@ Option MVP principale :
 `À partir de [5] réponses`
 
 Autre option :
-`Quand le sondage est terminé`
+`Quand le sondage est terminé ET le minimum de réponses atteint`
 
 ### Écran 5 — Vérification
 
 Résumé :
 - question ;
 - choix ;
-- secret / nominatif ;
+- limites du prototype local, sans nom demandé ;
 - règle de résultats.
 
 Boutons :
@@ -92,10 +83,8 @@ Boutons :
 Afficher :
 
 - état ;
-- QR de vote ;
-- lien ;
+- indication que le vote fonctionne dans ce navigateur uniquement ;
 - bouton `Ouvrir le vote` ;
-- bouton `Créer une affiche` ;
 - bouton `Voir les résultats` ;
 - bouton `Modifier`.
 
@@ -140,6 +129,8 @@ Ton vote a bien été enregistré.
 
 ## 6. QR pré-sélectionné
 
+Parcours futur : aucun QR n’est généré dans la fondation locale. Voir `LOCAL_MVP_DECISIONS.md`.
+
 Après scan :
 
 ```text
@@ -166,6 +157,7 @@ Ils apparaîtront à partir de 5 réponses.
 
 Si configuré pour masquer le compteur actuel, ne pas afficher :
 `3 réponses reçues`.
+Ce masquage est le comportement par défaut, y compris dans la liste et l’espace créateur. La fermeture ne dispense jamais du seuil.
 
 ## 8. Résultats disponibles
 

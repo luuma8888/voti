@@ -31,6 +31,7 @@ si aucun mécanisme ne permet de l’assurer.
 ## 4. MVP
 
 Le MVP n’implémente pas encore l’unicité forte entre appareils.
+Il collecte uniquement dans le navigateur détenant les données, sans QR ni collecte multi-appareils. Le mode nominatif n’est pas proposé. Les bulletins sont minimaux, sans identité ni horodatage ; aucune garantie d’anonymat fort contre le propriétaire de l’appareil ou l’inspection du stockage.
 
 Il doit néanmoins :
 - empêcher un double clic / double envoi accidentel ;
@@ -92,3 +93,4 @@ Valeur par défaut :
 `5 réponses`.
 
 Le seuil est configurable à la création.
+Il reste obligatoire même à la fermeture ; le compteur est masqué par défaut avant publication. Voir `LOCAL_MVP_DECISIONS.md`.

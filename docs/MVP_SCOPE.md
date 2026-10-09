@@ -8,6 +8,8 @@ Valider un parcours complet et simple :
 
 Le MVP est d’abord Web/local, sans backend distant.
 
+Les arbitrages validés dans `LOCAL_MVP_DECISIONS.md` font autorité. La présente livraison est la fondation locale ; QR, affiches et PDF sont reportés.
+
 ## 2. Public cible
 
 ### Créateur
@@ -26,7 +28,7 @@ Enfant ou adulte, avec objectif d’usage autonome vers 6 ans.
 - texte obligatoire pour chaque choix ;
 - emoji ou pictogramme facultatif ;
 - image de choix reportée après première version si elle complexifie trop le MVP ;
-- choisir anonyme ou nominatif comme propriété du sondage, même si le nominatif réel sans compte reste simulé/local au MVP ;
+- mode anonyme/prototype local uniquement, sans option nominative ni promesse d’anonymat fort contre l’inspection du stockage ;
 - seuil de résultats configurable, valeur par défaut 5 ;
 - état brouillon puis publié.
 
@@ -44,7 +46,9 @@ Au premier bulletin accepté :
 - liste des choix immuable ;
 - type de vote immuable ;
 - anonymat immuable ;
-- règles principales de résultat immuables si leur modification peut altérer la compréhension du scrutin.
+- toutes les règles de résultat et d’accès immuables, incluses dans l’empreinte sémantique avec la définition.
+
+Un sondage publié reste modifiable tant qu’aucun bulletin n’a été accepté.
 
 Restent modifiables :
 - couleurs ;
@@ -59,28 +63,17 @@ Restent modifiables :
 - graphique simple ;
 - résultats masqués sous le seuil ;
 - possibilité de fermer le sondage.
+- mode `closed` : fermeture ET seuil obligatoire ; compteur masqué par défaut avant publication des résultats.
 
-### QR
-- QR vers page de vote ;
-- QR vers un choix pré-sélectionné ;
-- QR vers résultats ;
-- aucun QR de choix ne valide le vote sans confirmation humaine.
-
-### Affiche
-Première version :
-- A4 portrait ;
-- titre/question ;
-- choix ;
-- QR principal ;
-- option QR par choix ;
-- QR résultats facultatif ;
-- rendu imprimable.
+### QR, affiches et PDF — reportés
+Pas de génération QR dans la fondation locale. La collecte multi-appareils attend un relais partagé. La règle future reste : présélection puis confirmation, jamais un vote automatique. Affiches et PDF sont hors de cette livraison.
 
 ### Import/export local
 - sérialiser un sondage ;
 - exporter un fichier JSON de développement ;
 - réimporter ce fichier ;
 - ce format n’est pas encore le futur `.sondagebox`.
+- validation complète avant écriture ; version inconnue et incohérences refusées ; collisions refusées, aucun remplacement silencieux ni fusion complexe ; statistiques recalculées depuis les bulletins.
 
 ## 4. Fonctionnalités explicitement hors MVP
 
@@ -128,6 +121,6 @@ Le MVP est considéré fonctionnel lorsqu’il est possible de :
 7. modifier son style ;
 8. vérifier que les résultats restent masqués sous le seuil ;
 9. atteindre le seuil et voir les résultats ;
-10. générer et scanner un QR de vote ;
-11. générer un QR de choix, vérifier qu’il ne vote pas seul ;
-12. imprimer une affiche A4 lisible.
+10. vérifier le mode fermeture ET seuil ;
+11. exporter puis réimporter dans un stockage vide, et refuser un import incohérent ou en collision ;
+12. vérifier qu’une navigation ne vote jamais et qu’un double clic ne double pas un bulletin.

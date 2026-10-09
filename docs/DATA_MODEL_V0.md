@@ -2,6 +2,8 @@
 
 ## 1. Principes
 
+Pour la fondation locale, `LOCAL_MVP_DECISIONS.md` précise les arbitrages faisant autorité.
+
 - identifiants UUID ;
 - schéma versionné ;
 - logique indépendante du stockage ;
@@ -41,6 +43,7 @@ choices: Choice[]
 ```
 
 Règle : après `lockedAt`, cette structure ne peut plus être modifiée.
+`named` est réservé au futur et refusé dans les données actives du prototype local.
 
 ## 4. Choice
 
@@ -78,6 +81,7 @@ allowDirectChoiceQr: boolean
 Pour le MVP local :
 - `audience = public`
 - `requiresAccount = false`
+- `allowDirectChoiceQr = false` (QR non implémentés).
 
 ## 7. ResultPublicationRules
 
@@ -94,6 +98,7 @@ MVP minimum :
 - `releaseMode = threshold | closed`
 
 Valeur par défaut : `minimumResponses = 5`.
+Le seuil est un plancher obligatoire pour tous les modes. `closed` exige fermeture ET seuil. `showResponseCountBeforeRelease = false` par défaut. Les modes manual/date ne sont pas actifs dans cette fondation. Toutes les règles de résultats et d’accès sont immuables après premier bulletin accepté.
 
 ## 8. Ballot
 
@@ -103,9 +108,9 @@ Le bulletin ne doit pas être conçu autour de l’identité.
 id: UUID
 pollId: UUID
 choiceId: UUID
-createdAt: ISO datetime
-source: web | local_android | relay | import
 ```
+
+Le bulletin MVP contient uniquement ces trois identifiants, sans horodatage ni source. Aucun champ supplémentaire d’identité ou de métadonnées n’est accepté à l’import.
 
 Pour un futur sondage anonyme :
 - aucun `userId` dans Ballot ;
@@ -205,7 +210,7 @@ payload: object
 
 ## 17. definitionHash
 
-Au verrouillage, calculer une représentation canonique de `PollDefinition`, puis son hash.
+Au verrouillage, calculer une représentation canonique de `{ definition, accessRules, resultRules }`, puis son SHA-256 avec une primitive standard. Mode/privacy sont inclus via la définition. Style, statistiques et état du cycle de vie sont exclus.
 
 Objectifs :
 - détecter modification accidentelle ;
@@ -213,3 +218,29 @@ Objectifs :
 - futur contrôle de synchronisation.
 
 Ne pas utiliser ce hash comme mécanisme de sécurité autonome.
+
+## 18. Contrat exécuté par la fondation locale
+
+La sauvegarde JSON version 1 contient `{ schemaVersion: 1, polls: Poll[], ballots: Ballot[] }`.
+Les validateurs de `shared/validation.js` constituent le contrat exécutable de cette livraison.
+Champs inconnus, versions inconnues, identifiants dupliqués entre objets, références étrangères,
+chronologie incohérente et empreinte invalide sont refusés avant écriture.
+
+Limites techniques du prototype : question non vide de 240 caractères maximum ; description
+facultative de 1 000 caractères maximum ; choix non vide de 100 caractères maximum ; seuil entier
+de 1 à 100 000 ; JSON limité à 2 millions de caractères (sélection de fichier limitée à 2 Mo).
+Ces limites bornent le stockage et ne constituent pas de nouveaux modes de vote.
+
+Les styles actifs sont `mint`, `lavender`, `peach`, avec `layout = cards` et `posterVariant = none`.
+Pas d'image, couleur CSS arbitraire ou référence réseau. `contextId = null`. Les règles futures
+`manual`, `date`, les comptes et `named` sont refusés pour les données actives du prototype.
+
+Les statistiques présentes dans le JSON sont un cache de forme contrôlée, toujours recalculé
+depuis les bulletins à la lecture, l'import et l'export. L'import initialise uniquement un espace
+vide ; toute importation dans un espace contenant déjà un sondage est refusée, sans fusion.
+
+Le moteur conserve son état d'entrée intact et prépare un nouvel état. Le premier bulletin,
+le verrouillage, l'empreinte et les statistiques sont sauvegardés dans un seul snapshot. Une
+nouvelle tentative avec le même identifiant et le même choix est idempotente ; réutiliser cet
+identifiant pour un autre choix est refusé. Un nouvel identifiant reste un nouveau bulletin,
+sans garantie d'unicité par personne.
