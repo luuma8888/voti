@@ -9,7 +9,10 @@ test('build autonome : tous les modules embarqués, aucun script/CSS externe', a
   assert.doesNotMatch(html, /<script[^>]+src=|<link[^>]+(?:href|rel)=|@import|url\(https?:/i);
   const match = html.match(/<script type="importmap">(.*?)<\/script>/s);
   const { imports } = JSON.parse(match[1]);
-  assert.equal(Object.keys(imports).length, 16);
+  assert.equal(Object.keys(imports).length, 20);
+  assert.ok(imports['voti/shared/relay.js']);
+  assert.ok(imports['voti/shared/relay-client.js']);
+  assert.ok(!Object.keys(imports).some(name => name.includes('in-memory-relay')));
   assert.ok(imports['voti/web/app.js']);
   for (const [name, data] of Object.entries(imports)) {
     assert.ok(data.startsWith('data:text/javascript;base64,'), name);
