@@ -221,6 +221,8 @@ Ne pas utiliser ce hash comme mécanisme de sécurité autonome.
 
 ## 18. Contrat exécuté par la fondation locale
 
+Cette section décrit le contrat historique v1. Le contrat actif v0.2B.2 est précisé en section 19.
+
 La sauvegarde JSON version 1 contient `{ schemaVersion: 1, polls: Poll[], ballots: Ballot[] }`.
 Les validateurs de `shared/validation.js` constituent le contrat exécutable de cette livraison.
 Champs inconnus, versions inconnues, identifiants dupliqués entre objets, références étrangères,
@@ -244,3 +246,47 @@ le verrouillage, l'empreinte et les statistiques sont sauvegardés dans un seul 
 nouvelle tentative avec le même identifiant et le même choix est idempotente ; réutiliser cet
 identifiant pour un autre choix est refusé. Un nouvel identifiant reste un nouveau bulletin,
 sans garantie d'unicité par personne.
+
+## 19. Évolution explicite v0.2B.2 — schéma 2 et assets
+
+Autorité : `VOTI_UX_V0_2B_2_SPEC.md`. Le snapshot métier devient
+`{ schemaVersion: 2, polls: Poll[], ballots: Ballot[] }`, chaque Poll étant en version 2.
+`PollDefinition` ajoute `pollImageAssetId: string | null` ; `Choice.imageRef` accepte
+désormais un identifiant d'asset ou `null`. Ces deux références sont sémantiques,
+incluses dans l'empreinte existante et verrouillées dès le premier bulletin accepté.
+
+Un identifiant d'asset est `sha256-` suivi du SHA-256 hexadécimal des octets normalisés.
+Les UUID des sondages, choix et bulletins ne changent pas. Cette adresse de contenu
+lie l'empreinte du sondage aux octets de l'image, pas à une URL remplaçable. Aucun
+blob ni base64 dans le snapshot ; aucun champ d'image dans le style.
+
+Migration v1 → v2 : validation exhaustive du v1 et de ses anciennes empreintes,
+copie sans mutation de la source, ajout de `definition.pollImageAssetId = null`,
+passage des versions à 2, recalcul de l'empreinte des seuls sondages déjà verrouillés,
+puis validation v2. `Choice.imageRef` reste `null` pour tout v1 accepté. Les bulletins,
+UUID, dates, statuts, styles et règles sont conservés. Le recalcul des statistiques
+reste inchangé. Version inconnue, champ inattendu ou empreinte v1 altérée = refus.
+La lecture migre en mémoire ; le prochain enregistrement persiste le v2 dans la clé
+historique `voti.local.v1`. L'ancien fichier v1 n'ouvre pas des données v2.
+
+Les assets utilisateur sont stockés dans IndexedDB `voti.assets.v1`, store `assets`
+(en `file://`, le nom est suffixé par `:file:` et le chemin encodé pour isoler les documents) :
+`{ id, formatVersion: 1, mimeType, width, height, byteLength, blob }`.
+Sortie normalisée WebP, ou PNG de repli natif. Limites : 1600 px / 1 000 000 octets
+pour le sondage, 1000 px / 600 000 octets pour le choix ; si une image est partagée,
+la contrainte la plus stricte s'applique. Au plus 200 assets référencés distincts
+et 24 000 000 octets binaires par bibliothèque. Les assets de marque restent dans le build.
+
+Sauvegarde unique : `{ format: "voti-backup", backupVersion: 1, state, assets }`.
+Dans `assets`, `blob` est remplacé par `base64`. Une seule entrée par ID référencé ;
+assets absents, dupliqués, non référencés, corrompus, de taille/type/dimensions incohérents
+ou indécodables = refus. Limite de fichier : 40 000 000 octets ; les données métier
+conservent leur limite de 2 millions de caractères. Les snapshots historiques v1
+et les snapshots v2 sans assets restent importables, dans un espace métier vide uniquement.
+
+Les écritures de blobs sont atomiques dans IndexedDB, suivies de l'écriture unique du
+snapshot localStorage sous Web Lock partagé. Les assets devenus orphelins sont nettoyés
+après publication ; ceux d'une écriture échouée sont nettoyés avant de retourner l'erreur.
+Une reprise au démarrage traite les orphelins après interruption. Il n'existe pas de
+transaction ACID couvrant les deux API : les cas de nettoyage impossible sont signalés
+et réessayés au prochain démarrage. Voir le rapport de lot pour les limites exactes.

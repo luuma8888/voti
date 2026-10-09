@@ -13,7 +13,8 @@ inférieure sur mobile. Les filtres restent en mémoire pendant la navigation lo
 Ouvrir `index.html` dans un navigateur moderne. Le fichier est autonome et utilisable
 hors connexion : HTML, CSS et modules JavaScript sont intégrés, sans CDN ni framework.
 Les navigateurs doivent prendre en charge les modules ESM, les import maps, Web Crypto
-et localStorage. Chromium a été vérifié sur fichier local. La persistance sous `file://`
+et localStorage. Les images utilisateur nécessitent aussi IndexedDB, Web Locks,
+createImageBitmap et canvas. Chromium a été vérifié sur fichier local. La persistance sous `file://`
 dépend du navigateur et du chemin du fichier ; ne pas déplacer ce fichier sans exporter.
 
 Les votes sont collectés dans ce navigateur uniquement. Aucun QR partagé, compte ou
@@ -58,11 +59,30 @@ le navigateur exécute les modules natifs sans requête externe.
 Ouvrir « Sauvegarde » puis « Exporter une sauvegarde » et conserver une copie hors du navigateur.
 « Importer une sauvegarde » ouvre le choix de fichier. Les données JSON sont consultables
 en lecture seule derrière « Options avancées » ; elles ne sont pas affichées à l'accueil.
-L’export inclut les bulletins ; ce fichier doit être protégé comme vos données.
+L’export inclut les bulletins et les images référencées ; ce fichier doit être protégé comme vos données.
 Le stockage local n’est pas une sauvegarde durable. L’import valide entièrement le
 fichier avant écriture et accepte uniquement un espace vide ; aucune fusion ni
 remplacement. Utiliser un autre profil vide pour tester une restauration, après export.
 
-Le format version 1 reste un format JSON de prototype, distinct de `.sondagebox`.
+Le snapshot métier est en schéma 2. Les anciennes données et sauvegardes v1 sont
+validées puis migrées de façon déterministe. La sauvegarde unique utilise le conteneur
+`voti-backup`, `backupVersion: 1`, avec le snapshot et les images encodées. Il s'agit
+toujours d'un format JSON de prototype, distinct de `.sondagebox`.
 Version inconnue, références incohérentes, identifiants dupliqués, métadonnées de
 bulletins supplémentaires et empreintes incompatibles sont refusés.
+
+## Images et identité graphique
+
+Le logo, le fond discret Voti Pop et la mascotte de bibliothèque vide sont intégrés
+au build depuis `assets/branding/*.webp`. Les PNG source restent hors du HTML.
+Les images utilisateur sont préparées localement puis stockées dans IndexedDB,
+jamais comme blobs/base64 dans localStorage. JPEG, PNG et WebP fixes sont acceptés
+(20 Mo et 24 mégapixels maximum à l'entrée). Les images sont réduites et réencodées :
+1600 px / 1 Mo pour un sondage, 1000 px / 600 Ko pour un choix.
+
+Les images restent facultatives et le texte des choix obligatoire. Ajouter, changer
+ou retirer une image prend effet lors de l'enregistrement du sondage. Le premier
+vote verrouille aussi les références d'images. Les thèmes restent modifiables.
+La bibliothèque est bornée à 200 images distinctes et 24 Mo pour rester exportable
+dans un fichier de 40 Mo maximum. Exportez régulièrement : IndexedDB peut aussi être effacé.
+Voir `docs/CODEX_UX_V0_2B_2_REPORT.md` pour la migration et les garanties transactionnelles.

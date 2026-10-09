@@ -9,6 +9,12 @@ export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
  * Les sources acceptent exclusivement des imports statiques relatifs, nommés.
  */
 export async function build() {
+  const branding = {};
+  for (const name of ['logo', 'background', 'mascot']) {
+    const bytes = await readFile(resolve(ROOT, `assets/branding/voti-${name}.webp`));
+    if (bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WEBP') throw new Error(`Asset de marque WebP invalide : ${name}`);
+    branding[name] = `data:image/webp;base64,${bytes.toString('base64')}`;
+  }
   const files = [];
   for (const directory of ['shared', 'web']) {
     for (const entry of await readdir(resolve(ROOT, directory))) {
@@ -33,7 +39,9 @@ export async function build() {
   const css = await readFile(resolve(ROOT, 'web/styles.css'), 'utf8');
   const map = JSON.stringify({ imports }).replaceAll('<', '\\u003c');
   const html = template.replace('/* VOTI_STYLES */', css)
-    .replace('<!-- VOTI_MODULES -->', `<script type="importmap">${map}</script>\n  <script type="module">import "voti/web/app.js";</script>`);
+    .replace('<!-- VOTI_MODULES -->', `<script type="importmap">${map}</script>\n  <script type="module">import "voti/web/app.js";</script>`)
+    .replace('__VOTI_LOGO__', branding.logo).replace('__VOTI_MASCOT__', branding.mascot)
+    .replace('__VOTI_BACKGROUND__', branding.background);
   await writeFile(resolve(ROOT, 'index.html'), html);
   return html;
 }

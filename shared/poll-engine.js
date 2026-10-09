@@ -12,8 +12,8 @@ export function createPoll(state, input, { uuid = () => crypto.randomUUID(), now
   const poll = {
     id: uuid(), schemaVersion: SCHEMA_VERSION, contextId: null, status: 'draft',
     createdAt: now(), publishedAt: null, closedAt: null, lockedAt: null, definitionHash: null,
-    definition: { question: input.question, description: null, mode: 'single_choice', privacy: 'anonymous',
-      choices: input.choices.map((label, order) => ({ id: uuid(), label, shortLabel: null, emoji: null, imageRef: null, order })) },
+    definition: { question: input.question, description: null, mode: 'single_choice', privacy: 'anonymous', pollImageAssetId: input.pollImageAssetId ?? null,
+      choices: input.choices.map((label, order) => ({ id: uuid(), label, shortLabel: null, emoji: null, imageRef: input.choiceImageRefs?.[order] ?? null, order })) },
     style: defaultStyle(), accessRules: defaultAccess(), resultRules: { ...defaultRules(), ...input.resultRules },
     stats: { totalBallots: 0, countsByChoice: {} }
   };

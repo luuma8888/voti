@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const MAX_JSON_LENGTH = 2_000_000;
 export const THEMES = ['mint', 'lavender', 'peach'];
 

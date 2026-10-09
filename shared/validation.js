@@ -4,7 +4,7 @@ export function ensure(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function object(value, keys, label) {
+export function object(value, keys, label) {
   ensure(value !== null && typeof value === 'object' && !Array.isArray(value), `${label} doit être un objet.`);
   ensure(Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key)), `${label} : champs manquants ou non autorisés.`);
 }
@@ -23,8 +23,13 @@ function date(value, label, nullable = true) {
   ensure(typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value, `${label} : date ISO invalide.`);
 }
 
-export function validateDefinition(definition) {
-  object(definition, ['question', 'description', 'mode', 'privacy', 'choices'], 'Définition');
+export function isAssetId(value) {
+  return typeof value === 'string' && /^sha256-[a-f0-9]{64}$/.test(value);
+}
+
+export function validateDefinition(definition, version = SCHEMA_VERSION) {
+  object(definition, ['question', 'description', 'mode', 'privacy', 'choices', ...(version === 2 ? ['pollImageAssetId'] : [])], 'Définition');
+  if (version === 2) ensure(definition.pollImageAssetId === null || isAssetId(definition.pollImageAssetId), 'Référence image du sondage invalide.');
   text(definition.question, 240, 'Question');
   text(definition.description, 1000, 'Description', true);
   ensure(definition.mode === 'single_choice', 'Seul le choix unique est disponible.');
@@ -38,7 +43,7 @@ export function validateDefinition(definition) {
     text(choice.label, 100, 'Réponse');
     text(choice.shortLabel, 40, 'Libellé court', true);
     text(choice.emoji, 16, 'Pictogramme', true);
-    ensure(choice.imageRef === null, 'Les images ne sont pas disponibles dans cette phase.');
+    ensure(choice.imageRef === null || (version === 2 && isAssetId(choice.imageRef)), 'Référence image du choix invalide.');
     ensure(choice.order === index, 'Ordre des choix incohérent.');
   }
 }
@@ -56,10 +61,10 @@ export function validateStyle(style) {
   ensure(THEMES.includes(style.themeId) && style.accent === null && style.background === null && style.layout === 'cards' && style.posterVariant === 'none', 'Apparence non prise en charge.');
 }
 
-export function validatePoll(poll) {
+export function validatePoll(poll, version = SCHEMA_VERSION) {
   object(poll, ['id', 'schemaVersion', 'contextId', 'status', 'createdAt', 'publishedAt', 'closedAt', 'lockedAt', 'definitionHash', 'definition', 'style', 'accessRules', 'resultRules', 'stats'], 'Sondage');
   ensure(isUuid(poll.id), 'Identifiant du sondage invalide.');
-  ensure(poll.schemaVersion === SCHEMA_VERSION, 'Version du sondage inconnue.');
+  ensure(poll.schemaVersion === version, 'Version du sondage inconnue.');
   ensure(poll.contextId === null, 'Les contextes ne sont pas disponibles.');
   ensure(['draft', 'published', 'closed'].includes(poll.status), 'État du sondage invalide.');
   date(poll.createdAt, 'Création', false);
@@ -72,7 +77,7 @@ export function validatePoll(poll) {
   ensure(poll.closedAt === null || poll.closedAt >= poll.publishedAt, 'Fermeture antérieure à la publication.');
   ensure(poll.lockedAt === null || (poll.publishedAt !== null && poll.lockedAt >= poll.publishedAt && (poll.closedAt === null || poll.lockedAt <= poll.closedAt)), 'Verrouillage incohérent.');
   ensure(poll.lockedAt === null ? poll.definitionHash === null : /^[a-f0-9]{64}$/.test(poll.definitionHash), 'Empreinte de verrouillage invalide.');
-  validateDefinition(poll.definition);
+  validateDefinition(poll.definition, version);
   validateStyle(poll.style);
   validateRules(poll.resultRules);
   object(poll.accessRules, ['audience', 'requiresAccount', 'allowDirectChoiceQr'], 'Accès');
@@ -85,9 +90,9 @@ export function validatePoll(poll) {
 }
 
 /** Valide l'intégralité de l'état, vérifie les empreintes, recalcule les caches. */
-export async function validateState(input) {
+export async function validateState(input, version = SCHEMA_VERSION) {
   object(input, ['schemaVersion', 'polls', 'ballots'], 'Sauvegarde');
-  ensure(input.schemaVersion === SCHEMA_VERSION, 'Version de schéma inconnue : import refusé.');
+  ensure([1, 2].includes(version) && input.schemaVersion === version, 'Version de schéma inconnue : import refusé.');
   ensure(Array.isArray(input.polls) && Array.isArray(input.ballots), 'Listes de données invalides.');
   const state = structuredClone(input);
   const ids = new Set();
@@ -97,7 +102,7 @@ export async function validateState(input) {
   };
   const polls = new Map();
   for (const poll of state.polls) {
-    validatePoll(poll);
+    validatePoll(poll, version);
     reserve(poll.id);
     polls.set(poll.id, poll);
     for (const choice of poll.definition.choices) reserve(choice.id);

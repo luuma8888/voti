@@ -1,16 +1,20 @@
 import { defaultRules, defaultStyle, THEMES } from '../shared/model.js';
 import { createPoll, getPoll, publishPoll, closePoll, castVote, updateSemantics, updateStyle } from '../shared/poll-engine.js';
 import { getResults } from '../shared/result-rules.js';
-import { importIntoEmpty, serialize } from '../shared/serialization.js';
-import { MAX_JSON_LENGTH } from '../shared/model.js';
+import { exportBackup, restoreBackup, MAX_BACKUP_BYTES } from '../shared/backup.js';
 import { LocalStorageAdapter, Repository, STORAGE_KEY } from './storage.js';
 import { summarizePolls, queryPolls, STATUS_LABELS, FILTERS, SORTS } from './poll-library.js';
 import { THEME_OPTIONS, THEME_KEY, normalizeTheme } from './themes.js';
+import { IndexedDBAssetAdapter } from './asset-storage.js';
+import { verifyDecodedAsset } from './image-processing.js';
+import { ImageViews, imagePicker } from './image-ui.js';
 
 const app = document.getElementById('app');
 const message = document.getElementById('message');
 const notice = document.getElementById('notice');
 const libraryView = { search: '', filter: 'all', sort: 'recent' };
+const assets = new IndexedDBAssetAdapter();
+const images = new ImageViews(assets);
 let repository;
 let state;
 let editor = null;
@@ -69,10 +73,10 @@ function download(raw, name) {
   document.body.append(anchor); anchor.click(); anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-async function transact(node, operation, after = () => render()) {
+async function transact(node, operation, after = () => render(), staged = []) {
   if (node.disabled) return;
   node.disabled = true; clearError();
-  try { state = await repository.transact(operation); after(); }
+  try { state = await repository.transact(operation, staged); after(); if (repository.warning) notify(repository.warning); }
   catch (error) { showError(error); node.disabled = false; }
 }
 
@@ -82,7 +86,9 @@ function home() {
   const entries = summarizePolls(state);
   app.append(append(el('div', null, { class: 'library-heading' }), title, link('+ Nouveau sondage', '#new', 'primary new-poll')),
     el('p', `${entries.length} sondage${entries.length > 1 ? 's' : ''} · ${entries.filter(entry => entry.status === 'published').length} ouverts · ${entries.filter(entry => entry.available).length} résultats disponibles`, { class: 'library-summary' }));
-  if (!entries.length) app.append(el('p', 'Votre premier sondage commence ici. Posez une question et proposez quelques choix.', { class: 'empty-state' }));
+  if (!entries.length) app.append(append(el('div', null, { class: 'empty-state empty-library' }),
+    el('img', null, { src: document.getElementById('brand-mascot').src, alt: '', width: '88', height: '79', class: 'mascot' }),
+    el('p', 'Votre premier sondage commence ici. Posez une question et proposez quelques choix.')));
   const toolbar = el('div', null, { class: 'library-toolbar' });
   const search = el('input', null, { type: 'search', placeholder: 'Rechercher un sondage…', autocomplete: 'off', 'data-testid': 'poll-search' });
   search.value = libraryView.search;
@@ -99,6 +105,7 @@ function home() {
     count.textContent = `${visible.length} sur ${entries.length} sondage${entries.length > 1 ? 's' : ''}`;
     for (const [value, node] of filterButtons) node.setAttribute('aria-pressed', String(libraryView.filter === value));
     list.replaceChildren();
+    images.sweep();
     for (const entry of visible) {
       const item = el('li');
       const row = el('article', null, { class: 'poll-row', 'data-poll-id': entry.id, 'data-status': entry.status });
@@ -119,6 +126,8 @@ function home() {
         control.setAttribute('aria-label', `${action.label === 'Résultats 🔒' ? 'Résultats verrouillés' : action.label} : ${entry.question}`);
         return control;
       }));
+      const poll = getPoll(state, entry.id);
+      if (poll.definition.pollImageAssetId) row.append(images.show(poll.definition.pollImageAssetId, { size: 'thumbnail' }));
       row.append(info, controls); item.append(row); list.append(item);
     }
     if (entries.length && !visible.length) list.append(append(el('li', null, { class: 'empty-state' }),
@@ -144,7 +153,8 @@ function backup() {
     if (exportButton.disabled) return;
     exportButton.disabled = true; clearError(); notify('');
     try {
-      download(await serialize(await repository.load()), 'voti-sauvegarde.json');
+      const raw = await repository.exclusive(async () => exportBackup(await repository.load(), assets));
+      download(raw, 'voti-sauvegarde.json');
       notify('Le fichier est prêt. Vérifiez son enregistrement sur votre appareil.');
     } catch (error) { showError(error); }
     finally { exportButton.disabled = false; }
@@ -155,11 +165,11 @@ function backup() {
     const file = input.files[0]; if (!file) return;
     input.disabled = true; importButton.disabled = true; clearError(); notify('');
     try {
-      if (file.size > MAX_JSON_LENGTH) throw new Error('Fichier trop volumineux pour le prototype.');
+      if (file.size > MAX_BACKUP_BYTES) throw new Error('Fichier trop volumineux : 40 Mo maximum.');
       const raw = await file.text();
-      state = await repository.transact(current => importIntoEmpty(current, raw));
+      state = await restoreBackup(repository, raw, verifyDecodedAsset);
       render();
-      notify('Sauvegarde importée. Retrouvez vos sondages sur l’accueil.');
+      notify(repository.warning || 'Sauvegarde importée. Retrouvez vos sondages sur l’accueil.');
     } catch (error) { showError(error); input.disabled = false; importButton.disabled = false; input.value = ''; }
   });
   panel.append(actions(exportButton, importButton), input,
@@ -170,7 +180,7 @@ function backup() {
   advanced.append(el('p', 'Voir les données JSON · Outil technique. Ces données incluent les bulletins, même si les résultats sont verrouillés.', { class: 'help' }), json);
   advanced.addEventListener('toggle', async () => {
     if (!advanced.open) return;
-    try { json.value = await serialize(await repository.load()); } catch (error) { showError(error); }
+    try { json.value = await repository.exclusive(async () => exportBackup(await repository.load(), assets)); } catch (error) { showError(error); }
   });
   app.append(panel, advanced, actions(link('Retour à l’accueil', '#home')));
 }
@@ -180,10 +190,15 @@ function management(id) {
   const poll = getPoll(state, id);
   heading(poll.definition.question);
   const card = el('section', null, { class: 'card', 'data-accent': poll.style.themeId });
+  if (poll.definition.pollImageAssetId) card.append(images.show(poll.definition.pollImageAssetId, { alt: 'Illustration du sondage' }));
   append(card, el('span', statusLabel(poll), { class: `badge status-${poll.status}` }),
     el('p', poll.lockedAt ? 'Le premier vote a verrouillé la question, les choix et les règles. Vous pouvez encore changer l’apparence.' : 'Vous pouvez modifier la question, les choix et les règles avant le premier vote.'),
     el('ul'));
-  for (const choice of poll.definition.choices) card.lastChild.append(el('li', choice.label));
+  for (const choice of poll.definition.choices) {
+    const item = el('li', choice.label);
+    if (choice.imageRef) item.append(images.show(choice.imageRef, { size: 'choice' }));
+    card.lastChild.append(item);
+  }
   const controls = [];
   if (poll.status === 'draft') {
     const publish = button('Publier dans ce navigateur', () => transact(publish, current => publishPoll(current, id)), 'primary');
@@ -207,14 +222,28 @@ function makeEditor(id) {
   if (id) {
     const poll = getPoll(state, id);
     if (poll.lockedAt || poll.status === 'closed') throw new Error('Le fond de ce sondage ne peut plus être modifié.');
-    return { id, step: 0, question: poll.definition.question,
+    return { id, step: 0, question: poll.definition.question, pollImageAssetId: poll.definition.pollImageAssetId, staged: new Map(), processing: 0,
       choices: structuredClone(poll.definition.choices), rules: structuredClone(poll.resultRules) };
   }
-  return { id: null, step: 0, question: '', choices: ['', ''].map(label => ({ id: crypto.randomUUID(), label })), rules: defaultRules() };
+  return { id: null, step: 0, question: '', pollImageAssetId: null, staged: new Map(), processing: 0, choices: ['', ''].map(label => ({ id: crypto.randomUUID(), label, imageRef: null })), rules: defaultRules() };
+}
+
+function editorImage(owner, target, key, kind, label) {
+  return imagePicker({ label, kind, getId: () => target[key], staged: owner.staged, views: images,
+    change: asset => {
+      target[key] = asset?.id || null;
+      if (asset) owner.staged.set(asset.id, asset);
+      const referenced = new Set([owner.pollImageAssetId, ...owner.choices.map(choice => choice.imageRef)]);
+      for (const id of owner.staged.keys()) if (!referenced.has(id)) owner.staged.delete(id);
+      clearError();
+    }, busy: delta => { owner.processing += delta; }, active: () => editor === owner,
+    error: showError });
 }
 
 function edit(id) {
   if (!editor || editor.id !== (id || null)) editor = makeEditor(id);
+  const referenced = new Set([editor.pollImageAssetId, ...editor.choices.map(choice => choice.imageRef)]);
+  for (const assetId of editor.staged.keys()) if (!referenced.has(assetId)) editor.staged.delete(assetId);
   heading(['Que veux-tu demander ?', 'Quelles réponses proposes-tu ?', 'Quand montrer les résultats ?', 'Tout est prêt ?'][editor.step]);
   app.append(el('p', `Étape ${editor.step + 1} sur 4 · Aucun nom demandé`, { class: 'step' }));
   const form = el('form', null, { class: 'card' });
@@ -224,6 +253,7 @@ function edit(id) {
     input.value = editor.question;
     input.addEventListener('input', () => { editor.question = input.value; });
     form.append(field('Ta question', input, 'Une question courte et claire, 240 caractères maximum.'));
+    form.append(editorImage(editor, editor, 'pollImageAssetId', 'poll', 'Image du sondage'));
   } else if (step === 1) {
     const list = el('fieldset'); list.append(el('legend', 'Entre 2 et 6 réponses'));
     editor.choices.forEach((choice, index) => {
@@ -237,7 +267,7 @@ function edit(id) {
       up.setAttribute('aria-label', `Monter la réponse ${index + 1}`); up.disabled = index === 0;
       const down = button('↓', () => { [editor.choices[index + 1], editor.choices[index]] = [editor.choices[index], editor.choices[index + 1]]; render(); });
       down.setAttribute('aria-label', `Descendre la réponse ${index + 1}`); down.disabled = index === editor.choices.length - 1;
-      row.append(append(el('div', null, { class: 'choice-controls' }), up, down, remove)); list.append(row);
+      row.append(editorImage(editor, choice, 'imageRef', 'choice', `Image de la réponse ${index + 1}`), append(el('div', null, { class: 'choice-controls' }), up, down, remove)); list.append(row);
     });
     form.append(list);
     const add = button('Ajouter une réponse', () => { editor.choices.push({ id: crypto.randomUUID(), label: '' }); render(); });
@@ -253,8 +283,14 @@ function edit(id) {
     form.append(field('Nombre minimum de réponses', minimum), field('Afficher les résultats', mode),
       el('p', 'Le compteur reste masqué avant publication des résultats. Fermer le sondage ne supprime jamais le minimum requis.', { class: 'help' }));
   } else {
-    form.append(el('h2', editor.question), el('ul'));
-    for (const choice of editor.choices) form.lastChild.append(el('li', choice.label));
+    form.append(el('h2', editor.question));
+    if (editor.pollImageAssetId) form.append(images.show(editor.pollImageAssetId, { staged: editor.staged }));
+    form.append(el('ul'));
+    for (const choice of editor.choices) {
+      const item = el('li', choice.label);
+      if (choice.imageRef) item.append(images.show(choice.imageRef, { size: 'choice', staged: editor.staged }));
+      form.lastChild.append(item);
+    }
     form.append(el('p', `${editor.rules.minimumResponses} réponses minimum${editor.rules.releaseMode === 'closed' ? ' ET sondage fermé' : ''}.`),
       el('p', 'Aucun nom demandé. Ce prototype ne garantit pas le secret contre l’inspection du stockage de l’appareil.', { class: 'help' }));
   }
@@ -265,6 +301,7 @@ function edit(id) {
   let submitting = false;
   form.addEventListener('submit', async event => {
     event.preventDefault(); if (submitting) return;
+    if (editor.processing) return showError(new Error('Attends la fin de la préparation des images avant de continuer.'));
     if (step === 0 && !editor.question.trim()) return showError(new Error('Écris une question avant de continuer.'));
     if (step === 1 && editor.choices.some(choice => !choice.label.trim())) return showError(new Error('Chaque réponse doit contenir un texte.'));
     if (step === 2 && (!Number.isInteger(editor.rules.minimumResponses) || editor.rules.minimumResponses < 1)) return showError(new Error('Choisis un nombre entier positif.'));
@@ -273,12 +310,13 @@ function edit(id) {
     submitting = true;
     const snapshot = structuredClone(editor);
     await transact(submit, current => {
-      if (!id) return createPoll(current, { question: snapshot.question.trim(), choices: snapshot.choices.map(choice => choice.label.trim()), resultRules: snapshot.rules });
+      if (!id) return createPoll(current, { question: snapshot.question.trim(), choices: snapshot.choices.map(choice => choice.label.trim()), resultRules: snapshot.rules,
+        pollImageAssetId: snapshot.pollImageAssetId, choiceImageRefs: snapshot.choices.map(choice => choice.imageRef) });
       const original = getPoll(current, id);
-      const definition = { ...original.definition, question: snapshot.question.trim(), choices: snapshot.choices.map((choice, order) => ({
-        id: choice.id, label: choice.label.trim(), shortLabel: choice.shortLabel || null, emoji: choice.emoji || null, imageRef: null, order })) };
+      const definition = { ...original.definition, question: snapshot.question.trim(), pollImageAssetId: snapshot.pollImageAssetId, choices: snapshot.choices.map((choice, order) => ({
+        id: choice.id, label: choice.label.trim(), shortLabel: choice.shortLabel || null, emoji: choice.emoji || null, imageRef: choice.imageRef || null, order })) };
       return updateSemantics(current, id, definition, snapshot.rules);
-    }, () => { editor = null; navigate(`#poll/${id || state.polls.at(-1).id}`); });
+    }, () => { editor = null; navigate(`#poll/${id || state.polls.at(-1).id}`); }, [...snapshot.staged.values()]);
     submitting = false;
   });
   app.append(form);
@@ -292,10 +330,12 @@ function vote(id) {
     return;
   }
   const card = el('section', null, { class: 'card', 'data-accent': poll.style.themeId });
+  if (poll.definition.pollImageAssetId) card.append(images.show(poll.definition.pollImageAssetId, { alt: 'Illustration du sondage' }));
   if (voteSession?.pollId === id) {
     const choice = poll.definition.choices.find(item => item.id === voteSession.choiceId);
     if (!choice) { voteSession = null; vote(id); return; }
     card.append(el('p', 'Tu choisis :'), el('p', choice.label, { class: 'confirmation' }));
+    if (choice.imageRef) card.append(images.show(choice.imageRef, { size: 'choice' }));
     const action = structuredClone(voteSession);
     let submitted = false;
     const confirm = button('Oui, je confirme', async () => {
@@ -304,6 +344,7 @@ function vote(id) {
       await transact(confirm, current => castVote(current, action), () => {
         voteSession = null;
         app.replaceChildren(); heading('Merci !');
+        images.sweep();
         app.append(append(el('section', null, { class: 'card' }), el('span', '✓', { class: 'success-icon', 'aria-hidden': 'true' }),
           el('p', 'Ton vote a bien été enregistré.'), actions(link('Revenir à mes sondages', '#home'), link('Résultats', `#results/${id}`))));
       });
@@ -317,6 +358,7 @@ function vote(id) {
     for (const choice of poll.definition.choices) {
       const input = el('input', null, { type: 'radio', name: 'choice', value: choice.id, required: '' });
       const label = append(el('label', null, { class: 'vote-choice' }), input, el('span', choice.label));
+      if (choice.imageRef) label.append(images.show(choice.imageRef, { size: 'choice' }));
       options.append(label);
     }
     const next = el('button', 'Continuer', { type: 'submit', class: 'primary' });
@@ -402,6 +444,7 @@ function appearance() {
 function render() {
   if (!state) return;
   app.replaceChildren();
+  images.sweep();
   const nextRoute = location.hash || '#home';
   if (nextRoute !== route) { editor = null; voteSession = null; clearError(); notify(''); route = nextRoute; }
   try {
@@ -440,9 +483,10 @@ try { setTheme(localStorage.getItem(THEME_KEY)); } catch { setTheme('pop'); }
 themeToggle.addEventListener('click', () => navigate('#appearance'));
 
 try {
-  repository = new Repository(new LocalStorageAdapter(localStorage));
+  repository = new Repository(new LocalStorageAdapter(localStorage), navigator.locks, assets);
   state = await repository.load();
   render();
+  repository.recoverAssets().catch(error => notify(`Les sondages restent accessibles. ${error.message}`));
 } catch (error) {
   app.replaceChildren(); heading('Données locales indisponibles');
   app.append(el('p', 'Aucune donnée n’a été remplacée. Vérifiez les permissions du navigateur ou conservez le fichier brut avant une réparation.'));

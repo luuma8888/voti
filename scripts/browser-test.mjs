@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { build, ROOT } from './build.mjs';
 import { votes, published, libraryFixture } from '../tests/fixtures.js';
 import { navigateAndWait, waitForApplication } from './browser-navigation.mjs';
+import { browserAssetScenario } from './browser-assets.mjs';
 
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
@@ -58,7 +59,7 @@ function command(method, params = {}, sessionId) {
 }
 async function evaluate(session, expression) {
   const result = await command('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, session);
-  if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
+  if (result.exceptionDetails) throw new Error((result.exceptionDetails.exception?.description || result.exceptionDetails.text).replace(/data:text\/javascript;base64,[A-Za-z0-9+/=]+/g, '[module embarqué]'));
   return result.result.value;
 }
 
@@ -409,6 +410,13 @@ try {
   await navigateReady(sessionId, offlineUrl);
   if (!await evaluate(sessionId, 'document.documentElement.dataset.theme === "nature"')) throw new Error('Préférence de thème perdue au rechargement offline.');
   if (requests.some(item => /^https?:/.test(item))) throw new Error('Requête HTTP inattendue pendant les tests file://.');
+  const fileAssetChecks = await evaluate(sessionId, `(${browserAssetScenario.toString()})()`);
+  await navigateReady(sessionId, offlineUrl);
+  await evaluate(sessionId, `(async () => {
+    const deadline = performance.now()+5000;
+    while (!document.querySelector('.image-thumbnail img')?.naturalWidth && performance.now()<deadline) await new Promise(requestAnimationFrame);
+    if (!document.querySelector('.image-thumbnail img')?.naturalWidth) throw new Error('Image IndexedDB perdue au rechargement offline.');
+  })()`);
 
   await command('Network.emulateNetworkConditions', { offline: false, latency: 250, downloadThroughput: -1, uploadThroughput: -1 }, sessionId);
   await startDevServer();
@@ -461,9 +469,13 @@ try {
   })()`);
   const appearanceCapture=await command('Page.captureScreenshot', { format:'png' }, sessionId);
   await writeFile(resolve(ROOT, '.browser-tests/ux-v0-2b-1-selector-360.png'), Buffer.from(appearanceCapture.data,'base64'));
+  const httpAssetChecks = await evaluate(sessionId, `(${browserAssetScenario.toString()})()`);
+  await evaluate(sessionId, '(async () => { document.activeElement.blur(); window.scrollTo(0,0); await new Promise(requestAnimationFrame); })()');
+  const assetsCapture = await command('Page.captureScreenshot', { format:'png' }, sessionId);
+  await writeFile(resolve(ROOT, '.browser-tests/ux-v0-2b-2-images-360.png'), Buffer.from(assetsCapture.data,'base64'));
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
   if (requests.some(item => /^https?:/.test(item) && new URL(item).origin !== 'http://127.0.0.1:4173')) throw new Error('Requête réseau externe inattendue.');
-  console.log(`Navigateur Chromium : ${count + 12 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks} contrôles réussis (5 thèmes, 20 sondages, clavier, contrastes, 360/480/768/1200 px, file:// offline et /voti/).`);
+  console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks} contrôles réussis (branding, images, IndexedDB, backup, 5 thèmes, clavier, contrastes, responsive, file:// offline et /voti/).`);
 } catch (error) {
   console.error(`Tests navigateur ÉCHEC : ${error.message}`); process.exitCode = 1;
 } finally {

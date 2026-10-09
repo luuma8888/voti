@@ -27,7 +27,7 @@ Enfant ou adulte, avec objectif d’usage autonome vers 6 ans.
 - choix unique ;
 - texte obligatoire pour chaque choix ;
 - emoji ou pictogramme facultatif ;
-- image de choix reportée après première version si elle complexifie trop le MVP ;
+- depuis v0.2B.2, image facultative du sondage et de chaque choix, normalisée localement et stockée via AssetAdapter/IndexedDB ; texte du choix toujours obligatoire ;
 - mode anonyme/prototype local uniquement, sans option nominative ni promesse d’anonymat fort contre l’inspection du stockage ;
 - seuil de résultats configurable, valeur par défaut 5 ;
 - état brouillon puis publié.
@@ -43,6 +43,7 @@ Enfant ou adulte, avec objectif d’usage autonome vers 6 ans.
 ### Verrouillage
 Au premier bulletin accepté :
 - question immuable ;
+- références d'images du sondage et des choix immuables (v0.2B.2) ;
 - liste des choix immuable ;
 - type de vote immuable ;
 - anonymat immuable ;

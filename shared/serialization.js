@@ -1,11 +1,12 @@
 import { MAX_JSON_LENGTH } from './model.js';
 import { ensure, validateState } from './validation.js';
+import { migrateState } from './migration.js';
 
 export async function parseExport(raw) {
   ensure(typeof raw === 'string' && raw.length <= MAX_JSON_LENGTH, 'Fichier trop volumineux : limite de 2 millions de caractères.');
   let data;
   try { data = JSON.parse(raw); } catch { throw new Error('Le fichier n’est pas un JSON valide.'); }
-  return validateState(data);
+  return migrateState(data);
 }
 
 export async function serialize(state) {

@@ -39,7 +39,8 @@ for (const { id } of THEME_OPTIONS) {
 }
 
 test('palettes locales et focus contextualisé, sans ressource distante', () => {
-  assert.doesNotMatch(css, /@import|url\(|https?:/i);
+  assert.doesNotMatch(css, /@import|https?:/i);
+  assert.deepEqual([...css.matchAll(/url\(([^)]+)\)/g)].map(match => match[1]), ['"__VOTI_BACKGROUND__"']);
   assert.match(css, /:focus-visible\s*\{[^}]*var\(--focus\)/);
   assert.match(css, /\[data-navigation-focus\]:not\(\[data-focus-origin=keyboard\]\):focus/);
 });
