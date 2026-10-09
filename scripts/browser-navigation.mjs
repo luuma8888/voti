@@ -71,7 +71,7 @@ export async function waitForApplication(expectedUrl, timeoutMs = 15000) {
     if (app?.textContent.includes('Données locales indisponibles')) {
       throw new Error(`Initialisation Voti en erreur : ${document.getElementById('message')?.textContent || app.textContent}.`);
     }
-    return app?.querySelector('a[href="#new"]') && app.querySelector('input[type="file"]');
+    return app?.querySelector('a[href="#new"]') && app.querySelector('[data-testid="poll-list"]');
   }, `Voti ne termine pas son initialisation : ${expectedUrl} (#app présent, accueil non prêt).`);
   return true;
 }

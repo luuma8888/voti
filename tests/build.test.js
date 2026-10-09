@@ -9,7 +9,7 @@ test('build autonome : tous les modules embarqués, aucun script/CSS externe', a
   assert.doesNotMatch(html, /<script[^>]+src=|<link[^>]+(?:href|rel)=|@import|url\(https?:/i);
   const match = html.match(/<script type="importmap">(.*?)<\/script>/s);
   const { imports } = JSON.parse(match[1]);
-  assert.equal(Object.keys(imports).length, 7);
+  assert.equal(Object.keys(imports).length, 8);
   assert.ok(imports['voti/web/app.js']);
   for (const [name, data] of Object.entries(imports)) {
     assert.ok(data.startsWith('data:text/javascript;base64,'), name);

@@ -3,6 +3,11 @@
 Prototype de sondages locaux pour choisir ensemble. Création guidée, 2 à 6 choix,
 vote confirmé, verrouillage au premier bulletin accepté et résultats conditionnels.
 
+L'accueil v0.2A présente une liste compacte avec recherche (question, description,
+choix), filtres de statut/résultats et tri. Les résultats sont accessibles directement
+depuis cette liste. Navigation : Accueil, Nouveau sondage et Sauvegarde, avec barre
+inférieure sur mobile. Les filtres restent en mémoire pendant la navigation locale.
+
 ## Utilisation
 
 Ouvrir `index.html` dans un navigateur moderne. Le fichier est autonome et utilisable
@@ -50,7 +55,9 @@ le navigateur exécute les modules natifs sans requête externe.
 
 ## Sauvegarde
 
-Exporter le JSON depuis l’accueil et conserver une copie hors du navigateur.
+Ouvrir « Sauvegarde » puis « Exporter une sauvegarde » et conserver une copie hors du navigateur.
+« Importer une sauvegarde » ouvre le choix de fichier. Les données JSON sont consultables
+en lecture seule derrière « Options avancées » ; elles ne sont pas affichées à l'accueil.
 L’export inclut les bulletins ; ce fichier doit être protégé comme vos données.
 Le stockage local n’est pas une sauvegarde durable. L’import valide entièrement le
 fichier avant écriture et accepte uniquement un espace vide ; aucune fusion ni

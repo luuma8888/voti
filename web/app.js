@@ -4,14 +4,21 @@ import { getResults } from '../shared/result-rules.js';
 import { importIntoEmpty, serialize } from '../shared/serialization.js';
 import { MAX_JSON_LENGTH } from '../shared/model.js';
 import { LocalStorageAdapter, Repository, STORAGE_KEY } from './storage.js';
+import { summarizePolls, queryPolls, STATUS_LABELS, FILTERS, SORTS } from './poll-library.js';
 
 const app = document.getElementById('app');
 const message = document.getElementById('message');
+const notice = document.getElementById('notice');
+const libraryView = { search: '', filter: 'all', sort: 'recent' };
 let repository;
 let state;
 let editor = null;
 let voteSession = null;
 let route = '';
+
+document.querySelector('.skip-link').addEventListener('click', event => {
+  event.preventDefault(); app.focus(); app.scrollIntoView({ block: 'start' });
+});
 
 /** Toute donnée utilisateur passe exclusivement par textContent/value. */
 function el(tag, text, attributes = {}) {
@@ -30,6 +37,7 @@ function link(label, hash, className = '') { return el('a', label, { href: hash,
 function actions(...children) { return append(el('div', null, { class: 'actions' }), ...children); }
 function showError(error) { message.textContent = error.message || String(error); message.hidden = false; }
 function clearError() { message.textContent = ''; message.hidden = true; }
+function notify(text) { notice.textContent = text; notice.hidden = !text; }
 function heading(text) {
   const node = el('h1', text, { tabindex: '-1' });
   app.append(node);
@@ -63,37 +71,102 @@ async function transact(node, operation, after = () => render()) {
 }
 
 function home() {
-  heading('Et si on choisissait ensemble ?');
-  app.append(el('p', 'Une question, quelques choix, puis à chacun de voter.', { class: 'muted' }),
-    actions(link('Créer un sondage', '#new', 'primary')));
-  app.append(el('h2', 'Mes sondages'));
-  if (!state.polls.length) app.append(el('p', 'Votre premier sondage commence ici. Aucun exemple n’est ajouté automatiquement.', { class: 'muted' }));
-  const grid = el('div', null, { class: 'grid' });
-  for (const poll of state.polls) {
-    const card = el('article', null, { class: 'card', 'data-accent': poll.style.themeId });
-    append(card, el('span', statusLabel(poll), { class: 'badge' }), el('h3', poll.definition.question),
-      el('p', poll.lockedAt ? 'Fond verrouillé après le premier vote.' : 'Fond encore modifiable.', { class: 'help' }),
-      actions(link('Gérer', `#poll/${poll.id}`), ...(poll.status === 'published' ? [link('Voter', `#vote/${poll.id}`, 'primary')] : [])));
-    grid.append(card);
+  heading('Mes sondages');
+  const title = app.lastElementChild;
+  const entries = summarizePolls(state);
+  app.append(append(el('div', null, { class: 'library-heading' }), title, link('+ Nouveau sondage', '#new', 'primary new-poll')),
+    el('p', `${entries.length} sondage${entries.length > 1 ? 's' : ''} · ${entries.filter(entry => entry.status === 'published').length} ouverts · ${entries.filter(entry => entry.available).length} résultats disponibles`, { class: 'library-summary' }));
+  if (!entries.length) app.append(el('p', 'Votre premier sondage commence ici. Posez une question et proposez quelques choix.', { class: 'empty-state' }));
+  const toolbar = el('div', null, { class: 'library-toolbar' });
+  const search = el('input', null, { type: 'search', placeholder: 'Rechercher un sondage…', autocomplete: 'off', 'data-testid': 'poll-search' });
+  search.value = libraryView.search;
+  const sort = el('select', null, { 'data-testid': 'poll-sort' });
+  for (const [value, label] of SORTS) sort.append(el('option', label, { value }));
+  sort.value = libraryView.sort;
+  toolbar.append(field('Rechercher', search), field('Trier', sort));
+  const filters = el('div', null, { class: 'filter-chips', role: 'group', 'aria-label': 'Filtrer les sondages', tabindex: '0' });
+  const count = el('p', '', { class: 'help', role: 'status', 'aria-live': 'polite', 'data-testid': 'library-count' });
+  const list = el('ul', null, { class: 'poll-list', 'aria-label': 'Sondages', 'data-testid': 'poll-list' });
+  const filterButtons = [];
+  function refreshList() {
+    const visible = queryPolls(entries, libraryView);
+    count.textContent = `${visible.length} sur ${entries.length} sondage${entries.length > 1 ? 's' : ''}`;
+    for (const [value, node] of filterButtons) node.setAttribute('aria-pressed', String(libraryView.filter === value));
+    list.replaceChildren();
+    for (const entry of visible) {
+      const item = el('li');
+      const row = el('article', null, { class: 'poll-row', 'data-poll-id': entry.id, 'data-status': entry.status });
+      const info = append(el('div', null, { class: 'poll-info' }), el('h2', entry.question));
+      const metadata = append(el('div', null, { class: 'poll-meta' }),
+        el('span', entry.statusLabel, { class: `badge status-${entry.status}` }),
+        el('span', `${entry.choiceCount} choix`),
+        el('time', new Date(entry.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }), { datetime: entry.createdAt }));
+      if (Object.hasOwn(entry, 'responseCount')) metadata.append(el('span', `${entry.responseCount} réponses`));
+      info.append(metadata, el('p', entry.available ? 'Résultats disponibles' : 'Résultats verrouillés', { class: `result-state ${entry.available ? 'available' : ''}` }));
+      const controls = actions(...entry.actions.map(action => {
+        if (action.operation === 'publish') {
+          const publish = button(action.label, () => transact(publish, current => publishPoll(current, entry.id)), 'primary');
+          publish.setAttribute('aria-label', `Publier : ${entry.question}`);
+          return publish;
+        }
+        const control = link(action.label, action.href, action.primary ? 'primary' : '');
+        control.setAttribute('aria-label', `${action.label === 'Résultats 🔒' ? 'Résultats verrouillés' : action.label} : ${entry.question}`);
+        return control;
+      }));
+      row.append(info, controls); item.append(row); list.append(item);
+    }
+    if (entries.length && !visible.length) list.append(append(el('li', null, { class: 'empty-state' }),
+      el('p', 'Aucun sondage ne correspond à cette recherche.'), button('Réinitialiser la recherche', () => {
+        libraryView.search = ''; libraryView.filter = 'all'; search.value = ''; refreshList(); search.focus();
+      })));
   }
-  app.append(grid);
-  const exportButton = button('Exporter mes données JSON', async () => {
-    try { download(await serialize(state), 'voti-prototype.json'); } catch (error) { showError(error); }
-  });
-  const input = el('input', null, { type: 'file', accept: '.json,application/json', 'aria-label': 'Choisir une sauvegarde JSON à importer' });
+  for (const [value, label] of FILTERS) {
+    const chip = button(label, () => { libraryView.filter = value; refreshList(); });
+    chip.dataset.filter = value; filterButtons.push([value, chip]); filters.append(chip);
+  }
+  search.addEventListener('input', () => { libraryView.search = search.value; refreshList(); });
+  sort.addEventListener('change', () => { libraryView.sort = sort.value; refreshList(); });
+  app.append(toolbar, filters, count, list);
+  refreshList();
+}
+
+function backup() {
+  heading('Sauvegarde & transfert');
+  app.append(el('p', 'Gardez une copie de vos sondages sur votre appareil.', { class: 'muted' }));
+  const panel = el('section', null, { class: 'card backup-panel' });
+  const exportButton = button('Exporter une sauvegarde', async () => {
+    if (exportButton.disabled) return;
+    exportButton.disabled = true; clearError(); notify('');
+    try {
+      download(await serialize(await repository.load()), 'voti-sauvegarde.json');
+      notify('Le fichier est prêt. Vérifiez son enregistrement sur votre appareil.');
+    } catch (error) { showError(error); }
+    finally { exportButton.disabled = false; }
+  }, 'primary');
+  const input = el('input', null, { type: 'file', accept: '.json,application/json', 'aria-label': 'Choisir une sauvegarde à importer', hidden: '' });
+  const importButton = button('Importer une sauvegarde', () => input.click());
   input.addEventListener('change', async () => {
     const file = input.files[0]; if (!file) return;
-    input.disabled = true; clearError();
+    input.disabled = true; importButton.disabled = true; clearError(); notify('');
     try {
       if (file.size > MAX_JSON_LENGTH) throw new Error('Fichier trop volumineux pour le prototype.');
       const raw = await file.text();
       state = await repository.transact(current => importIntoEmpty(current, raw));
       render();
-    } catch (error) { showError(error); input.disabled = false; input.value = ''; }
+      notify('Sauvegarde importée. Retrouvez vos sondages sur l’accueil.');
+    } catch (error) { showError(error); input.disabled = false; importButton.disabled = false; input.value = ''; }
   });
-  app.append(append(el('section', null, { class: 'card import-box' }), el('h2', 'Garder une copie'),
-    el('p', 'L’export contient les sondages et les bulletins. Conservez-le dans un emplacement sûr. L’import nécessite un navigateur sans sondage ; rien ne sera remplacé.', { class: 'help' }),
-    actions(exportButton), field('Importer un JSON de prototype', input)));
+  panel.append(actions(exportButton, importButton), input,
+    el('p', 'La sauvegarde contient vos sondages et les bulletins. Conservez-la dans un endroit sûr : le stockage du navigateur peut être effacé.', { class: 'help' }),
+    el('p', 'Pour importer, utilisez un navigateur sans sondage. Aucune donnée existante ne sera remplacée. Vous pouvez essayer dans un autre profil vide.', { class: 'help' }));
+  const advanced = append(el('details', null, { class: 'advanced' }), el('summary', 'Options avancées'));
+  const json = el('textarea', null, { readonly: '', rows: '12', 'aria-label': 'Données JSON de la sauvegarde', spellcheck: 'false' });
+  advanced.append(el('p', 'Voir les données JSON · Outil technique. Ces données incluent les bulletins, même si les résultats sont verrouillés.', { class: 'help' }), json);
+  advanced.addEventListener('toggle', async () => {
+    if (!advanced.open) return;
+    try { json.value = await serialize(await repository.load()); } catch (error) { showError(error); }
+  });
+  app.append(panel, advanced, actions(link('Retour à l’accueil', '#home')));
 }
 
 function statusLabel(poll) { return { draft: 'Brouillon', published: 'Vote ouvert', closed: 'Sondage fermé' }[poll.status]; }
@@ -259,6 +332,7 @@ function results(id) {
   const result = getResults(state, id);
   heading('Les résultats');
   const card = append(el('section', null, { class: 'card', 'data-accent': poll.style.themeId }), el('h2', poll.definition.question));
+  card.append(el('span', STATUS_LABELS[poll.status], { class: `badge status-${poll.status}` }));
   if (!result.available) {
     card.append(el('p', 'Les résultats ne sont pas encore disponibles.'),
       el('p', `Ils apparaîtront à partir de ${result.minimumResponses} réponses${result.releaseMode === 'closed' ? ', une fois le sondage fermé' : ''}.`, { class: 'muted' }));
@@ -295,11 +369,21 @@ function render() {
   if (!state) return;
   app.replaceChildren();
   const nextRoute = location.hash || '#home';
-  if (nextRoute !== route) { editor = null; voteSession = null; clearError(); route = nextRoute; }
+  if (nextRoute !== route) { editor = null; voteSession = null; clearError(); notify(''); route = nextRoute; }
   try {
     const [view, id, extra] = nextRoute.slice(1).split('/');
+    const locations = { home: 'Accueil', new: 'Nouveau sondage', backup: 'Sauvegarde', poll: 'Sondage · Gestion', edit: 'Sondage · Modification', vote: 'Sondage · Vote', results: 'Sondage · Résultats', style: 'Sondage · Apparence' };
+    const pageMarker = document.getElementById('location');
+    pageMarker.textContent = locations[view] || 'Page locale';
+    pageMarker.hidden = view === 'home' && !id;
+    for (const node of document.querySelectorAll('.main-nav a')) {
+      if (node.getAttribute('href') === `#${view}`) node.setAttribute('aria-current', 'page');
+      else node.removeAttribute('aria-current');
+    }
+    document.title = `${locations[view] || 'Voti'} · Voti`;
     if (extra) throw new Error('Ce lien local n’est pas reconnu.');
     if (view === 'home' && !id) home();
+    else if (view === 'backup' && !id) backup();
     else if (view === 'new' && !id) edit();
     else if (view === 'poll' && id) management(id);
     else if (view === 'edit' && id) edit(id);

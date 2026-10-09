@@ -1,10 +1,10 @@
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build, ROOT } from './build.mjs';
-import { votes, published } from '../tests/fixtures.js';
+import { votes, published, libraryFixture } from '../tests/fixtures.js';
 import { navigateAndWait, waitForApplication } from './browser-navigation.mjs';
 
 await build();
@@ -132,7 +132,7 @@ async function browserScenario(fixtures) {
 
   await until(() => text().includes('Mes sondages'), 'accueil');
   assert(localStorage.getItem(key) === null, 'Aucune écriture au chargement');
-  click('Créer un sondage'); await until(() => !!document.querySelector('textarea'), 'question');
+  click('+ Nouveau sondage'); await until(() => !!document.querySelector('textarea'), 'question');
   input(document.querySelector('textarea'), 'Quelle activité ?'); click('Continuer');
   input(document.querySelectorAll('#app input[type=text]')[0], 'Cinéma');
   input(document.querySelectorAll('#app input[type=text]')[1], 'Jeux');
@@ -188,7 +188,18 @@ async function browserScenario(fixtures) {
   const theme = document.getElementById('theme-toggle'); theme.click();
   assert(document.documentElement.dataset.theme === 'dark', 'Mode nuit'); theme.click();
   assert(document.documentElement.dataset.theme === 'light', 'Mode jour');
-  await navigate('#home', 'Mes sondages');
+  document.querySelector('.main-nav a[href="#backup"]').click();
+  await until(() => text().includes('Sauvegarde & transfert'), 'navigation Sauvegarde');
+  assert(document.querySelector('.main-nav a[href="#backup"]').getAttribute('aria-current') === 'page', 'Navigation active Sauvegarde');
+  assert(!document.getElementById('location').hidden && document.getElementById('location').textContent === 'Sauvegarde' && document.title === 'Sauvegarde · Voti', 'Repère et titre conservés hors accueil');
+  assert([...document.querySelectorAll('#app button')].some(node => node.textContent === 'Exporter une sauvegarde') &&
+    [...document.querySelectorAll('#app button')].some(node => node.textContent === 'Importer une sauvegarde'), 'Deux actions de sauvegarde simples');
+  const advanced = document.querySelector('#app details.advanced');
+  assert(!advanced.open && advanced.querySelector('textarea').value === '', 'JSON masqué et non chargé par défaut');
+  advanced.open = true;
+  await until(() => advanced.querySelector('textarea').value.includes('schemaVersion'), 'JSON avancé');
+  assert(advanced.querySelector('textarea').readOnly, 'JSON avancé en lecture seule');
+  advanced.open = false;
   const file = new File(['{'], 'invalide.json', { type: 'application/json' });
   const transfer = new DataTransfer(); transfer.items.add(file);
   const upload = document.querySelector('input[type=file]'); upload.files = transfer.files;
@@ -204,9 +215,59 @@ async function browserScenario(fixtures) {
   await until(() => document.getElementById('message').textContent.includes('contient déjà'), 'collision refusée');
   assert(localStorage.getItem(key) === before, 'Import sur espace occupé : aucun remplacement');
   await seed({ schemaVersion: 1, polls: [], ballots: [] }, '#home', 'Votre premier sondage');
+  await navigate('#backup', 'Sauvegarde & transfert');
   await uploadJson(fixtures[6]);
   await until(() => stored().ballots.length === 6 && !document.getElementById('message').textContent, 'import valide');
   assert(stored().polls[0].definitionHash === fixtures[6].polls[0].definitionHash, 'Import valide : données restaurées');
+
+  await seed(fixtures.library, '#home', '20 sondages');
+  const rows = () => [...document.querySelectorAll('.poll-row')];
+  const counts = () => document.querySelector('[data-testid="library-count"]').textContent;
+  assert(rows().length === 20, 'Accueil réel avec 20 sondages');
+  assert(!text().includes('Et si on choisissait ensemble') && !document.querySelector('#app input[type=file]'), 'Accueil sans hero ni sauvegarde technique');
+  assert(new Set(rows().map(row => row.querySelector('.badge').textContent)).size === 3, 'Trois statuts textuels');
+  assert(rows()[0].dataset.pollId === fixtures.library.polls[19].id, 'Tri récent par défaut');
+  const search = document.querySelector('[data-testid="poll-search"]');
+  search.focus(); input(search, 'evasion');
+  assert(rows().length === 4 && document.activeElement === search, 'Recherche sans accent, focus conservé');
+  input(search, 'Rencontre locale 20'); assert(rows().length === 1, 'Recherche dans la description');
+  input(search, 'cinema'); assert(rows().length === 20, 'Recherche dans les choix');
+  input(search, 'introuvable'); assert(rows().length === 0 && text().includes('Aucun sondage'), 'État vide filtré');
+  click('Réinitialiser la recherche'); assert(rows().length === 20 && counts().includes('20 sur 20'), 'Réinitialisation de la recherche');
+  for (const [filter, expected] of [['draft',4], ['published',8], ['closed',8], ['available',8], ['all',20]]) {
+    const chip = document.querySelector(`[data-filter="${filter}"]`); chip.click();
+    assert(rows().length === expected && chip.getAttribute('aria-pressed') === 'true', `Filtre ${filter}`);
+  }
+  const sorter = document.querySelector('[data-testid="poll-sort"]');
+  for (const [sort, index] of [['oldest',0], ['alphabetical',0], ['recent',19]]) {
+    sorter.value = sort; sorter.dispatchEvent(new Event('change'));
+    assert(rows()[0].dataset.pollId === fixtures.library.polls[index].id, `Tri ${sort}`);
+  }
+  const rowFor = index => rows().find(row => row.dataset.pollId === fixtures.library.polls[index].id);
+  const closedAvailable = rowFor(4);
+  assert([...closedAvailable.querySelectorAll('.actions a')].map(node => node.textContent).join('|') === 'Résultats|Gérer' &&
+    closedAvailable.querySelector('.actions a').classList.contains('primary'), 'Fermé disponible : Résultats prioritaires');
+  closedAvailable.querySelector('a[href^="#results/"]').click();
+  await until(() => text().includes('5 réponses') && text().includes('Les résultats'), 'résultats directs');
+  assert(location.hash === `#results/${fixtures.library.polls[4].id}` && document.querySelector('#app .badge').textContent === 'Fermé', 'Accès direct et statut des résultats');
+  await navigate('#home', '20 sondages');
+  const locked = rowFor(3);
+  assert(!locked.textContent.includes('3 réponses') && locked.textContent.includes('Résultats verrouillés'), 'Liste sans compteur bloqué');
+  locked.querySelector('a[href^="#results/"]').click();
+  await until(() => text().includes('pas encore disponibles'), 'résultats verrouillés directs');
+  assert(!document.querySelector('#app progress') && text().includes('5 réponses') && text().includes('sondage fermé'), 'Explication du blocage, pas de graphique');
+  await navigate('#home', '20 sondages');
+  const draftRow = rowFor(0);
+  assert([...draftRow.querySelectorAll('.actions>*')].map(node => node.textContent).join('|') === 'Modifier|Publier', 'Actions contextuelles Brouillon');
+  draftRow.querySelector('a').click(); await until(() => !!document.querySelector('#app textarea'), 'modification depuis liste');
+  assert(document.querySelector('#app textarea').value === fixtures.library.polls[0].definition.question, 'Modifier ouvre le bon sondage');
+  await navigate('#home', '20 sondages');
+  const beforePublish = stored().ballots.length;
+  rowFor(0).querySelector('button').click();
+  await until(() => rowFor(0)?.dataset.status === 'published', 'publication depuis liste');
+  assert(stored().ballots.length === beforePublish && rowFor(0).textContent.includes('Voter'), 'Publier depuis liste sans vote');
+  const skip = document.querySelector('.skip-link'); skip.click();
+  assert(document.activeElement.id === 'app' && location.hash === '#home', 'Lien d’évitement sans casser la navigation');
   return checks;
 }
 
@@ -217,17 +278,84 @@ try {
   await command('Network.enable', {}, sessionId);
   await command('Page.enable', {}, sessionId);
   await command('Page.setLifecycleEventsEnabled', { enabled: true }, sessionId);
+  await command('Emulation.setDeviceMetricsOverride', { width: 1200, height: 820, deviceScaleFactor: 1, mobile: false }, sessionId);
   await navigateReady(sessionId, url);
   const closed = await votes(3, { releaseMode: 'closed' });
   const { closePoll } = await import('../shared/poll-engine.js');
   const { now } = await import('../tests/fixtures.js');
   const injected = published(); injected.polls[0].definition.question = '<img src=x onerror="window.votiXss=true">';
   injected.polls[0].definition.choices[0].label = '<svg onload="window.votiXss=true">';
-  const fixtures = { 4: await votes(4), 5: await votes(5), 6: await votes(6), closed: closePoll(closed, closed.polls[0].id, now), html: injected };
+  const fixtures = { 4: await votes(4), 5: await votes(5), 6: await votes(6), closed: closePoll(closed, closed.polls[0].id, now), html: injected, library: await libraryFixture() };
   const count = await evaluate(sessionId, `(${browserScenario.toString()})(${JSON.stringify(fixtures)})`);
+  const desktopHeader = await evaluate(sessionId, 'document.querySelector(".topbar").getBoundingClientRect().height');
+  if (desktopHeader < 56 || desktopHeader > 72) throw new Error('Header desktop hors plage 56–72 px.');
+  const desktopNavigation = await evaluate(sessionId, `(() => {
+    const link = document.querySelector('.main-nav a[href="#new"]');
+    if (link.innerText.trim() !== 'Nouveau sondage' || link.getAttribute('aria-label') !== 'Nouveau sondage') throw new Error('Libellé desktop ou nom accessible incorrect.');
+    return 1;
+  })()`);
+  await evaluate(sessionId, '(async () => { document.activeElement.blur(); window.scrollTo(0,0); await new Promise(requestAnimationFrame); })()');
+  const desktopCapture = await command('Page.captureScreenshot', { format: 'png' }, sessionId);
+  await writeFile(resolve(ROOT, '.browser-tests/ux-v0-2a-desktop.png'), Buffer.from(desktopCapture.data, 'base64'));
   await command('Emulation.setDeviceMetricsOverride', { width: 360, height: 740, deviceScaleFactor: 1, mobile: true }, sessionId);
   const fits = await evaluate(sessionId, 'document.documentElement.scrollWidth <= innerWidth');
   if (!fits) throw new Error('Débordement horizontal à 360 px.');
+  const mobileChecks = await evaluate(sessionId, `(() => {
+    const header = document.querySelector('.topbar').getBoundingClientRect().height;
+    if (header < 52 || header > 64) throw new Error('Header mobile hors plage.');
+    if (document.querySelectorAll('.poll-row').length !== 20) throw new Error('Liste mobile incomplète.');
+    if (getComputedStyle(document.querySelector('.main-nav')).position !== 'fixed') throw new Error('Navigation mobile absente.');
+    const controls = [...document.querySelectorAll('.main-nav a,.poll-row .actions>*,.library-toolbar input,.library-toolbar select,.filter-chips button')];
+    if (controls.some(node => node.getBoundingClientRect().height < 44)) throw new Error('Cible tactile inférieure à 44 px.');
+    const search = document.querySelector('[data-testid="poll-search"]').getBoundingClientRect();
+    const sort = document.querySelector('[data-testid="poll-sort"]').getBoundingClientRect();
+    const toolbar = document.querySelector('.library-toolbar').getBoundingClientRect();
+    if (sort.top < search.bottom || Math.abs(search.width - toolbar.width) > 1 || Math.abs(sort.width - toolbar.width) > 1) throw new Error('Recherche et tri doivent occuper deux lignes pleine largeur à 360 px.');
+    const marker = document.getElementById('location');
+    if (!marker.hidden || getComputedStyle(marker).display !== 'none' || document.title !== 'Accueil · Voti') throw new Error('Repère accueil redondant ou titre perdu.');
+    const create = document.querySelector('.main-nav a[href="#new"]');
+    if (create.innerText.trim() !== 'Créer' || create.getAttribute('aria-label') !== 'Nouveau sondage') throw new Error('Libellé mobile ou nom accessible incorrect.');
+    const chips = document.querySelector('.filter-chips');
+    if (getComputedStyle(chips).overflowX !== 'auto' || chips.tabIndex !== 0 || chips.scrollWidth <= chips.clientWidth) throw new Error('Filtres non défilables ou non accessibles au clavier.');
+    return 8;
+  })()`);
+  await evaluate(sessionId, 'document.querySelector(".filter-chips").focus()');
+  await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 }, sessionId);
+  await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 }, sessionId);
+  await evaluate(sessionId, `(async () => {
+    const chips = document.querySelector('.filter-chips');
+    const deadline = performance.now() + 2000;
+    while (chips.scrollLeft === 0 && performance.now() < deadline) await new Promise(requestAnimationFrame);
+    if (chips.scrollLeft === 0) throw new Error('Défilement clavier des filtres indisponible.');
+    chips.scrollLeft = 0;
+  })()`);
+  await evaluate(sessionId, 'document.querySelector(".main-nav a[href=\\\"#home\\\"]").focus()');
+  await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 }, sessionId);
+  await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 }, sessionId);
+  const keyboard = await evaluate(sessionId, 'document.activeElement.getAttribute("href") === "#new" && parseFloat(getComputedStyle(document.activeElement).outlineWidth) >= 3');
+  if (!keyboard) throw new Error('Navigation clavier ou focus visible manquant.');
+  const contrastChecks = await evaluate(sessionId, `(() => {
+    function luminance(color) {
+      const hex = color.trim().replace('#','');
+      const rgb = [0,2,4].map(index => parseInt(hex.slice(index,index+2),16)/255)
+        .map(value => value <= .04045 ? value/12.92 : Math.pow((value+.055)/1.055,2.4));
+      return rgb[0]*.2126 + rgb[1]*.7152 + rgb[2]*.0722;
+    }
+    for (const mode of ['light','dark']) {
+      document.documentElement.dataset.theme = mode;
+      const style = getComputedStyle(document.documentElement);
+      const read = key => luminance(style.getPropertyValue(key));
+      for (const [a,b] of [['--ink','--surface'], ['--muted','--bg'], ['--accent','--surface']]) {
+        const x=read(a),y=read(b),ratio=(Math.max(x,y)+.05)/(Math.min(x,y)+.05);
+        if (ratio<4.5) throw new Error('Contraste insuffisant : '+mode+' '+a+'/'+b+' '+ratio);
+      }
+    }
+    document.documentElement.dataset.theme = 'light';
+    return 6;
+  })()`);
+  await evaluate(sessionId, '(async () => { document.activeElement.blur(); window.scrollTo(0,0); await new Promise(requestAnimationFrame); })()');
+  const mobileCapture = await command('Page.captureScreenshot', { format: 'png' }, sessionId);
+  await writeFile(resolve(ROOT, '.browser-tests/ux-v0-2a-mobile.png'), Buffer.from(mobileCapture.data, 'base64'));
   await command('Emulation.setEmulatedMedia', { media: 'print' }, sessionId);
   if (!await evaluate(sessionId, 'getComputedStyle(document.querySelector(".topbar")).display === "none"')) throw new Error('CSS impression non appliqué.');
   await command('Emulation.setEmulatedMedia', { media: '' }, sessionId);
@@ -245,7 +373,7 @@ try {
     const app = document.getElementById('app');
     if (location.href !== ${JSON.stringify(servedUrl)}) throw new Error('Sous-chemin /voti/ incorrect.');
     if (localStorage.getItem('voti.local.v1') !== null) throw new Error('Écriture inattendue au chargement HTTP.');
-    app.querySelector('a[href="#new"]').click();
+    document.querySelector('.main-nav a[href="#new"]').click();
     await new Promise((resolveChange, reject) => {
       const timer = setTimeout(() => { observer.disconnect(); reject(new Error('Navigation locale /voti/#new non rendue.')); }, 5000);
       const observer = new MutationObserver(() => {
@@ -260,7 +388,7 @@ try {
   })()`);
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
   if (requests.some(item => /^https?:/.test(item) && new URL(item).origin !== 'http://127.0.0.1:4173')) throw new Error('Requête réseau externe inattendue.');
-  console.log(`Navigateur Chromium : ${count + 4 + smoke} contrôles réussis (file:// offline et http://127.0.0.1:4173/voti/, chargements synchronisés).`);
+  console.log(`Navigateur Chromium : ${count + 7 + smoke + mobileChecks + contrastChecks + desktopNavigation} contrôles réussis (20 sondages, UX, clavier, contrastes, mobile 360 px, file:// offline et /voti/).`);
 } catch (error) {
   console.error(`Tests navigateur ÉCHEC : ${error.message}`); process.exitCode = 1;
 } finally {

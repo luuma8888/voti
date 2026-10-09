@@ -9,20 +9,32 @@
   <style>/* VOTI_STYLES */</style>
 </head>
 <body>
+  <a class="skip-link" href="#app">Aller au contenu</a>
   <header class="topbar">
-    <a href="#home" class="brand" aria-label="Voti, accueil"><span class="brand-icon" aria-hidden="true">v</span> Voti</a>
+    <div class="identity">
+      <a href="#home" class="brand" aria-label="Voti, accueil"><span class="brand-icon" aria-hidden="true">v</span> Voti</a>
+      <span class="signature">Choisir ensemble, simplement.</span>
+    </div>
+    <nav class="main-nav" aria-label="Navigation principale">
+      <a href="#home">Accueil</a>
+      <a href="#new" aria-label="Nouveau sondage"><span class="nav-label-desktop" aria-hidden="true">Nouveau sondage</span><span class="nav-label-mobile" aria-hidden="true">Créer</span></a>
+      <a href="#backup">Sauvegarde</a>
+    </nav>
     <button id="theme-toggle" class="quiet" type="button">Mode nuit</button>
   </header>
   <main>
-    <p class="eyebrow">CHOISIR ENSEMBLE</p>
+    <p id="location" class="breadcrumb" hidden>Accueil</p>
     <div id="message" role="alert" hidden></div>
-    <section id="app" aria-label="Application Voti"><h1>Chargement de Voti…</h1></section>
+    <div id="notice" role="status" hidden></div>
+    <section id="app" aria-label="Application Voti" tabindex="-1"><h1>Chargement de Voti…</h1></section>
     <noscript>Activez JavaScript pour utiliser le prototype local.</noscript>
   </main>
   <footer>
-    <strong>Prototype local · Dans ce navigateur uniquement.</strong>
-    <p>Aucun nom demandé. Pas de collecte sur d’autres téléphones, ni de garantie « une personne, un vote ».
-    Le propriétaire de l’appareil peut inspecter les bulletins. Exportez vos données : le stockage du navigateur n’est pas une sauvegarde durable.</p>
+    <span>Dans ce navigateur uniquement · Aucun nom demandé</span>
+    <details><summary>À propos de ce prototype local</summary>
+      <p>Pas de collecte sur d’autres téléphones, ni de garantie « une personne, un vote ».
+      Le propriétaire de l’appareil peut inspecter les bulletins. Exportez vos données : le stockage du navigateur n’est pas une sauvegarde durable.</p>
+    </details>
   </footer>
   <!-- VOTI_MODULES -->
 </body>
