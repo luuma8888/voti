@@ -3,3 +3,6 @@ node_modules/
 .browser-tests/
 coverage/
 *.log
+.relay-local/
+.wrangler/
+.dev.vars*

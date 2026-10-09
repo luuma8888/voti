@@ -33,8 +33,9 @@ export async function navigateAndWait(command, events, sessionId, url, timeoutMs
     await loaded;
     const { frameTree } = await command('Page.getFrameTree', {}, sessionId);
     const frame = frameTree.frame;
-    if (frame.id !== navigation.frameId || frame.loaderId !== navigation.loaderId || frame.url !== url) {
-      throw new Error(`Document inattendu après navigation : attendu ${url}, reçu ${frame.url} (loader ${frame.loaderId}).`);
+    const frameUrl = frame.url + (frame.url.includes('#') ? '' : frame.urlFragment || '');
+    if (frame.id !== navigation.frameId || frame.loaderId !== navigation.loaderId || frameUrl !== url) {
+      throw new Error(`Document inattendu après navigation : attendu ${url}, reçu ${frameUrl} (loader ${frame.loaderId}).`);
     }
     return navigation;
   } finally {
@@ -60,7 +61,7 @@ export async function waitForApplication(expectedUrl, timeoutMs = 15000) {
           clearTimeout(timer); observer.disconnect(); resolve(value);
         } catch (error) { clearTimeout(timer); observer.disconnect(); reject(error); }
       }
-      observer.observe(document, { childList: true, subtree: true, characterData: true });
+      observer.observe(document, { childList: true, subtree: true, characterData: true, attributes: true });
       timer = setTimeout(() => { observer.disconnect(); reject(new Error(failure)); }, timeoutMs);
       check();
     });
@@ -70,6 +71,11 @@ export async function waitForApplication(expectedUrl, timeoutMs = 15000) {
     const app = document.getElementById('app');
     if (app?.textContent.includes('Données locales indisponibles')) {
       throw new Error(`Initialisation Voti en erreur : ${document.getElementById('message')?.textContent || app.textContent}.`);
+    }
+    const hash = new URL(expectedUrl).hash;
+    if (hash && hash !== '#home') {
+      if (app?.querySelector('h1')?.textContent === 'Impossible d’ouvrir cette page') throw new Error(`Page non disponible : ${app.textContent}`);
+      return app?.querySelector('h1') && app.getAttribute('aria-busy') === 'false';
     }
     return app?.querySelector('a[href="#new"]') && app.querySelector('[data-testid="poll-list"]');
   }, `Voti ne termine pas son initialisation : ${expectedUrl} (#app présent, accueil non prêt).`);

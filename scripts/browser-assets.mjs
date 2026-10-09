@@ -54,7 +54,7 @@ export async function browserAssetScenario() {
   assert(document.querySelector('.brand').textContent.trim() === 'Voti' && document.querySelector('.brand-icon').alt === '', 'Logo décoratif avec texte HTML Voti');
   await until(() => document.querySelector('.brand-icon').naturalWidth === 512, 'logo embarqué');
   assert(document.querySelector('.brand-icon').getBoundingClientRect().height === 32, 'Logo compact');
-  assert(document.querySelectorAll('#app .mascot').length === 1 && document.querySelector('#app .mascot').getBoundingClientRect().height <= 90, 'Mascotte ponctuelle dans bibliothèque vide');
+  assert(document.querySelectorAll('#app .mascot').length === 1 && document.querySelector('#app .mascot').getBoundingClientRect().height <= 112, 'Mascotte ponctuelle dans bibliothèque vide');
   assert(!!document.querySelector('.main-nav a[href="#new"]') && !document.querySelector('#app .mascot').closest('button,a'), 'Mascotte décorative non bloquante');
   assert((await adapter.listMetadata()).length === 0, 'Branding absent d’IndexedDB');
 

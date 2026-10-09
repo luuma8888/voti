@@ -1,0 +1,21 @@
+{
+  "name": "voti-relay",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "send_metrics": false,
+  "observability": { "enabled": false },
+  "vars": {
+    "RELAY_ID": "voti-local",
+    "ALLOWED_ORIGINS": "https://luuma8888.github.io,http://127.0.0.1:4173,http://localhost:4173",
+    "PREPARATION_TTL_SECONDS": "86400"
+  },
+  "d1_databases": [{
+    "binding": "DB", "database_name": "voti-local",
+    "database_id": "00000000-0000-0000-0000-000000000000",
+    "migrations_dir": "migrations", "remote": false
+  }],
+  "r2_buckets": [{ "binding": "ASSETS", "bucket_name": "voti-local-assets", "remote": false }],
+  "ratelimits": [{ "name": "LIMITER", "namespace_id": "31001", "simple": { "limit": 120, "period": 60 } }],
+  "triggers": { "crons": ["17 * * * *"] }
+}

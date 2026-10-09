@@ -7,6 +7,7 @@ import { build, ROOT } from './build.mjs';
 import { votes, published, libraryFixture } from '../tests/fixtures.js';
 import { navigateAndWait, waitForApplication } from './browser-navigation.mjs';
 import { browserAssetScenario } from './browser-assets.mjs';
+import { graphicFixtures, graphicChecks, remoteBrowserAction } from './browser-relay.mjs';
 
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
@@ -21,6 +22,7 @@ const browser = spawn(process.env.VOTI_CHROMIUM || '/usr/bin/chromium', [
   XDG_CONFIG_HOME: resolve(ROOT, '.browser-tests/config'), XDG_CACHE_HOME: resolve(ROOT, '.browser-tests/cache') } });
 let buffer = ''; let sequence = 0; const pending = new Map();
 const runtimeErrors = []; const requests = [];
+const httpDiagnostics = [];
 const events = new EventEmitter();
 let server;
 let browserFailure = '';
@@ -41,6 +43,8 @@ browser.stdio[4].on('data', chunk => {
     if (!raw) continue;
     const packet = JSON.parse(raw);
     if (packet.method) events.emit('event', packet);
+    if (packet.method === 'Network.responseReceived' && packet.params.response.url.startsWith('http://127.0.0.1:8787')) httpDiagnostics.push({ url:packet.params.response.url, status:packet.params.response.status });
+    if (packet.method === 'Network.loadingFailed') httpDiagnostics.push({ error:packet.params.errorText, cors:packet.params.corsErrorStatus?.corsError });
     if (packet.id && pending.has(packet.id)) {
       const task = pending.get(packet.id); pending.delete(packet.id);
       clearTimeout(task.timeout);
@@ -473,11 +477,48 @@ try {
   await evaluate(sessionId, '(async () => { document.activeElement.blur(); window.scrollTo(0,0); await new Promise(requestAnimationFrame); })()');
   const assetsCapture = await command('Page.captureScreenshot', { format:'png' }, sessionId);
   await writeFile(resolve(ROOT, '.browser-tests/ux-v0-2b-2-images-360.png'), Buffer.from(assetsCapture.data,'base64'));
+  let relayChecks = 0;
+  const graphicIds = await evaluate(sessionId, `(${graphicFixtures.toString()})()`);
+  for (const width of [360,1200]) {
+    await command('Emulation.setDeviceMetricsOverride', { width, height:820, deviceScaleFactor:1, mobile:width===360 }, sessionId);
+    for (const id of graphicIds) {
+      await navigateReady(sessionId, servedUrl + '?graphic=' + crypto.randomUUID() + '#home');
+      relayChecks += await evaluate(sessionId, `(${graphicChecks.toString()})(${JSON.stringify(id)},${width})`);
+      const capture = await command('Page.captureScreenshot', { format:'png' }, sessionId);
+      await writeFile(resolve(ROOT, `.browser-tests/v03b-images-${graphicIds.indexOf(id)}-${width}.png`), Buffer.from(capture.data,'base64'));
+    }
+  }
+  if (process.env.VOTI_TEST_RELAY === '1') {
+    const id = graphicIds[1];
+    relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('publish',${JSON.stringify(id)})`);
+    const context = await command('Target.createBrowserContext', { disposeOnDetach:true });
+    const target = await command('Target.createTarget', { url:'about:blank', browserContextId:context.browserContextId });
+    const voter = await command('Target.attachToTarget', { targetId:target.targetId, flatten:true });
+    await command('Page.enable', {}, voter.sessionId); await command('Runtime.enable', {}, voter.sessionId);
+    await command('Page.setLifecycleEventsEnabled', { enabled:true }, voter.sessionId);
+    for (let n=0;n<5;n++) {
+      await navigateReady(voter.sessionId, servedUrl + '?visit=' + crypto.randomUUID() + '#/p/' + id);
+      relayChecks += await evaluate(voter.sessionId, `(${remoteBrowserAction.toString()})('vote',${JSON.stringify(id)})`);
+      if(n===0) {
+        await navigateReady(sessionId, servedUrl+'?visit='+crypto.randomUUID()+'#poll/'+id);
+        relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('locked',${JSON.stringify(id)})`);
+      }
+      if(n===3||n===4) {
+        await navigateReady(voter.sessionId, servedUrl+'?visit='+crypto.randomUUID()+'#/p/'+id+'/results');
+        const text=await evaluate(voter.sessionId,'document.getElementById("app").textContent');
+        if(n===3?!text.includes('ne sont pas encore disponibles'):!text.includes('5 réponses'))throw new Error('Seuil distant navigateur incorrect'); relayChecks++;
+      }
+    }
+    await navigateReady(sessionId, servedUrl+'?visit='+crypto.randomUUID()+'#poll/'+id);
+    relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('closed',${JSON.stringify(id)})`);
+    await command('Target.disposeBrowserContext', { browserContextId:context.browserContextId });
+  }
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
-  if (requests.some(item => /^https?:/.test(item) && new URL(item).origin !== 'http://127.0.0.1:4173')) throw new Error('Requête réseau externe inattendue.');
-  console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks} contrôles réussis (branding, images, IndexedDB, backup, 5 thèmes, clavier, contrastes, responsive, file:// offline et /voti/).`);
+  if (requests.some(item => /^https?:/.test(item) && !['http://127.0.0.1:4173', ...(process.env.VOTI_TEST_RELAY === '1' ? ['http://127.0.0.1:8787'] : [])].includes(new URL(item).origin))) throw new Error('Requête réseau externe inattendue.');
+  console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks + relayChecks} contrôles réussis (mode local, graphiques, images, thèmes, clavier, responsive, offline, /voti/${process.env.VOTI_TEST_RELAY ? ', HTTP multi-contextes' : ''}).`);
 } catch (error) {
   console.error(`Tests navigateur ÉCHEC : ${error.message}`); process.exitCode = 1;
+  if (process.env.VOTI_TEST_RELAY && httpDiagnostics.length) console.error(JSON.stringify(httpDiagnostics.slice(-8)));
 } finally {
   for (const task of pending.values()) { clearTimeout(task.timeout); task.reject(new Error('Fin du test')); }
   await Promise.all([stopChild(browser), stopChild(server)]);

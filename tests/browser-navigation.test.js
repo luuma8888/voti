@@ -60,11 +60,11 @@ test('load correct mais document remplacé : URL vérifiée', async () => {
   await assert.rejects(navigateAndWait(command, events, session, url), /Document inattendu.*about:blank/);
 });
 
-function application({ app = null, message = '', readyState = 'complete', href = url } = {}) {
-  return runInNewContext(`(${waitForApplication.toString()})(${JSON.stringify(url)}, 10)`, {
+function application({ app = null, message = '', readyState = 'complete', href = url, expectedUrl = url } = {}) {
+  return runInNewContext(`(${waitForApplication.toString()})(${JSON.stringify(expectedUrl)}, 10)`, {
     location: { href },
     document: { readyState, getElementById(id) { return id === 'app' ? app : { textContent: message }; } },
-    MutationObserver: class { observe() {} disconnect() {} }, setTimeout, clearTimeout
+    MutationObserver: class { observe() {} disconnect() {} }, setTimeout, clearTimeout, URL
   });
 }
 
@@ -87,4 +87,17 @@ test('accueil initialisé : prêt sans délai fixe', async () => {
 test('mauvais document ou readyState incomplet : refus avant scénario', async () => {
   await assert.rejects(application({ href: 'about:blank' }), /Document attendu non chargé/);
   await assert.rejects(application({ readyState: 'loading' }), /état loading/);
+});
+
+test('CDP : fragment fourni séparément conservé dans la vérification du document', async () => {
+  const events = new EventEmitter(), destination = url + '#/p/test';
+  const command = async method => { if (method === 'Page.navigate') { loaded(events); return navigation; } return tree({ urlFragment: '#/p/test' }); };
+  assert.deepEqual(await navigateAndWait(command, events, session, destination), navigation);
+});
+
+test('route distante : attendre le rendu asynchrone, sans exiger une bibliothèque', async () => {
+  const href = url + '#/p/test';
+  const app = { textContent: 'Question', querySelector: () => ({ textContent: 'Question' }), getAttribute: () => 'false' };
+  assert.equal(await application({ href, expectedUrl: href, app }), true);
+  await assert.rejects(application({ href, expectedUrl: href, app: { ...app, getAttribute: () => 'true' } }), /Voti ne termine pas/);
 });

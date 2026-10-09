@@ -43,8 +43,9 @@ export class RelayClient {
     return this.#remember(await this.#relay.preparePublication({ poll, localBallots,
       adminCapability: connection.adminCapability, expectedRevision: connection.remoteRevision }));
   }
-  async uploadMissingAssets(pollId, assetIds, assets) {
+  async uploadMissingAssets(pollId, assetIds, assets, expectedRevision) {
     const missing = await this.#admin('getMissingAssets', pollId, { assetIds: [...assetIds] });
+    if (expectedRevision !== undefined) relayEnsure(missing.remoteRef.revision === expectedRevision, 'REVISION_CONFLICT');
     const records = [];
     for (const id of missing.missingAssetIds) {
       const asset = await assets.get(id); relayEnsure(asset, 'ASSET_MISSING'); records.push(asset);
@@ -53,7 +54,13 @@ export class RelayClient {
   }
   async publishPoll(pollId) { return this.#admin('publishPoll', pollId); }
   async discardPublication(pollId) {
-    const result = await this.#admin('discardPublication', pollId);
+    let result;
+    try { result = await this.#admin('discardPublication', pollId); }
+    catch (error) {
+      if (error.code !== 'NOT_FOUND') throw error;
+      // Préparation expirée/nettoyée ou réponse d'abandon perdue : oubli local explicite.
+      result = { discarded: true };
+    }
     await this.#connections.delete(this.#key(pollId)); return result;
   }
   async getPoll(pollId) { return this.#remember(await this.#relay.getPoll({ pollId })); }
