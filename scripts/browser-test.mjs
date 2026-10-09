@@ -186,8 +186,17 @@ async function browserScenario(fixtures) {
   await seed(imported, `#poll/${imported.polls[0].id}`, '<img');
   assert(document.querySelectorAll('#app img,#app svg,#app script').length === 0 && !window.votiXss, 'Textes importés : aucune exécution HTML');
   const theme = document.getElementById('theme-toggle'); theme.click();
-  assert(document.documentElement.dataset.theme === 'dark', 'Mode nuit'); theme.click();
-  assert(document.documentElement.dataset.theme === 'light', 'Mode jour');
+  await until(() => document.querySelectorAll('.theme-option').length === 5, 'sélecteur des cinq thèmes');
+  assert(document.documentElement.dataset.theme === 'pop', 'Voti Pop par défaut');
+  assert(document.querySelectorAll('.theme-option').length === 5 && document.querySelectorAll('.theme-preview .swatch').length === 25, 'Cinq thèmes avec palettes locales');
+  const unchanged = localStorage.getItem('voti.local.v1');
+  for (const id of ['pop','nature','douceur','dark','minimal']) {
+    document.querySelector(`.theme-option[data-theme="${id}"]`).click();
+    assert(document.documentElement.dataset.theme === id && localStorage.getItem('voti.theme') === id, `Changement et persistance ${id}`);
+    assert(document.querySelectorAll('.theme-option[aria-pressed="true"]').length === 1 && document.querySelector(`.theme-option[data-theme="${id}"] .theme-selection`).textContent.includes('Sélectionné'), `Sélection explicite ${id}`);
+  }
+  assert(localStorage.getItem('voti.local.v1') === unchanged, 'Thèmes sans mutation des sondages ou bulletins');
+  document.querySelector('.theme-option[data-theme="nature"]').click();
   document.querySelector('.main-nav a[href="#backup"]').click();
   await until(() => text().includes('Sauvegarde & transfert'), 'navigation Sauvegarde');
   assert(document.querySelector('.main-nav a[href="#backup"]').getAttribute('aria-current') === 'page', 'Navigation active Sauvegarde');
@@ -341,18 +350,54 @@ try {
         .map(value => value <= .04045 ? value/12.92 : Math.pow((value+.055)/1.055,2.4));
       return rgb[0]*.2126 + rgb[1]*.7152 + rgb[2]*.0722;
     }
-    for (const mode of ['light','dark']) {
+    let checks = 0;
+    for (const mode of ['pop','nature','douceur','dark','minimal']) {
       document.documentElement.dataset.theme = mode;
       const style = getComputedStyle(document.documentElement);
       const read = key => luminance(style.getPropertyValue(key));
-      for (const [a,b] of [['--ink','--surface'], ['--muted','--bg'], ['--accent','--surface']]) {
+      for (const [a,b] of [['--ink','--surface'], ['--ink','--main'], ['--muted','--header'], ['--muted','--bg'], ['--accent','--surface'], ['--on-accent','--accent'], ['--on-accent','--secondary'], ['--positive','--main'], ['--draft-ink','--draft-bg'], ['--open-ink','--open-bg'], ['--closed-ink','--closed-bg'], ['--danger','--danger-bg']]) {
         const x=read(a),y=read(b),ratio=(Math.max(x,y)+.05)/(Math.min(x,y)+.05);
         if (ratio<4.5) throw new Error('Contraste insuffisant : '+mode+' '+a+'/'+b+' '+ratio);
+        checks++;
       }
+      for (const background of ['--surface','--main','--header','--soft']) {
+        const x=read('--focus'),y=read(background),ratio=(Math.max(x,y)+.05)/(Math.min(x,y)+.05);
+        if (ratio<3) throw new Error('Contraste focus insuffisant : '+mode+' '+background+' '+ratio);
+        checks++;
+      }
+      const header = getComputedStyle(document.querySelector('.topbar')).backgroundColor;
+      const main = getComputedStyle(document.querySelector('main')).backgroundColor;
+      if (header === main || main === getComputedStyle(document.body).backgroundColor) throw new Error('Surfaces non distinctes : '+mode);
+      if (getComputedStyle(document.querySelector('.main-nav a[href="#new"]')).outlineColor !== 'rgb('+style.getPropertyValue('--focus').trim().slice(1).match(/../g).map(x=>parseInt(x,16)).join(', ')+')') throw new Error('Focus hors palette : '+mode);
+      if (![...document.querySelectorAll('.poll-row .badge')].every(node => ['Brouillon','Ouvert','Fermé'].includes(node.textContent))) throw new Error('Badge sans texte : '+mode);
+      checks += 3;
     }
-    document.documentElement.dataset.theme = 'light';
-    return 6;
+    document.documentElement.dataset.theme = 'nature';
+    return checks;
   })()`);
+  let responsiveChecks = 0;
+  for (const width of [360,480,768,1200]) {
+    await command('Emulation.setDeviceMetricsOverride', { width, height: 820, deviceScaleFactor: 1, mobile: width < 680 }, sessionId);
+    responsiveChecks += await evaluate(sessionId, `(() => {
+      for (const theme of ['pop','nature','douceur','dark','minimal']) {
+        document.documentElement.dataset.theme = theme;
+        if (document.documentElement.scrollWidth > innerWidth) throw new Error('Débordement '+theme+' à ${width}px.');
+        const height = document.querySelector('.topbar').getBoundingClientRect().height;
+        if (height > (${width} <= 680 ? 64 : 72)) throw new Error('Header trop haut.');
+      }
+      document.documentElement.dataset.theme = 'nature';
+      return 10;
+    })()`);
+    if (width === 360 || width === 1200) {
+      for (const theme of ['pop','nature','douceur','dark','minimal']) {
+        await evaluate(sessionId, `(async () => { document.documentElement.dataset.theme=${JSON.stringify(theme)}; document.activeElement.blur(); window.scrollTo(0,0); await new Promise(requestAnimationFrame); })()`);
+        const capture = await command('Page.captureScreenshot', { format:'png' }, sessionId);
+        await writeFile(resolve(ROOT, `.browser-tests/ux-v0-2b-1-${theme}-${width}.png`), Buffer.from(capture.data,'base64'));
+      }
+      await evaluate(sessionId, 'document.documentElement.dataset.theme="nature"');
+    }
+  }
+  await command('Emulation.setDeviceMetricsOverride', { width:360, height:740, deviceScaleFactor:1, mobile:true }, sessionId);
   await evaluate(sessionId, '(async () => { document.activeElement.blur(); window.scrollTo(0,0); await new Promise(requestAnimationFrame); })()');
   const mobileCapture = await command('Page.captureScreenshot', { format: 'png' }, sessionId);
   await writeFile(resolve(ROOT, '.browser-tests/ux-v0-2a-mobile.png'), Buffer.from(mobileCapture.data, 'base64'));
@@ -362,6 +407,7 @@ try {
   const offlineUrl = pathToFileURL(resolve(ROOT, 'index.html')).href;
   await command('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 }, sessionId);
   await navigateReady(sessionId, offlineUrl);
+  if (!await evaluate(sessionId, 'document.documentElement.dataset.theme === "nature"')) throw new Error('Préférence de thème perdue au rechargement offline.');
   if (requests.some(item => /^https?:/.test(item))) throw new Error('Requête HTTP inattendue pendant les tests file://.');
 
   await command('Network.emulateNetworkConditions', { offline: false, latency: 250, downloadThroughput: -1, uploadThroughput: -1 }, sessionId);
@@ -386,9 +432,38 @@ try {
     if (localStorage.getItem('voti.local.v1') !== null) throw new Error('La navigation a écrit des données.');
     return 4;
   })()`);
+  const pointerTarget = await evaluate(sessionId, `(() => {
+    const rect = document.querySelector('.main-nav a[href="#home"]').getBoundingClientRect();
+    return { x:rect.x + rect.width/2, y:rect.y + rect.height/2 };
+  })()`);
+  await command('Input.dispatchMouseEvent', { type:'mousePressed', ...pointerTarget, button:'left', clickCount:1 }, sessionId);
+  await command('Input.dispatchMouseEvent', { type:'mouseReleased', ...pointerTarget, button:'left', clickCount:1 }, sessionId);
+  await evaluate(sessionId, `(${waitForApplication.toString()})(${JSON.stringify(servedUrl + '#home')})`);
+  if (!await evaluate(sessionId, `(() => {
+    const heading = document.querySelector('#app h1');
+    return document.activeElement === heading && heading.dataset.focusOrigin === 'pointer' && getComputedStyle(heading).outlineStyle === 'none';
+  })()`)) throw new Error('Navigation souris : focus de titre perdu ou encadrement superflu.');
+  await evaluate(sessionId, 'document.querySelector(".main-nav a[href=\\\"#new\\\"]").focus()');
+  await command('Input.dispatchKeyEvent', { type:'keyDown', key:'Enter', code:'Enter', windowsVirtualKeyCode:13 }, sessionId);
+  await command('Input.dispatchKeyEvent', { type:'keyUp', key:'Enter', code:'Enter', windowsVirtualKeyCode:13 }, sessionId);
+  await evaluate(sessionId, `(async () => {
+    const deadline=performance.now()+5000;
+    while (!document.querySelector('#app textarea') && performance.now()<deadline) await new Promise(requestAnimationFrame);
+    const heading=document.querySelector('#app h1');
+    if (!document.querySelector('#app textarea') || document.activeElement!==heading || heading.dataset.focusOrigin!=='keyboard' || parseFloat(getComputedStyle(heading).outlineWidth)<3) throw new Error('Navigation clavier : focus du titre non visible.');
+  })()`);
+  await evaluate(sessionId, `(async () => {
+    document.getElementById('theme-toggle').click();
+    const deadline=performance.now()+5000;
+    while (document.querySelectorAll('.theme-option').length!==5 && performance.now()<deadline) await new Promise(requestAnimationFrame);
+    if (document.querySelectorAll('.theme-option').length!==5 || document.documentElement.scrollWidth>innerWidth) throw new Error('Sélecteur de thèmes mobile incomplet ou débordant.');
+    if ([...document.querySelectorAll('.theme-option')].some(node=>node.getBoundingClientRect().height<44 || !node.getAttribute('aria-label'))) throw new Error('Thèmes sans cible tactile ou nom accessible.');
+  })()`);
+  const appearanceCapture=await command('Page.captureScreenshot', { format:'png' }, sessionId);
+  await writeFile(resolve(ROOT, '.browser-tests/ux-v0-2b-1-selector-360.png'), Buffer.from(appearanceCapture.data,'base64'));
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
   if (requests.some(item => /^https?:/.test(item) && new URL(item).origin !== 'http://127.0.0.1:4173')) throw new Error('Requête réseau externe inattendue.');
-  console.log(`Navigateur Chromium : ${count + 7 + smoke + mobileChecks + contrastChecks + desktopNavigation} contrôles réussis (20 sondages, UX, clavier, contrastes, mobile 360 px, file:// offline et /voti/).`);
+  console.log(`Navigateur Chromium : ${count + 12 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks} contrôles réussis (5 thèmes, 20 sondages, clavier, contrastes, 360/480/768/1200 px, file:// offline et /voti/).`);
 } catch (error) {
   console.error(`Tests navigateur ÉCHEC : ${error.message}`); process.exitCode = 1;
 } finally {

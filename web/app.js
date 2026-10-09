@@ -5,6 +5,7 @@ import { importIntoEmpty, serialize } from '../shared/serialization.js';
 import { MAX_JSON_LENGTH } from '../shared/model.js';
 import { LocalStorageAdapter, Repository, STORAGE_KEY } from './storage.js';
 import { summarizePolls, queryPolls, STATUS_LABELS, FILTERS, SORTS } from './poll-library.js';
+import { THEME_OPTIONS, THEME_KEY, normalizeTheme } from './themes.js';
 
 const app = document.getElementById('app');
 const message = document.getElementById('message');
@@ -15,6 +16,11 @@ let state;
 let editor = null;
 let voteSession = null;
 let route = '';
+let focusOrigin = 'programmatic';
+document.addEventListener('pointerdown', () => { focusOrigin = 'pointer'; }, true);
+document.addEventListener('keydown', event => {
+  if (!event.altKey && !event.ctrlKey && !event.metaKey) focusOrigin = 'keyboard';
+}, true);
 
 document.querySelector('.skip-link').addEventListener('click', event => {
   event.preventDefault(); app.focus(); app.scrollIntoView({ block: 'start' });
@@ -39,7 +45,7 @@ function showError(error) { message.textContent = error.message || String(error)
 function clearError() { message.textContent = ''; message.hidden = true; }
 function notify(text) { notice.textContent = text; notice.hidden = !text; }
 function heading(text) {
-  const node = el('h1', text, { tabindex: '-1' });
+  const node = el('h1', text, { tabindex: '-1', 'data-navigation-focus': '', 'data-focus-origin': focusOrigin });
   app.append(node);
   queueMicrotask(() => node.focus());
 }
@@ -174,7 +180,7 @@ function management(id) {
   const poll = getPoll(state, id);
   heading(poll.definition.question);
   const card = el('section', null, { class: 'card', 'data-accent': poll.style.themeId });
-  append(card, el('span', statusLabel(poll), { class: 'badge' }),
+  append(card, el('span', statusLabel(poll), { class: `badge status-${poll.status}` }),
     el('p', poll.lockedAt ? 'Le premier vote a verrouillé la question, les choix et les règles. Vous pouvez encore changer l’apparence.' : 'Vous pouvez modifier la question, les choix et les règles avant le premier vote.'),
     el('ul'));
   for (const choice of poll.definition.choices) card.lastChild.append(el('li', choice.label));
@@ -362,7 +368,35 @@ function style(id) {
   select.value = poll.style.themeId;
   select.addEventListener('change', () => { card.dataset.accent = select.value; });
   const save = button('Enregistrer l’apparence', () => transact(save, current => updateStyle(current, id, { ...defaultStyle(), themeId: select.value }), () => navigate(`#poll/${id}`)), 'primary');
-  card.append(field('Thème', select), actions(save, link('Retour', `#poll/${id}`))); app.append(card);
+  card.append(field('Accent du sondage', select), el('p', 'Ces accents restent propres au sondage. Le thème de Voti se choisit dans le header.', { class: 'help' }), actions(save, link('Retour', `#poll/${id}`))); app.append(card);
+}
+
+function appearance() {
+  heading('L’apparence de Voti');
+  app.append(el('p', 'Choisis ton ambiance. Les sondages et les votes ne changent pas.', { class: 'muted' }));
+  const choices = el('div', null, { class: 'theme-options', role: 'group', 'aria-label': 'Thème de Voti' });
+  for (const theme of THEME_OPTIONS) {
+    const selected = document.documentElement.dataset.theme === theme.id;
+    const option = button('', () => {
+      setTheme(theme.id);
+      try { localStorage.setItem(THEME_KEY, theme.id); }
+      catch { notify('Le thème est appliqué, mais ce navigateur ne peut pas conserver cette préférence.'); }
+      for (const control of choices.children) {
+        const active = control.dataset.theme === theme.id;
+        control.setAttribute('aria-pressed', String(active));
+        control.querySelector('.theme-selection').textContent = active ? 'Sélectionné ✓' : 'Choisir';
+      }
+    }, 'theme-option');
+    option.dataset.theme = theme.id;
+    option.setAttribute('aria-pressed', String(selected));
+    option.setAttribute('aria-label', theme.name);
+    const preview = el('span', null, { class: 'theme-preview', 'aria-hidden': 'true' });
+    for (const tone of ['accent', 'secondary', 'warm', 'peach', 'positive']) preview.append(el('span', null, { class: `swatch swatch-${tone}` }));
+    option.append(preview, el('strong', theme.name), el('span', theme.description, { class: 'theme-description' }),
+      el('span', selected ? 'Sélectionné ✓' : 'Choisir', { class: 'theme-selection' }));
+    choices.append(option);
+  }
+  app.append(choices, actions(link('Retour à l’accueil', '#home')));
 }
 
 function render() {
@@ -372,7 +406,7 @@ function render() {
   if (nextRoute !== route) { editor = null; voteSession = null; clearError(); notify(''); route = nextRoute; }
   try {
     const [view, id, extra] = nextRoute.slice(1).split('/');
-    const locations = { home: 'Accueil', new: 'Nouveau sondage', backup: 'Sauvegarde', poll: 'Sondage · Gestion', edit: 'Sondage · Modification', vote: 'Sondage · Vote', results: 'Sondage · Résultats', style: 'Sondage · Apparence' };
+    const locations = { home: 'Accueil', new: 'Nouveau sondage', backup: 'Sauvegarde', appearance: 'Apparence de Voti', poll: 'Sondage · Gestion', edit: 'Sondage · Modification', vote: 'Sondage · Vote', results: 'Sondage · Résultats', style: 'Sondage · Apparence' };
     const pageMarker = document.getElementById('location');
     pageMarker.textContent = locations[view] || 'Page locale';
     pageMarker.hidden = view === 'home' && !id;
@@ -384,6 +418,7 @@ function render() {
     if (extra) throw new Error('Ce lien local n’est pas reconnu.');
     if (view === 'home' && !id) home();
     else if (view === 'backup' && !id) backup();
+    else if (view === 'appearance' && !id) appearance();
     else if (view === 'new' && !id) edit();
     else if (view === 'poll' && id) management(id);
     else if (view === 'edit' && id) edit(id);
@@ -396,15 +431,13 @@ function render() {
 
 const themeToggle = document.getElementById('theme-toggle');
 function setTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  themeToggle.textContent = theme === 'dark' ? 'Mode jour' : 'Mode nuit';
-  themeToggle.setAttribute('aria-pressed', String(theme === 'dark'));
+  document.documentElement.dataset.theme = normalizeTheme(theme);
+  const active = THEME_OPTIONS.find(item => item.id === document.documentElement.dataset.theme);
+  themeToggle.textContent = 'Thème';
+  themeToggle.setAttribute('aria-label', `Choisir le thème de Voti : ${active.name}`);
 }
-try { setTheme(localStorage.getItem('voti.theme') === 'dark' ? 'dark' : 'light'); } catch { setTheme('light'); }
-themeToggle.addEventListener('click', () => {
-  const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-  setTheme(theme); try { localStorage.setItem('voti.theme', theme); } catch { /* Préférence non critique. */ }
-});
+try { setTheme(localStorage.getItem(THEME_KEY)); } catch { setTheme('pop'); }
+themeToggle.addEventListener('click', () => navigate('#appearance'));
 
 try {
   repository = new Repository(new LocalStorageAdapter(localStorage));
