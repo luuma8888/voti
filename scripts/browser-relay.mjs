@@ -84,7 +84,11 @@ export async function remoteBrowserAction(action, id, expectImages = true) {
     click('Oui, je confirme'); click('Oui, je confirme');
     await wait(()=>document.querySelector('#app h1')?.textContent==='Merci !');
     if(!document.querySelector('.vote-success .mascot') || (JSON.parse(localStorage.getItem('voti.local.v1')||'{"ballots":[]}').ballots.length))throw new Error('Succès distant incorrect');
-    return 4;
+    const results=[...document.querySelectorAll('#app a')].find(a=>a.textContent==='Résultats');
+    if(results?.getAttribute('href')!==`#/p/${id}/results`)throw new Error('Résultats après vote : route locale au lieu du lien public');
+    results.click(); await wait(()=>document.querySelector('#app h1')?.textContent==='Les résultats' && document.getElementById('app').getAttribute('aria-busy')==='false');
+    if(location.hash!==`#/p/${id}/results` || document.querySelector('#app a[href^="#poll/"]'))throw new Error('Résultats du votant redirigés vers la gestion');
+    return 6;
   }
   if(action==='locked') {
     await wait(()=>document.querySelector('#app h1'));
@@ -94,6 +98,20 @@ export async function remoteBrowserAction(action, id, expectImages = true) {
   if(action==='closed') {
     const original=window.confirm; window.confirm=()=>true;click('Fermer le sondage');window.confirm=original;
     await wait(()=>document.getElementById('app').textContent.includes('Sondage fermé'));return 1;
+  }
+  if(action==='closed-public') {
+    await wait(()=>document.getElementById('app').textContent.includes('Ce sondage est fermé.') && document.getElementById('app').getAttribute('aria-busy')==='false');
+    if(document.querySelector('.vote-choices') || document.querySelector('#app button'))throw new Error('Vote proposé sur sondage fermé');
+    const results=[...document.querySelectorAll('#app a')].find(a=>a.textContent==='Résultats');
+    if(results?.getAttribute('href')!==`#/p/${id}/results` || !results.classList.contains('primary'))throw new Error('Bouton de résultats fermé absent ou route incorrecte');
+    const back=[...document.querySelectorAll('#app a')].find(a=>a.textContent==='Retour');
+    if(back?.getAttribute('href')!=='#home' || document.querySelector('#app a[href^="#poll/"]'))throw new Error('Retour public dirigé vers la gestion privée');
+    results.focus();
+    if(document.activeElement!==results || results.getBoundingClientRect().height<44 || document.documentElement.scrollWidth>innerWidth)throw new Error('Bouton fermé inaccessible ou débordement mobile');
+    results.click(); await wait(()=>document.querySelector('#app h1')?.textContent==='Les résultats' && document.getElementById('app').getAttribute('aria-busy')==='false');
+    if(location.hash!==`#/p/${id}/results` || !document.getElementById('app').textContent.includes('5 réponses') || document.querySelectorAll('.result-row').length<2)throw new Error('Résultats fermés non accessibles au votant');
+    if(document.querySelector('.human-verification') || document.querySelector('script[src*="turnstile"]') || JSON.parse(localStorage.getItem('voti.local.v1')||'{"ballots":[]}').ballots.length)throw new Error('Navigation fermée crée du vote local ou charge Turnstile');
+    return 6;
   }
   return 0;
 }

@@ -151,6 +151,7 @@ async function browserScenario(fixtures) {
   const id = stored().polls[0].id;
   await navigate(`#vote/${id}`, 'pas encore ouvert');
   assert(stored().ballots.length === 0, 'Brouillon : navigation sans vote');
+  assert(![...document.querySelectorAll('#app a')].some(node => node.textContent === 'Résultats'), 'Brouillon : pas de nouveau bouton de résultats');
   await navigate(`#poll/${id}`, 'Publier dans ce navigateur');
   click('Publier dans ce navigateur'); await until(() => text().includes('Vote ouvert'), 'publication');
   click('Modifier le sondage'); await until(() => !!document.querySelector('textarea'), 'édition publiée');
@@ -167,6 +168,7 @@ async function browserScenario(fixtures) {
   const confirm = click('Oui, je confirme'); confirm.click();
   await until(() => text().includes('Ton vote a bien été enregistré'), 'vote enregistré');
   assert(stored().ballots.length === 1 && !!stored().polls[0].lockedAt, 'Double clic : un bulletin et verrouillage');
+  assert(document.querySelector(`#app a[href="#results/${id}"]`)?.textContent === 'Résultats', 'Vote local : route de résultats locale conservée');
   await navigate(`#poll/${id}`, 'premier vote a verrouillé');
   assert(![...document.querySelectorAll('#app a')].some(node => node.textContent === 'Modifier le sondage'), 'Édition sémantique retirée');
   await navigate(`#edit/${id}`, 'ne peut plus être modifié');
@@ -224,6 +226,11 @@ async function browserScenario(fixtures) {
   assert(!text().includes('3 réponses'), 'Fermé à trois : compteur et résultats masqués');
   await navigate(`#vote/${closedId}`, 'Ce sondage est fermé');
   assert(stored().ballots.length === 3, 'Fermé : navigation sans vote');
+  assert(document.querySelector(`#app a[href="#poll/${closedId}"]`)?.textContent === 'Retour', 'Fermé local : retour à la gestion conservé');
+  const closedResults = document.querySelector(`#app a[href="#results/${closedId}"]`);
+  assert(closedResults?.textContent === 'Résultats' && closedResults.classList.contains('primary'), 'Fermé local : bouton de résultats accessible');
+  closedResults.click(); await until(() => text().includes('pas encore disponibles'), 'résultats fermés sous seuil');
+  assert(location.hash === `#results/${closedId}` && !text().includes('3 réponses') && stored().ballots.length === 3, 'Bouton fermé : seuil et compteur masqué conservés, aucun vote ajouté');
 
   const imported = fixtures.html;
   await seed(imported, `#poll/${imported.polls[0].id}`, '<img');
@@ -560,6 +567,9 @@ try {
     }
     await navigateReady(sessionId, servedUrl+'?visit='+crypto.randomUUID()+'#poll/'+id);
     relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('closed',${JSON.stringify(id)})`);
+    await command('Emulation.setDeviceMetricsOverride', { width:360, height:820, deviceScaleFactor:1, mobile:true }, voter.sessionId);
+    await navigateReady(voter.sessionId, servedUrl+'?closed='+crypto.randomUUID()+'#/p/'+id);
+    relayChecks += await evaluate(voter.sessionId, `(${remoteBrowserAction.toString()})('closed-public',${JSON.stringify(id)})`);
     const exported = await evaluate(sessionId, `(${browserKeyExport.toString()})()`); relayChecks += exported.checks;
     await command('Emulation.setDeviceMetricsOverride', { width: 360, height: 820, deviceScaleFactor: 1, mobile: true }, voter.sessionId);
     relayChecks += await evaluate(voter.sessionId, `(${browserKeyImport.toString()})(${JSON.stringify(exported.key)})`);

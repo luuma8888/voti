@@ -10,13 +10,15 @@ installé le secret Turnstile dans le tableau de bord. Un bug du fetch Worker,
 et non une erreur de clé démontrée, empêchait Siteverify d'être appelé. Il a été
 corrigé et redéployé : les jetons factices sont désormais refusés avec
 `403 HUMAN_VERIFICATION_FAILED`. Aucun secret récupéré ou affiché ; aucune
-vérification humaine réussie revendiquée. Le HTML connecté est construit mais
-pas publié : le challenge humain réel sera testé sur Pages après le Gate C.
+vérification humaine réussie n'avait été revendiquée au stade du smoke négatif.
+Lu’uma a depuis confirmé la publication protégée sur le site Pages réel.
 Gate C explicitement autorisé par Lu’uma et exécuté : commit `3d25213`,
-push sur main et mise à jour Pages. L'URL canonique sert exactement le HTML
-production de 477 490 octets. Contrôles automatiques Pages réussis ; Lu’uma
+push sur main et mise à jour Pages. Après micro-correction graphique autorisée
+par Lu’uma, le commit graphique `e2b7a54` a été vérifié : l'URL canonique servait exactement le
+HTML production corrigé de 478 669 octets. Contrôles automatiques Pages réussis ; Lu’uma
 confirme l'affichage Chromebook, la publication protégée et l'ouverture du
-sondage sur téléphone. Les étapes de vote et d'administration restent à tester ;
+sondage sur téléphone, les votes, le seuil et la fermeture. Le transfert de clé
+et la suppression restent à tester ;
 pilote complet non validé et aucun ZIP final encore produit.
 
 ## Arbitrage gratuit validé
@@ -155,8 +157,9 @@ Il précise l'objectif :
 > (cela me permettra de verifier le bon rendu lors de la suite des tests restants)
 
 La correction locale et ses tests sont terminés ; commit/push du diff
-complémentaire autorisés après succès des contrôles. Le commit production
-initial reste `3d25213` ; le nouveau commit sera indiqué après publication.
+complémentaire exécutés après succès des contrôles. Le commit production
+initial est `3d25213` ; le commit complémentaire publié est
+`e2b7a54343e477deecf5349cc1ed4d4742568a12`.
 
 ### Cause et correction de l'apparence du sondage
 
@@ -203,8 +206,18 @@ Contrôles après micro-correction :
 | `npm run build:production` | Réussi en dernier, HTML connecté 478 669 octets ; configuration publique inchangée |
 | `git diff --check` | Réussi, aucune erreur de whitespace |
 
-Publication complémentaire autorisée mais encore à exécuter. Le rendu devra
-être revalidé par Lu’uma sur Chromebook/téléphone avant poursuite de la recette.
+Publication complémentaire autorisée et exécutée : commit/push `e2b7a54`
+sur main. URL canonique Pages HTTP 200, identique octet pour octet au build
+478 669 octets, SHA-256
+`3a363556f3738bab5653d316121fb9aed71bef489b78c9f133343de7f497ddfe`.
+Chromium sur le vrai sondage public, à 360 et 1200 px : trois couleurs de
+bouton et trois fonds de question distincts, thème global inchangé, cibles
+tactiles >=44 px, pas de débordement ni exception runtime, aucun Turnstile
+au vote. Les changements de dataset pour ces contrôles sont uniquement
+des aperçus DOM dans le profil isolé ; **aucun changement distant ni vote**
+effectué par l'agent. Lu’uma confirme le nouveau rendu sur Chromebook/téléphone :
+« Le rendu est bon, c'est parfait ». La recette des seuils peut reprendre ;
+la validation complète du pilote reste conditionnée aux autres étapes.
 
 ## Architecture et différences minimales
 
@@ -294,6 +307,10 @@ Lu’uma lu et préservé, non créé ni modifié par ce travail. Aucun ancien Z
 n'est supprimé ou désindexé.
 
 ## Tests et contrôles
+
+Journal du premier build v0.3D, avant la micro-correction graphique : les
+nouveaux résultats (193 tests Node, 910/954/956 contrôles Chromium et nouveau
+build) sont consignés dans la section de correction autorisée ci-dessus.
 
 | Commande/contrôle | Résultat observé |
 | --- | --- |
@@ -452,10 +469,10 @@ ou refonte graphique ne fait partie de ces étapes.
 | 4. Publication distante réelle | Lu’uma confirme : « publication réussirt » ; GET public via HttpRelayAdapter réel valide question, trois choix, statut published, seuil 5 et mode threshold |
 | 5. Ouverture du lien sur téléphone | Lu’uma confirme : « Je confirme pour le telephone » et fournit le lien public ; aucune action téléphone effectuée par l'agent |
 | 6. Vote du téléphone, sans compte ni Turnstile | Lu’uma confirme le message « Ton vote a bien été enregistré. » après les consignes de sélection/confirmation de Pomme ; contrôle public après vote réussi |
-| 7. Seuil et résultats | Avant premier vote : GET résultats renvoie RESULTS_LOCKED, distribution et compteur absents ; états à 4/5 réponses encore à tester |
+| 7. Seuil et résultats | Sous seuil : RESULTS_LOCKED, distribution/compteur absents ; COUNT administratif confirme 4 bulletins lors de l'incident. Après un vote Pomme supplémentaire, Lu’uma voit les résultats ; GET public confirme exactement 5 réponses : Pomme 3/60 %, Banane 1/20 %, Poire 1/20 %. L'écart avec la séquence initialement annoncée est consigné ci-dessous |
 | 8. Verrouillage après premier vote | GET public : locked=true, empreinte présente, statut published. Lu’uma confirme également le message de verrouillage, l'absence de modification du fond, l'apparence toujours disponible et le refus de la route d'édition directe : « Je confirme que c'est bon » |
-| 9. Style après verrouillage | Enregistrement distant et propagation de la bordure confirmés par Lu’uma ; GET confirme lavender et empreinte/question/choix/règles inchangés. Limite CSS signalée ; micro-correction autorisée, revalidation du rendu complet après republication encore attendue |
-| 10. Fermeture et refus de nouveau vote | Non testés en production |
+| 9. Style après verrouillage | Enregistrement distant et empreinte/question/choix/règles inchangés vérifiés. Après correction CSS autorisée et publication e2b7a54, Lu’uma confirme le rendu complet : « Le rendu est bon, c'est parfait » |
+| 10. Fermeture et refus de nouveau vote | Lu’uma confirme : « Sondage bien fermé ». GET public confirme closed, locked=true ; résultats toujours disponibles, 5 réponses, répartition 3/1/1. L'absence de bouton sur la page publique fermée est diagnostiquée puis corrigée avec autorisation explicite ; nouvelle vérification humaine des liens et du refus de vote encore attendue |
 | 11. Export/import secret de la clé admin | Non testés en production ; ne jamais transmettre le fichier dans le chat |
 | 12. Suppression et NOT_FOUND | Non testés en production ; contrôles D1 ensuite en lecture seule |
 
@@ -470,3 +487,94 @@ capacité administrateur dans la projection publique. Aucun vote envoyé par l'a
 Après le message de succès du premier vote humain : GET public confirme
 locked=true et empreinte sémantique présente ; GET résultats reste RESULTS_LOCKED,
 sans distribution ni total. L'agent ne récupère aucun bulletin ni capacité.
+Après les trois votes supplémentaires humains : Lu’uma confirme « Les trois
+votes sont faits et réussi. Resultats toujours bloqués sans répartition, sans
+compteur. » GET public confirme statut published, verrouillage et résultats
+indisponibles ; GET résultats confirme RESULTS_LOCKED sans distribution ni total.
+À ce stade, le nombre quatre provenait du parcours annoncé par Lu’uma, pas d'un compteur
+public caché ou d'une récupération de bulletins. Aucun vote envoyé par l'agent.
+
+### Incident de recette : cinquième vote signalé, résultats toujours verrouillés
+
+Lu’uma signale « Resultat pas encore disponible. (j'ai pourtant voté le cinquième
+vote Pomme. » Diagnostic sans mutation : GET public confirme published,
+locked=true, threshold/minimumResponses=5 ; GET résultats renvoie RESULTS_LOCKED
+sans distribution ni compteur. Une requête d'administration Cloudflare en
+lecture seule, limitée à COUNT(*) pour ce seul sondage fictif, indique **4
+bulletins acceptés**, et non 5. Aucun contenu de bulletin/actionId ni dérivé
+de capacité récupéré ; aucun compteur ajouté à l'interface publique.
+
+Le verrouillage des résultats était cohérent avec le nombre réel enregistré.
+**Correction du diagnostic de l'agent :** COUNT(*)=4 ne permettait pas de
+conclure que le vote Pomme nouvellement annoncé n'avait pas été ajouté. Il
+indiquait seulement que cinq bulletins distincts n'étaient pas encore acceptés.
+
+Lu’uma confirme ensuite avoir refait un vote Pomme ; résultats accessibles,
+Pomme 3, Banane 1, Poire 1. GET public et GET résultats valident désormais
+5 réponses, proportions 60/20/20, statut published et verrouillage conservé.
+La publication au seuil réel de 5 fonctionne donc. Par rapport à la séquence
+de test initialement annoncée, un vote Banane est absent du décompte attendu
+et le vote Pomme supplémentaire apparaît. Aucun mécanisme ne permet d'attribuer
+avec certitude l'écart à un geste précis à partir de ces seuls agrégats.
+
+Lu’uma précise : « J'ai peut être été trop vite et pas assez bien vérifié pour
+un vote banane ». Une confirmation incomplète, une reprise idempotente ou une
+autre différence de parcours restent des hypothèses, **pas un bug démontré**
+ni une erreur humaine établie. Aucune règle métier changée, aucune insertion
+manuelle de bulletin, aucun nouveau logging sensible. La fin de la recette
+reste à effectuer ; les résultats actuels servent de référence pour fermeture
+et suppression.
+
+### Correction ciblée de navigation après fermeture — autorisée par Lu’uma
+
+Lu’uma signale que le lien public de vote fermé ne permet pas de voir les
+résultats, puis confirme « oui, c'est l'absence de bouton ». Le relais ne bloque
+pas les résultats : GET public et GET résultats confirment un sondage fermé
+avec 5 réponses, Pomme 3, Banane 1, Poire 1. La cause est dans `web/app.js` :
+la branche de vote non ouvert propose seulement un Retour vers la gestion
+locale. Un autre défaut du même parcours est constaté : le lien Résultats après
+un vote distant utilise `#results/<id>` au lieu de `#/p/<id>/results`.
+
+**Autorisation explicite de Lu’uma pour cette correction distincte du CSS :**
+l'agent demande « M’autorises-tu à ajouter ce bouton et à corriger également
+le lien “Résultats” après un vote, puis à tester, commiter et pousser cette
+correction ciblée ? » ; Lu’uma répond « oui ».
+
+Correction : un sondage fermé propose un bouton Résultats, y compris sous
+seuil (la page explique alors le verrouillage). Les résultats distants utilisent
+la route publique après vote et après fermeture. Le Retour d'une page distante
+fermée vise l'accueil, pas la gestion réservée au créateur. Le brouillon ne
+reçoit pas de bouton supplémentaire. Les routes locales et leur Retour vers
+la gestion sont conservés. Aucune règle de résultats/vote, aucun modèle,
+bulletin, stockage, secret ou backend modifié. Aucun vote de production envoyé
+par l'agent ; aucun redéploiement Worker nécessaire.
+
+Fichiers de cette correction : `web/app.js`, `scripts/browser-relay.mjs`,
+`scripts/browser-test.mjs`, `index.html` régénéré et ce rapport. Sans dépendance
+supplémentaire. Régressions Chromium : lien après chaque vote distant réellement
+cliqué, résultats publics après fermeture réellement ouverts par le second
+contexte sans capacité administrateur, retour non privé, clavier/cible 44 px,
+360 px sans débordement, absence de Turnstile ou bulletin local ; bouton fermé
+local sous seuil laissant distribution/compteur masqués, route locale après
+vote et absence de bouton sur brouillon conservées.
+
+Contrôles de cette correction :
+
+| Commande | Résultat |
+| --- | --- |
+| `npm test` | Réussi ; décompte explicite Node : 193 passés, 0 échec/sauté/annulé |
+| `npm run check` | Réussi, 60 fichiers JavaScript |
+| `npm run build` | Réussi, HTML autonome local 478 709 octets |
+| `npm run test:browser` | Réussi, 915 contrôles offline/local et `/voti/` |
+| `npm run test:free-pilot` | Réussi, 21 contrôles HTTP/D1 sans R2 + 977 contrôles Chromium |
+| `npm run test:integration` | Réussi, 73 contrôles HTTP/D1/R2 locaux + 975 contrôles Chromium |
+| `npm run build:production` | Exécuté en dernier : réussi, HTML connecté 478 957 octets |
+| `git diff --check` | Réussi |
+| Contrôle ciblé avant commit | Aucun motif de secret concret dans les sources/rapport, aucune archive audit suivie ; configuration publique inchangée |
+
+La vérification suit les scripts Wrangler locaux existants et leurs bindings
+`remote:false`, sans mutation Cloudflare de production. Le skill Wrangler a
+confirmé cette séparation ; aucune configuration ou dépendance modifiée.
+Commit/push expressément autorisés ci-dessus ; vérification du site publié
+à effectuer après propagation. Ne pas considérer la nouvelle recette physique
+comme validée avant le retour de Lu’uma.

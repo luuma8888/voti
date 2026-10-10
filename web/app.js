@@ -485,9 +485,12 @@ function edit(id) {
 
 function vote(id) {
   const poll = getPoll(state, id);
+  const distant = remoteViews.has(id);
+  const resultsLink = distant ? publicLink(id, true) : `#results/${id}`;
   heading(poll.definition.question);
   if (poll.status !== 'published') {
-    app.append(el('p', poll.status === 'draft' ? 'Le vote n’est pas encore ouvert.' : 'Ce sondage est fermé.'), actions(link('Retour', `#poll/${id}`)));
+    app.append(el('p', poll.status === 'draft' ? 'Le vote n’est pas encore ouvert.' : 'Ce sondage est fermé.'),
+      actions(...(poll.status === 'closed' ? [link('Résultats', resultsLink, 'primary')] : []), link('Retour', distant ? '#home' : `#poll/${id}`)));
     return;
   }
   const card = el('section', null, { class: 'card', 'data-accent': poll.style.themeId });
@@ -507,7 +510,7 @@ function vote(id) {
         app.replaceChildren(); heading('Merci !');
         images.sweep();
         app.append(append(el('section', null, { class: 'card vote-success' }), mascot(), el('span', '✓', { class: 'success-icon', 'aria-hidden': 'true' }),
-          el('p', 'Ton vote a bien été enregistré.'), actions(link('Revenir à mes sondages', '#home'), link('Résultats', `#results/${id}`))));
+          el('p', 'Ton vote a bien été enregistré.'), actions(link('Revenir à mes sondages', '#home'), link('Résultats', resultsLink))));
       };
       if (remoteViews.has(id)) await remoteAction(confirm, () => relay.castVote(id, action.choiceId, action.id), success);
       else await transact(confirm, current => castVote(current, action), success);
