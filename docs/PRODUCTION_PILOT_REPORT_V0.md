@@ -1,11 +1,11 @@
-# Voti v0.3D — rapport de préparation du pilote
+# Voti v0.3D — rapport final du pilote gratuit
 
-## État réel : Gate B autorisé, migrations et Worker déployés
+## État final : pilote textuel Chromebook ↔ téléphone validé
 
 Le provisionnement approuvé au Gate A est terminé. Lu’uma a explicitement
 autorisé le Gate B. Le 10 octobre 2026, les deux migrations ont été appliquées
-sur D1 UE et le Worker a été déployé sur workers.dev. **Ce rapport reste
-intermédiaire : le pilote de bout en bout n'est pas encore validé.** Lu’uma a
+sur D1 UE et le Worker a été déployé sur workers.dev. **La recette physique du
+pilote textuel est maintenant confirmée par Lu’uma, jusqu'à la suppression.** Lu’uma a
 installé le secret Turnstile dans le tableau de bord. Un bug du fetch Worker,
 et non une erreur de clé démontrée, empêchait Siteverify d'être appelé. Il a été
 corrigé et redéployé : les jetons factices sont désormais refusés avec
@@ -17,9 +17,15 @@ push sur main et mise à jour Pages. Après micro-correction graphique autorisé
 par Lu’uma, le commit graphique `e2b7a54` a été vérifié : l'URL canonique servait exactement le
 HTML production corrigé de 478 669 octets. Contrôles automatiques Pages réussis ; Lu’uma
 confirme l'affichage Chromebook, la publication protégée et l'ouverture du
-sondage sur téléphone, les votes, le seuil et la fermeture. Le transfert de clé
-et la suppression restent à tester ;
-pilote complet non validé et aucun ZIP final encore produit.
+sondage sur téléphone, les votes, le seuil, la fermeture et le transfert de clé.
+Lu’uma confirme aussi la suppression ; le relais renvoie NOT_FOUND pour le
+sondage et les résultats. Lu’uma confirme enfin que les deux liens actualisés
+sur téléphone indiquent le sondage introuvable. Le contrôle D1 final confirme
+la suppression métier et les files vides ; trois exécutions cron réelles ont
+été observées en succès. Frontend actif : `8204e95`, HTML 478 957 octets.
+Le ZIP d'audit est produit après les derniers tests et la présente documentation.
+Cette validation est celle d'un **pilote contrôlé sans R2**, pas d'une ouverture
+publique large ni d'un audit exhaustif de sécurité/charge.
 
 ## Arbitrage gratuit validé
 
@@ -126,7 +132,8 @@ Redéploiement Gate B sur le même Worker, sans modifier le secret :
 - D1 après contrôle : 0 sondage, 0 bulletin, 0 préparation.
 
 Cela valide la correction du runtime et le chemin négatif Siteverify, **pas**
-un challenge humain réussi ni un replay réel. Ceux-ci restent à tester sur Pages.
+un challenge humain réussi ni un replay réel à ce stade. La publication humaine
+a ensuite été confirmée sur Pages ; le replay réel n'a pas été testé.
 
 ## Arbitrage complémentaire explicitement autorisé par Lu’uma
 
@@ -217,11 +224,12 @@ au vote. Les changements de dataset pour ces contrôles sont uniquement
 des aperçus DOM dans le profil isolé ; **aucun changement distant ni vote**
 effectué par l'agent. Lu’uma confirme le nouveau rendu sur Chromebook/téléphone :
 « Le rendu est bon, c'est parfait ». La recette des seuils peut reprendre ;
-la validation complète du pilote reste conditionnée aux autres étapes.
+la validation complète du pilote était alors conditionnée aux autres étapes,
+depuis confirmées dans le journal final.
 
 ## Architecture et différences minimales
 
-Architecture de production préparée : GitHub Pages → HttpRelayAdapter → Worker
+Architecture de production réalisée : GitHub Pages → HttpRelayAdapter → Worker
 → D1. La configuration locale Worker/D1/R2 et InMemoryRelayAdapter sont conservés.
 Le moteur, modèle, schéma des données, ballot minimal, empreinte sémantique,
 concurrence D1, idempotence et règles de résultats ne sont pas modifiés. Seule
@@ -260,7 +268,9 @@ par Lu’uma : pas de récupération automatique, pas de secret dans le chat.
 
 Configuration publique centralisée dans `web/relay-production.json`, sans
 capacité ou secret. Après correction et contrôles HTTP, `npm run build:production`
-a construit `index.html` connecté : **477 490 octets**. Il n'est pas encore publié.
+a construit initialement `index.html` connecté : **477 490 octets**, publié au
+Gate C. Après les deux corrections complémentaires autorisées, le build actif
+est de **478 957 octets**, vérifié identique sur Pages.
 `npm run build` reste le build local autonome sans relais ; les tests réécrivent
 le HTML, donc le build production est exécuté en dernier avant revue Gate C.
 
@@ -300,7 +310,11 @@ le HTML, donc le build production est exécuté en dernier avant revue Gate C.
 - `scripts/audit-bundle.mjs` : cible v0.3D, exclusion de **tous** les ZIP
   `VOTI_AUDIT_*.zip`, y compris s'il en était accidentellement suivi ; pas de récursion.
 - `index.html` : HTML autonome connecté au pilote, ressources locales intégrées,
-  configuration publique seulement ; pas encore envoyé sur GitHub Pages.
+  configuration publique seulement ; publié sur GitHub Pages après Gate C.
+- `web/styles.css`, `tests/themes.test.js` : correction des accents existants
+  autorisée pendant la recette, sans nouvelle fonction métier.
+- `docs/PRODUCTION_DEPLOYMENT_V0.md`, `docs/PRIVACY_AND_ABUSE_V0.md`, `README.md`,
+  `docs/CLOUDFLARE_DEPLOYMENT_V0.md` : mise à jour finale de l'état réel du pilote.
 
 `docs/VOTI_DEPLOY_V0_3D_SPEC.md` était déjà non suivi au départ ; fichier de
 Lu’uma lu et préservé, non créé ni modifié par ce travail. Aucun ancien ZIP
@@ -413,10 +427,10 @@ verrouillage, transfert de clé et suppression.
    jeton factice vérifié ; aucune nouvelle saisie de clé demandée.
 2. Gate C explicitement accordé puis exécuté : commit/push et HTML Pages
    vérifiés. Il ne constitue pas une validation de la recette physique.
-3. Publication protégée et premier vote téléphone confirmés par Lu’uma.
-   Replay Turnstile réel, performances CPU du parcours métier Workers Free et
-   fin de recette physique **non vérifiés**. HTTP/CORS et fail-closed vérifiés
-   comme détaillé plus haut. Aucun quota de production forcé jusqu'à
+3. Recette physique complète du pilote textuel confirmée par Lu’uma. Replay
+   Turnstile réel **non testé** ; CPU agrégé observé mais aucune preuve exhaustive
+   par route/charge. HTTP/CORS et fail-closed vérifiés comme détaillé plus haut.
+   Aucun quota de production forcé jusqu'à
    épuisement, ce serait une interruption inutile du pilote.
 4. Le forfait doit rester Free ; aucun garde-fou du code ne garantit zéro coût
    si un administrateur le transforme ensuite en abonnement Paid.
@@ -424,11 +438,11 @@ verrouillage, transfert de clé et suppression.
    aucun anonymat réseau garanti, logs Cloudflare possibles, pas de vote différé.
 6. Images utilisateur distantes volontairement indisponibles. Aucune solution
    financière de stockage média gratuite dure n'est inventée dans ce lot.
-7. Le ZIP `VOTI_AUDIT_V0_3D.zip` sera produit **à la toute fin**, après mise à jour
-   finale du rapport. Le filtre d'exclusion récursive est déjà testé ; pas de ZIP
-   provisoire présenté comme audit d'un déploiement terminé.
+7. ZIP `VOTI_AUDIT_V0_3D.zip` : produit **à la toute fin** via le mécanisme du
+   dépôt ; les archives VOTI, même suivies accidentellement, sont exclues.
+   Aucun ZIP d'audit commité/poussé. Voir les contrôles finaux ci-dessous.
 
-## Gate C — exécuté, Pages vérifié, recette humaine en attente
+## Gate C — exécuté, Pages vérifié
 
 Le diff couvre la configuration production gratuite, les refus d'images
 distantes, le build public, les deux corrections de compatibilité D1/workerd,
@@ -449,15 +463,17 @@ métier ni changement des règles de vote. Le diff du build embarqué est :
 Ce diff décrit le module **embarqué dans index.html** ; la valeur par défaut
 des sources reste null pour le build local. Site key publique, pas Secret key.
 Avant le push, le site servait un HTML de 475 630 octets sans relais. Après
-propagation, l'URL canonique sert exactement le build connecté de 477 490 octets
+la première propagation, l'URL canonique servait exactement le build connecté de 477 490 octets
 du commit `3d252138875c530156401b45fbff36ccc6d992ad`. Aucun ZIP d'audit
 n'est actuellement suivi par Git (contrôle `git ls-files '*VOTI_AUDIT_*.zip'`
 vide), et ils restent ignorés. La mise à jour de ce rapport après vérification
-Pages reste locale jusqu'à finalisation de la recette ; aucun secret n'y est ajouté.
-Guider maintenant Lu’uma étape par étape pour la recette Chromebook ↔ téléphone
-et attendre ses réponses, puis compléter ce rapport,
-produire et vérifier le ZIP final. Aucun QR/PDF, compte, Android, synchronisation
-ou refonte graphique ne fait partie de ces étapes.
+Pages a été conservée localement jusqu'à finalisation de la recette ; aucun secret n'y est ajouté.
+La recette Chromebook ↔ téléphone a ensuite été guidée étape par étape et les
+réponses attendues, sans attribuer à l'agent une manipulation physique. Deux
+corrections ciblées distinctes ont été explicitement autorisées et publiées :
+`e2b7a54` (accents), puis `8204e95` (liens publics de résultats), comme décrit
+dans leurs sections. Aucun QR/PDF, compte, Android, synchronisation ou refonte
+générale ajouté.
 
 ## Recette humaine — journal des confirmations
 
@@ -472,12 +488,14 @@ ou refonte graphique ne fait partie de ces étapes.
 | 7. Seuil et résultats | Sous seuil : RESULTS_LOCKED, distribution/compteur absents ; COUNT administratif confirme 4 bulletins lors de l'incident. Après un vote Pomme supplémentaire, Lu’uma voit les résultats ; GET public confirme exactement 5 réponses : Pomme 3/60 %, Banane 1/20 %, Poire 1/20 %. L'écart avec la séquence initialement annoncée est consigné ci-dessous |
 | 8. Verrouillage après premier vote | GET public : locked=true, empreinte présente, statut published. Lu’uma confirme également le message de verrouillage, l'absence de modification du fond, l'apparence toujours disponible et le refus de la route d'édition directe : « Je confirme que c'est bon » |
 | 9. Style après verrouillage | Enregistrement distant et empreinte/question/choix/règles inchangés vérifiés. Après correction CSS autorisée et publication e2b7a54, Lu’uma confirme le rendu complet : « Le rendu est bon, c'est parfait » |
-| 10. Fermeture et refus de nouveau vote | Lu’uma confirme : « Sondage bien fermé ». GET public confirme closed, locked=true ; résultats toujours disponibles, 5 réponses, répartition 3/1/1. L'absence de bouton sur la page publique fermée est diagnostiquée puis corrigée avec autorisation explicite ; nouvelle vérification humaine des liens et du refus de vote encore attendue |
-| 11. Export/import secret de la clé admin | Non testés en production ; ne jamais transmettre le fichier dans le chat |
-| 12. Suppression et NOT_FOUND | Non testés en production ; contrôles D1 ensuite en lecture seule |
+| 10. Fermeture et refus de nouveau vote | Lu’uma confirme : « Sondage bien fermé ». GET public confirme closed, locked=true ; résultats toujours disponibles, 5 réponses, répartition 3/1/1. Après correction autorisée publiée en 8204e95, Lu’uma répond « Je confirme » à la vérification téléphone : message fermé, sans possibilité de voter, bouton Résultats ouvrant 5 réponses Pomme 3 / Banane 1 / Poire 1 |
+| 11. Export/import secret de la clé admin | Lu’uma confirme « oui, fichier téléchargé » après export dans le navigateur créateur, puis « Je confirme, ça fonctionne » après les consignes d'import dans une fenêtre privée distincte, avec récupération de la gestion du sondage fermé et des actions Apparence / Supprimer en ligne. Validation distante prévue par le code d'import ; aucune clé ni fichier secret transmis à l'agent |
+| 12. Suppression et NOT_FOUND | Lu’uma confirme « Je confirme la suppression », puis « oui » pour les deux liens actualisés sur téléphone signalant le sondage introuvable. Lectures HTTP via HttpRelayAdapter réel : getPoll et getResults renvoient NOT_FOUND. Contrôle D1 final : toutes les lignes liées au sondage fictif sont absentes, garbage/préparations vides ; aucun secret ni bulletin brut lu |
 
-Rétention/cron/usage de production restent à observer après les manipulations.
-Le ZIP final ne sera créé qu'après ces confirmations et les derniers contrôles.
+Toutes les confirmations physiques prévues pour le pilote textuel ont été
+reçues. Rétention/cron/usage sont contrôlés en lecture seule après les
+manipulations ; observations et limites détaillées ci-dessous. Le ZIP est
+produit après les tests et la documentation finaux, pas avant la recette.
 
 Sondage fictif de recette : `09f5d0ce-80d7-4765-a2eb-7a5a651d1f79`, lien
 public `https://luuma8888.github.io/voti/#/p/09f5d0ce-80d7-4765-a2eb-7a5a651d1f79`.
@@ -521,9 +539,8 @@ Lu’uma précise : « J'ai peut être été trop vite et pas assez bien vérifi
 un vote banane ». Une confirmation incomplète, une reprise idempotente ou une
 autre différence de parcours restent des hypothèses, **pas un bug démontré**
 ni une erreur humaine établie. Aucune règle métier changée, aucune insertion
-manuelle de bulletin, aucun nouveau logging sensible. La fin de la recette
-reste à effectuer ; les résultats actuels servent de référence pour fermeture
-et suppression.
+manuelle de bulletin, aucun nouveau logging sensible. Cette répartition a servi
+de référence pour les étapes de fermeture et suppression ensuite confirmées.
 
 ### Correction ciblée de navigation après fermeture — autorisée par Lu’uma
 
@@ -575,6 +592,157 @@ Contrôles de cette correction :
 La vérification suit les scripts Wrangler locaux existants et leurs bindings
 `remote:false`, sans mutation Cloudflare de production. Le skill Wrangler a
 confirmé cette séparation ; aucune configuration ou dépendance modifiée.
-Commit/push expressément autorisés ci-dessus ; vérification du site publié
-à effectuer après propagation. Ne pas considérer la nouvelle recette physique
-comme validée avant le retour de Lu’uma.
+Commit/push expressément autorisés ci-dessus et exécutés : `8204e95`
+(`fix: expose public results after voting and closure`), main et origin/main
+synchronisés. Après propagation, URL canonique Pages HTTP 200, **478 957 octets
+identiques au build**, SHA-256
+`a5ca888deadbc85f414043d5bcffd8c66fab99f0e06440d3a3e899dd588a0d81`.
+Un premier smoke lancé pendant la propagation recevait encore l'ancienne page
+et échouait sur l'absence de bouton ; pas de nouvelle correction du code.
+Relance après vérification des octets : **14 contrôles Chromium réussis** sur
+Pages réel à 360/1200 px, bouton Résultats fermé réellement cliqué, répartition
+disponible de 5 réponses, contexte sans capacité admin, aucune exception,
+aucun Turnstile ni requête mutante distante. Aucune manipulation du téléphone
+faite par l'agent. Lu’uma confirme ensuite la vérification physique demandée :
+« Je confirme » (sondage fermé sans possibilité de voter et bouton ouvrant les
+5 réponses avec répartition 3/1/1). Étape de fermeture/navigation validée ;
+export/import de clé depuis un autre contexte navigateur ensuite confirmés par
+Lu’uma, puis suppression confirmée. L'agent n'a reçu ni lu la clé de recette.
+Ces observations post-publication et les dernières confirmations figurent
+dans le présent rapport final ; elles restent distinctes des tests automatisés.
+
+### Retour UX à reporter au prochain lot — confirmations stylisées
+
+Après suppression, Lu’uma demande : « éviter les alert javascript et utiliser
+plutôt des popups stylisé », car la confirmation native du navigateur est jugée
+peu agréable. La suppression utilise actuellement `window.confirm`, pas
+`window.alert`. Demande consignée pour le lot suivant : fenêtres de confirmation
+stylisées cohérentes avec Voti, accessibles (clavier, focus, annulation explicite).
+Aucune nouvelle refonte ou modification de confirmation dans v0.3D ; le
+comportement testé de suppression et de transfert de clé reste intact.
+
+## Contrôles finaux de suppression, cron et usage — lecture seule
+
+Observation le 10 octobre 2026 vers 18:35 UTC, sans nouvelle mutation distante.
+
+### Suppression métier et nettoyage
+
+Requête D1 limitée à des agrégats, aucun bulletin brut ni capacité/dérivé lus :
+
+| Contrôle | Valeur |
+| --- | ---: |
+| Sondage fictif dans polls | 0 |
+| Bulletins liés dans ballots | 0 |
+| Préparation liée dans publications | 0 |
+| Relations liées dans asset_links / asset_refs | 0 / 0 |
+| Total sondages / préparations | 0 / 0 |
+| Garbage R2 / préparations expirées / gardes de mutation | 0 / 0 / 0 |
+| Taille du fichier D1 / tables, migrations incluses | 90 112 octets / 8 |
+| Mutation de la requête d'audit D1 | changed_db=false, rows_written=0 |
+
+Juridiction API `eu`, exécution de la lecture `EEUR`. Les lignes métier sont
+supprimées ; la taille SQLite ne revient pas nécessairement à celle d'une base
+vide nouvellement créée. Aucune promesse d'effacement instantané des copies
+opérateur/Time Travel. R2 n'existe pas dans ce pilote : pas de drainage d'objets
+réels à vérifier, pas de test R2 distant revendiqué.
+
+API schedules : **un seul** déclencheur `17 * * * *`. Le dataset GraphQL
+`workersInvocationsScheduled`, introspecté avant requête, montre trois vraies
+exécutions en `success` :
+
+| Date UTC | CPU mesuré |
+| --- | ---: |
+| 2026-10-10 16:17:56 | 1 685 µs |
+| 2026-10-10 17:17:56 | 2 498 µs |
+| 2026-10-10 18:17:56 | 1 468 µs |
+
+Le cron est donc observé en fonctionnement, pas seulement configuré. Les files
+finales étant vides, ce pilote ne démontre pas une suppression d'objet R2 ni
+le drainage réel d'une préparation délibérément laissée expirer 24 h. Expiration,
+bornes, reprise et garbage restent couverts par les tests locaux. Aucun cleanup
+production forcé, aucun sondage artificiel supplémentaire créé.
+
+### Usage et limites financières observables
+
+Fenêtre GraphQL **2026-10-10 15:00:00 → 18:35:00 UTC**, périmètre voti-relay
+et sa D1, pas tout le compte. Agrégats susceptibles d'avoir un délai/échantillonnage :
+
+| Mesure observée | Valeur |
+| --- | ---: |
+| Invocations Worker / erreurs runtime | 159 / 0 |
+| CPU P50 / P99 | 1 603 / 5 608 µs (1,603 / 5,608 ms) |
+| Requêtes D1 lecture / écriture | 178 / 52 |
+| Lignes D1 lues / écrites | 1 066 / 94 |
+| Turnstile challenge_issued | 2 |
+| Turnstile challenge_interactive_solved | 1 |
+| Turnstile challenge_interactive_siteverify_solved | 1 |
+| Turnstile challenge_siteverify_failed_invalid_token | 1 |
+
+Unités CPU confirmées par introspection du schéma : microsecondes. Ces quantiles
+agrégés ne garantissent pas que chaque route ou charge future respecte la limite
+CPU Free. « 0 erreur runtime » ne signifie pas « aucun refus HTTP » : les refus
+contrôlés attendus (403, 404, seuil verrouillé) ne sont pas des exceptions runtime.
+Les événements Turnstile sont des catégories pouvant concerner un même parcours,
+pas des personnes ni quatre publications. Aucun IP/User-Agent/ASN récupéré.
+
+Le GET des souscriptions est encore refusé (`10000 Authentication error`). Le
+forfait Free reste celui confirmé au dashboard par Lu’uma, pas inféré des métriques.
+Aucun upgrade, R2, Images, nouveau secret, alerte payante ou budget non bloquant
+ajouté. Pas d'estimation de facture mensuelle ni d'essai d'épuisement des quotas.
+La gratuité dépend du maintien des offres Free ; un administrateur passant le
+compte sur Paid invaliderait ce garde-fou. Surveiller les métriques dans le
+dashboard, le cron et le backlog avant toute ouverture plus large.
+
+Sources et méthode : [métriques Workers](https://developers.cloudflare.com/workers/observability/metrics-and-analytics/),
+[GraphQL Workers](https://developers.cloudflare.com/analytics/graphql-api/tutorials/querying-workers-metrics/).
+Consultation API officielle avec projection des seuls agrégats non sensibles.
+Le skill Workers a servi à la revue de configuration/observabilité : la politique
+Voti de désactivation des logs sensibles a été conservée, sans activer logs/traces.
+
+## Derniers tests et audit livrable
+
+Suites relancées après la dernière confirmation humaine, sources applicatives
+inchangées depuis le commit `8204e95` :
+
+| Commande | Résultat final |
+| --- | --- |
+| `npm test` | Réussi, suite de 193 tests ; décompte explicite sans isolation : 193 passés, 0 échec/sauté/annulé |
+| `npm run check` | Réussi, 60 fichiers JavaScript |
+| `npm run build` | Réussi, HTML local 478 709 octets |
+| `npm run test:relay` | Réussi, 72 contrôles HTTP/Worker/D1/R2 locaux |
+| `npm run test:integration` | Réussi, 73 contrôles HTTP + 975 contrôles Chromium |
+| `npm run test:browser` | Réussi, 915 contrôles offline/local et `/voti/` |
+| `npm run test:free-pilot` | Réussi, 21 contrôles HTTP/D1 sans R2 + 977 contrôles Chromium |
+| `npm run build:production` | Réussi en dernier, HTML 478 957 octets, identique au frontend publié |
+| `git diff --check` | Réussi |
+
+Les scénarios navigateur renforcés ont ainsi réussi deux fois : avant publication
+de la correction de liens, puis à la finalisation ; aucun comportement aléatoire
+observé sur ces relances. La suite `test:relay` supplémentaire passe à la dernière
+exécution. Les incidents historiques des premiers essais restent documentés.
+Build production remis en dernier pour ne pas livrer le HTML local/test.
+Le site publié reste celui du commit frontend `8204e95`, aucune nouvelle fonction
+ni mutation Cloudflare nécessaire à cette finalisation documentaire.
+
+Audit : `npm run audit:bundle`, destination `VOTI_AUDIT_V0_3D.zip` à la racine.
+Entrées issues uniquement de `git ls-files -co --exclude-standard`, dédupliquées,
+avec exclusion explicite de **tous** les `VOTI_AUDIT_*.zip`, même suivis par erreur.
+111 fichiers admissibles. Inspection de la liste puis du répertoire ZIP, test intégrité/CRC et comparaison
+des octets avec les fichiers sources ; aucun node_modules, cache/runtime Node,
+.wrangler, .relay-local, profil/capture Chromium, base locale, fichier secret ou
+archive VOTI récursive admis. Aucun secret concret détecté dans les textes ou
+modules HTML embarqués. Une première expression trop large signalait les
+littéraux factices des tests Siteverify ; trois valeurs de test connues ont été
+identifiées explicitement (sans exclure globalement les fichiers de tests).
+Le secret Cloudflare et la clé humaine n'ont jamais été
+récupérés, donc ne peuvent pas être comparés par leur valeur ; contrôles structurels
+et provenance, pas promesse magique d'audit de tous les secrets possibles.
+Taille et chemin exacts du ZIP sont fournis dans la sortie finale ; l'archive est
+ignorée, jamais ajoutée à Git. Aucune suppression des anciennes archives.
+
+Conclusion : premier pilote Internet textuel gratuit validé avec Lu’uma ;
+maintenir le forfait Free et un périmètre contrôlé. Avant élargissement : revue
+charge/sécurité et suivi quotas, gestion opérateur des clés perdues/effacement,
+replay réel Turnstile si souhaité. Prochain micro-lot demandé : confirmations
+stylisées accessibles, sans changement des règles métier. QR/PDF, comptes,
+Android, images distantes et services payants restent hors de ce lot.

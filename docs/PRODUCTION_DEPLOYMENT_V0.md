@@ -13,9 +13,12 @@ locaux restent disponibles ; ni upload alternatif ni stockage de blobs D1.
 10 octobre 2026. Secret installé manuellement, binding chiffré confirmé ; le
 contrôle Siteverify a révélé un bug de fetch workerd, corrigé et redéployé.
 Le jeton factice est maintenant refusé avec `403 HUMAN_VERIFICATION_FAILED`.
-HTML connecté construit ; challenge humain réel et recette restent à faire
-après publication. Gate C explicitement autorisé par Lu’uma : commit/push sur
-main et mise à jour Pages en cours, recette humaine non encore validée.
+Gate C explicitement autorisé et exécuté : commit/push sur main et Pages publié.
+**Recette textuelle Chromebook ↔ téléphone confirmée par Lu’uma**, publication
+Turnstile réelle jusqu'à transfert de clé et suppression, sans vote effectué par
+l'agent. Deux corrections ciblées explicitement autorisées en cours de recette :
+accents CSS (`e2b7a54`), puis liens de résultats (`8204e95`). Pilote contrôlé
+validé, pas une ouverture publique large ni un audit exhaustif de charge/sécurité.
 
 ## Ressources vérifiées
 
@@ -34,7 +37,7 @@ main et mise à jour Pages en cours, recette humaine non encore validée.
 | Site key **publique** | `0x4AAAAAAFSr8Ez4dZ22j76S` |
 | Hôte widget et Siteverify | `luuma8888.github.io` uniquement |
 | Action Siteverify | `voti-publication` |
-| Site Pages prévu | `https://luuma8888.github.io/voti/` |
+| Site Pages publié | `https://luuma8888.github.io/voti/` |
 | R2 | **Non activé, aucun bucket créé ni binding de production** |
 
 La connexion OAuth Wrangler et le connecteur officiel Cloudflare sont actifs.
@@ -102,7 +105,8 @@ aucune migration de domaine ou modification du mécanisme de verrouillage.
 
 Migrations et déploiement ci-dessous exécutés après confirmation explicite.
 Le secret est installé manuellement ; le chemin Siteverify négatif est vérifié.
-Le succès d'un challenge humain reste à vérifier après publication Pages :
+Le succès d'un challenge humain a ensuite été confirmé par Lu’uma sur Pages.
+Historique des opérations approuvées :
 
 1. Appliquer sur **la seule base D1 ci-dessus** `0001_initial.sql` et
    `0002_cleanup_indexes.sql`. Création des tables/triggers/index, aucun import
@@ -138,7 +142,9 @@ Version Worker : `70e6600c-1011-4f41-9355-ba2653eee158`. Bindings/cron vérifié
 Version actuelle après correction fetch Siteverify :
 `7d353d36-d74a-4764-ab5c-c90f4129126e`, déploiement
 `68b0456d-e4ed-4993-acc7-ed66851c83eb` à 100 %. Neuf nouveaux contrôles HTTP
-réels réussis ; secret conservé, bindings/cron inchangés, D1 métier vide.
+réels réussis ; secret conservé, bindings/cron inchangés, D1 métier vide au stade
+du smoke initial. Après recette et suppression, la base est à nouveau sans
+sondage/bulletin/préparation de test ; voir le contrôle final ci-dessous.
 
 ### Installation du secret par Lu’uma, sans terminal
 
@@ -167,20 +173,21 @@ Ne pas présenter ce contrôle négatif comme une vérification humaine réussie
 ## Frontend et Gate C
 
 La configuration publique est centralisée dans `web/relay-production.json`.
-`npm run build:production` a construit le HTML connecté de **477 490 octets**
-après correction et contrôle du Worker. La commande ne déploie rien et ne lit
+`npm run build:production` construit le HTML connecté actuel de **478 957 octets**
+après les corrections autorisées. La commande ne déploie rien et ne lit
 aucun secret. Configuration publique : relayId `voti-production`, URL
 `https://voti-relay.voti-luuma8888.workers.dev`, site key
 `0x4AAAAAAFSr8Ez4dZ22j76S`, mode `siteverify`, images distantes désactivées.
-Les 187 tests Node et les suites HTTP/navigateur locales passent.
+Les 193 tests Node et les suites HTTP/navigateur locales passent.
 `npm run build`
 reste le build local autonome ; il ne conserve pas la configuration production.
 
 Diff et contrôles de secrets présentés ; Gate C explicitement accordé par
-Lu’uma pour commit/push sur main et mise à jour Pages. Ne pas envoyer le ZIP
-d'audit dans Git. Après push, vérifier le HTML réellement servi avant la recette.
-Lecture seule du site existant : HTTP 200, HTML 475 630 octets, relais non
-configuré. La liste exacte des fichiers et le diff de configuration embarquée
+Lu’uma pour commit/push sur main et mise à jour Pages. Opération effectuée,
+frontend courant `8204e95`. URL canonique HTTP 200, HTML 478 957 octets identique
+au build, SHA-256 `a5ca888deadbc85f414043d5bcffd8c66fab99f0e06440d3a3e899dd588a0d81`.
+Ne pas envoyer le ZIP d'audit dans Git. Avant le premier push, la lecture du site
+montrait un HTML 475 630 octets sans relais. La liste exacte des fichiers et le diff de configuration embarquée
 sont dans `PRODUCTION_PILOT_REPORT_V0.md`.
 Le nom d'archive v0.3D est préparé et les anciennes archives `VOTI_AUDIT_*.zip`
 sont explicitement exclues, même si déjà suivies par Git.
@@ -194,7 +201,18 @@ verrouillage après premier bulletin, résultats masqués à 4 et disponibles à
 fermeture, clé admin export/import séparée et suppression confirmée.
 La recette d'images distantes est exclue du pilote gratuit. Tester les images
 en local séparément. **Aucune action physique n'est déclarée vérifiée sans
-retour de Lu’uma.**
+retour de Lu’uma.** Les douze étapes textuelles ont maintenant été confirmées,
+y compris les deux liens téléphone NOT_FOUND après suppression.
+
+Contrôle final du 10 octobre 2026 : 0 poll/bulletin/préparation/relations pour le
+sondage fictif supprimé, files garbage/préparations expirées vides, D1 90 112
+octets, juridiction eu. Cron unique `17 * * * *` et trois exécutions réelles
+16:17/17:17/18:17 UTC en succès observées via GraphQL. Aucun nettoyage distant
+forcé. Agrégats de la fenêtre 15:00–18:35 UTC : 159 invocations/0 erreur runtime,
+1 066 lignes D1 lues/94 écrites, CPU P99 5,608 ms. Pas de mesure exhaustive par
+route/charge ni d'estimation mensuelle. Accès souscriptions refusé ; confirmation
+Free du dashboard par Lu’uma maintenue, sans upgrade. Replay Turnstile réel et
+drainage d'une préparation expirant 24 h non testés en production.
 
 Retour arrière frontend : après autorisation, rebuild local sans relais puis
 publication du diff validé ; aucune suppression automatique de D1/Turnstile.

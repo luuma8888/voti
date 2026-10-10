@@ -1,13 +1,16 @@
 # Voti
 
-Le pilote v0.3D est en préparation : D1 UE et Worker sont **déployés après Gate B**,
-le bug fetch workerd du contrôle Turnstile est corrigé (token factice refusé
-en 403). Le HTML connecté est construit ; challenge humain et recette réelle
-restent à terminer. Gate C autorisé par Lu’uma : publication Pages en cours,
-pilote non encore validé. Arbitrage validé :
+Le **pilote textuel v0.3D est validé par la recette Chromebook ↔ téléphone de
+Lu’uma** : publication Turnstile réelle, vote, seuil, verrouillage, style,
+fermeture, transfert de clé et suppression. Le site est publié sur
+[GitHub Pages](https://luuma8888.github.io/voti/) ; Worker et D1 UE sont déployés.
+Les trois gates et les deux micro-corrections de recette ont été explicitement
+autorisés. Arbitrage validé :
 Workers **Free seulement**, pas de R2 ni d'images utilisateur distantes ; les
 images locales restent disponibles. État précis et gates :
-[guide du pilote gratuit](docs/PRODUCTION_DEPLOYMENT_V0.md).
+[guide du pilote gratuit](docs/PRODUCTION_DEPLOYMENT_V0.md) et
+[rapport final, limites et observations](docs/PRODUCTION_PILOT_REPORT_V0.md).
+Ce pilote contrôlé n'est pas une validation de charge/sécurité pour une ouverture large.
 Les indications v0.3C suivantes décrivent le socle local historique.
 
 Prototype de sondages locaux pour choisir ensemble. Création guidée, 2 à 6 choix,
@@ -66,7 +69,9 @@ npm run audit:bundle # ZIP léger, uniquement fichiers Git admissibles, après t
 Relancer `npm run dev` après modification des sources. Le serveur de développement
 écoute uniquement sur localhost ; à lui seul, il ne fournit aucune collecte réseau partagée.
 Pour l'associer au Worker local, voir le guide. Exécuter tests et builds séquentiellement :
-ils régénèrent le même HTML. Terminer par `npm run build` sans variables pour revenir au mode local.
+ils régénèrent le même HTML. Terminer par `npm run build` sans variables pour revenir
+au mode local, ou par `npm run build:production` pour conserver le HTML du pilote
+avant toute publication autorisée. Ne pas pousser un build de tests à la place du pilote.
 Les tests navigateur demandent un exécutable Chromium (`/usr/bin/chromium` par défaut,
 configurable par `VOTI_CHROMIUM`). Dans un sandbox, le lancement de Chromium ou l’écoute
 locale peuvent nécessiter une autorisation d’exécution adaptée.

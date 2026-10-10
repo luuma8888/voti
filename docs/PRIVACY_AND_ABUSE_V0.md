@@ -1,5 +1,14 @@
 # Voti — confidentialité, anti-abus et rétention v0.3C
 
+> Mise à jour v0.3D : pilote contrôlé **Workers Free + D1 EU + Turnstile, sans R2**
+> publié et recette textuelle confirmée par Lu’uma. Logs/traces applicatifs non
+> activés, aucun secret dans le build/rapport. Les garanties applicatives
+> ci-dessous restent valables ; les passages « local uniquement » décrivent le
+> stade historique v0.3C. Les images distantes sont exclues du pilote gratuit.
+> Suppression métier et cron vérifiés en lecture seule ; limites des journaux
+> fournisseur et copies opérateur inchangées. Voir
+> [le rapport final du pilote](PRODUCTION_PILOT_REPORT_V0.md).
+
 Relais testé exclusivement localement. Pas de déploiement ni de données réelles
 dans ce lot. Ce document décrit les garanties applicatives, pas celles d'un compte
 Cloudflare encore non configuré/audité.

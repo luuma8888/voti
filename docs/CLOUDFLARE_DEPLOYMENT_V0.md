@@ -5,9 +5,12 @@
 > sans R2 ni images distantes**. Les exemples R2 ci-dessous sont historiques et
 > **ne doivent pas être exécutés pour ce pilote**. Gate B autorisé : migrations
 > D1 et Worker déployés ; secret installé, bug fetch workerd corrigé,
-> jeton factice refusé en 403. HTML connecté construit ; challenge humain réel
-> et recette restant à terminer.
-> Gate C autorisé par Lu’uma ; publication Pages en cours, pilote non validé.
+> jeton factice refusé en 403. Gate C exécuté : Pages sert le HTML connecté.
+> Recette textuelle Chromebook ↔ téléphone confirmée par Lu’uma jusqu'au
+> transfert de clé et à la suppression. D1 après suppression vide de données
+> métier, trois crons réels en succès ; pas de test R2 distant revendiqué.
+> Pilote contrôlé validé, pas d'ouverture publique large ni de garantie exhaustive
+> de sécurité/charge. Les sections suivantes restent le guide historique v0.3C.
 > Voir l'état exact et les
 > instructions prioritaires dans [PRODUCTION_DEPLOYMENT_V0.md](PRODUCTION_DEPLOYMENT_V0.md).
 
