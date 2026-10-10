@@ -12,9 +12,12 @@ corrigé et redéployé : les jetons factices sont désormais refusés avec
 `403 HUMAN_VERIFICATION_FAILED`. Aucun secret récupéré ou affiché ; aucune
 vérification humaine réussie revendiquée. Le HTML connecté est construit mais
 pas publié : le challenge humain réel sera testé sur Pages après le Gate C.
-Gate C explicitement autorisé par Lu’uma : commit des changements v0.3D,
-push sur main et mise à jour Pages. Publication en cours ; aucune recette
-Chromebook/téléphone validée et aucun ZIP final encore produit.
+Gate C explicitement autorisé par Lu’uma et exécuté : commit `3d25213`,
+push sur main et mise à jour Pages. L'URL canonique sert exactement le HTML
+production de 477 490 octets. Contrôles automatiques Pages réussis ; Lu’uma
+confirme l'affichage Chromebook, la publication protégée et l'ouverture du
+sondage sur téléphone. Les étapes de vote et d'administration restent à tester ;
+pilote complet non validé et aucun ZIP final encore produit.
 
 ## Arbitrage gratuit validé
 
@@ -123,6 +126,86 @@ Redéploiement Gate B sur le même Worker, sans modifier le secret :
 Cela valide la correction du runtime et le chemin négatif Siteverify, **pas**
 un challenge humain réussi ni un replay réel. Ceux-ci restent à tester sur Pages.
 
+## Arbitrage complémentaire explicitement autorisé par Lu’uma
+
+Pendant la recette humaine, Lu’uma a constaté que le réglage Menthe/Lavande/
+Pêche ne changeait que la bordure supérieure du cadre : le bloc question et
+le bouton Continuer conservaient les couleurs du thème global.
+
+**Cette micro-correction graphique dans le lot v0.3D est autorisée par Lu’uma,
+et non décidée unilatéralement par l'agent.** Ses instructions sont :
+
+> Tu peux modifier dans ce lot : je te l'autoriserai, car ce n'est pas grand chose et grandement utile
+
+Puis confirmation explicite de la traçabilité pour l'audit :
+
+> Indique dans le rapport que c'est bien moi qui l'ai autorisé afin qu'il n'y pas de confusion lors de l'audit GPT.
+
+Cet arbitrage plus récent autorise une exception ciblée au périmètre graphique
+initial v0.3D : appliquer l'accent existant du sondage au bloc question,
+aux boutons principaux et à la sélection des réponses, en préservant les cinq
+thèmes, les contrastes et le focus. Fichiers concernés : CSS, tests, build HTML
+et rapport. Aucun nouveau thème, mode de vote, champ de données, migration ou
+changement du relais. Lu’uma autorise également explicitement sa publication :
+
+> quand c'est fait, tu peux commiter et pusher
+
+Il précise l'objectif :
+
+> (cela me permettra de verifier le bon rendu lors de la suite des tests restants)
+
+La correction locale et ses tests sont terminés ; commit/push du diff
+complémentaire autorisés après succès des contrôles. Le commit production
+initial reste `3d25213` ; le nouveau commit sera indiqué après publication.
+
+### Cause et correction de l'apparence du sondage
+
+Cause CSS démontrée : les trois règles `.card[data-accent=...]` définissaient
+seulement `border-top`. `.question-block` utilisait `--soft` et `.primary`
+utilisait `--accent`, tous deux hérités du thème global. Lu’uma a correctement
+distingué cette limite visuelle du fonctionnement distant : après son changement,
+GET public confirme `themeId=lavender`, verrouillage conservé, question/choix/
+règles et empreinte exactement identiques à la lecture avant changement.
+
+Micro-correction : chaque thème définit trois paires de tokens couleur/surface
+`--poll-mint`, `--poll-lavender`, `--poll-peach` et leurs variantes `-soft`.
+Le cadre du sondage redéfinit localement `--accent`, `--soft` et `--app-focus`.
+Les composants existants héritent alors de l'accent pour le bloc question,
+les boutons principaux, radios, sélection, confirmation, liens et barres de
+résultat. Ni le thème global ni les états danger/statuts ne sont réécrits.
+Les palettes Nuit utilisent des accents clairs sur surfaces sombres ; les
+quatre palettes claires gardent un bouton suffisamment foncé. Impression
+neutre explicitement préservée. Aucune modification de JavaScript applicatif,
+de modèle, de persistance ou de Worker ; aucun vote de test envoyé en production.
+
+Fichiers complémentaires : `web/styles.css`, `tests/themes.test.js`,
+`scripts/browser-test.mjs`, `scripts/browser-relay.mjs`, `index.html` régénéré,
+et ce rapport. Aucune dépendance ajoutée. Six tests Node supplémentaires
+couvrent les quinze palettes et le périmètre/impression ; les tests Chromium
+comparent effectivement fond question, bouton, radio, sélection et focus,
+vérifient trois apparences distinctes par thème, absence de mutation métier,
+images mixtes et responsive. Contraste minimal calculé : **4,845:1** pour les
+paires de texte testées et pour le focus sur surface/cadre question.
+Une capture locale 360 px a également été inspectée ; elle reste dans le
+répertoire de tests ignoré et n'est ni commitée ni incluse dans l'audit.
+
+Contrôles après micro-correction :
+
+| Commande | Résultat |
+| --- | --- |
+| `npm test` | Réussi ; décompte explicite : 193 tests passés, 0 échec/sauté/annulé |
+| `npm run check` | Réussi, 60 fichiers JS |
+| `npm run build` | Réussi, HTML local autonome 478 421 octets |
+| `npm run test:browser` | Réussi, 910 contrôles |
+| `npm run test:relay` | Réussi, 72 contrôles HTTP/D1/R2 locaux |
+| `npm run test:integration` | Réussi, 73 contrôles HTTP et 954 contrôles Chromium |
+| `npm run test:free-pilot` | Réussi, 21 contrôles HTTP/D1 sans R2 et 956 contrôles Chromium |
+| `npm run build:production` | Réussi en dernier, HTML connecté 478 669 octets ; configuration publique inchangée |
+| `git diff --check` | Réussi, aucune erreur de whitespace |
+
+Publication complémentaire autorisée mais encore à exécuter. Le rendu devra
+être revalidé par Lu’uma sur Chromebook/téléphone avant poursuite de la recette.
+
 ## Architecture et différences minimales
 
 Architecture de production préparée : GitHub Pages → HttpRelayAdapter → Worker
@@ -228,7 +311,11 @@ n'est supprimé ou désindexé.
 | `git diff --check` | Succès, aucune erreur de whitespace |
 | Inspection des fichiers admissibles d'audit | 111 fichiers admissibles ; aucun fichier de credentials ni motif de secret concret détecté ; aucun ZIP récursif dans la liste |
 | Inspection HTML de production | 477 490 octets, 25 modules embarqués, 3 WebP de marque inline ; configuration publique exacte ; aucun script/stylesheet externe chargé au démarrage |
-| Lecture seule de GitHub Pages existant | HTTP 200, 475 630 octets, relais non configuré ; aucun changement du site |
+| Lecture seule de GitHub Pages avant Gate C | HTTP 200, 475 630 octets, relais non configuré |
+| Contrôles pré-commit Gate C | npm test réussi, check 60 fichiers, build production 477 490 octets, diff --check réussi ; 29 fichiers indexés sans archive ni motif de secret concret |
+| Commit et push autorisés | `3d252138875c530156401b45fbff36ccc6d992ad` sur main et origin/main, sans force-push |
+| GitHub Pages après propagation | URL canonique HTTP 200, 477 490 octets, identique octet pour octet au build publié ; SHA-256 `75af30943313e97154a32b47ee6b1618d66af4b1df59c40ad5ea398b88eedfdb` |
+| Chromium sur Pages réel, profil isolé | Chargement, création d'un brouillon textuel et publication locale réussis ; bouton Publier en ligne présent ; aucune requête Turnstile avant clic ; GET Worker depuis l'origine réelle 404 NOT_FOUND lisible via CORS ; 360 px sans overflow ; 0 exception runtime |
 | Migrations D1 distantes après correction | Succès, deux migrations enregistrées, 7 tables métier / 6 triggers / 2 index |
 | Déploiement Worker réel | Succès, URL workers.dev active et bindings/cron vérifiés |
 | HTTP/CORS réel sans secret | Succès, 10 contrôles, aucun sondage créé ; protection de publication fermée |
@@ -242,6 +329,9 @@ isolés dans le dépôt. Les limitations de sandbox ont nécessité une exécuti
 autorisée pour les ports localhost/Chromium et sous-processus Node ; pas de
 tests de publication/vote acceptés contre D1 de production ; seuls les contrôles
 HTTP négatifs et lectures de schéma détaillés ci-dessus ont été exécutés.
+Le smoke Chromium sur Pages utilise un profil de test isolé et ne crée qu'un
+sondage dans ce profil local. Aucune nouvelle préparation distante, aucun vote
+réel ni résolution de challenge humain n'a été effectué par ce smoke.
 
 Incidents consignés :
 
@@ -304,11 +394,11 @@ verrouillage, transfert de clé et suppression.
 1. Gate B exécuté : migrations, Worker et correction Siteverify déployés ;
    `TURNSTILE_SECRET` installé manuellement et binding confirmé. Refus d'un
    jeton factice vérifié ; aucune nouvelle saisie de clé demandée.
-2. Gate C requis avant commit/push et modification de Pages ; pas d'autorisation
-   inférée de la simple approbation de gratuité. Accord Gate C maintenant reçu
-   explicitement pour commit/push sur main et mise à jour Pages.
-3. Turnstile valide/replay réel, performances CPU du parcours métier Workers
-   Free et recette physique **non vérifiés**. HTTP/CORS et fail-closed vérifiés
+2. Gate C explicitement accordé puis exécuté : commit/push et HTML Pages
+   vérifiés. Il ne constitue pas une validation de la recette physique.
+3. Publication protégée et premier vote téléphone confirmés par Lu’uma.
+   Replay Turnstile réel, performances CPU du parcours métier Workers Free et
+   fin de recette physique **non vérifiés**. HTTP/CORS et fail-closed vérifiés
    comme détaillé plus haut. Aucun quota de production forcé jusqu'à
    épuisement, ce serait une interruption inutile du pilote.
 4. Le forfait doit rester Free ; aucun garde-fou du code ne garantit zéro coût
@@ -321,7 +411,7 @@ verrouillage, transfert de clé et suppression.
    finale du rapport. Le filtre d'exclusion récursive est déjà testé ; pas de ZIP
    provisoire présenté comme audit d'un déploiement terminé.
 
-## Revue Gate C — aucun commit/push effectué
+## Gate C — exécuté, Pages vérifié, recette humaine en attente
 
 Le diff couvre la configuration production gratuite, les refus d'images
 distantes, le build public, les deux corrections de compatibilité D1/workerd,
@@ -341,12 +431,42 @@ métier ni changement des règles de vote. Le diff du build embarqué est :
 
 Ce diff décrit le module **embarqué dans index.html** ; la valeur par défaut
 des sources reste null pour le build local. Site key publique, pas Secret key.
-Contrôle en lecture seule du site actuel : HTTP 200, HTML 475 630 octets,
-relais non configuré. Le build connecté local n'a donc pas encore été publié.
-Accord Gate C reçu explicitement ; exécuter le commit et le push, puis vérifier
-la correspondance du HTML servi avec le build production. Aucun ZIP d'audit
+Avant le push, le site servait un HTML de 475 630 octets sans relais. Après
+propagation, l'URL canonique sert exactement le build connecté de 477 490 octets
+du commit `3d252138875c530156401b45fbff36ccc6d992ad`. Aucun ZIP d'audit
 n'est actuellement suivi par Git (contrôle `git ls-files '*VOTI_AUDIT_*.zip'`
-vide), et ils restent ignorés. Puis guider Lu’uma étape par étape pour la recette
-Chromebook ↔ téléphone et attendre ses réponses, puis compléter ce rapport,
+vide), et ils restent ignorés. La mise à jour de ce rapport après vérification
+Pages reste locale jusqu'à finalisation de la recette ; aucun secret n'y est ajouté.
+Guider maintenant Lu’uma étape par étape pour la recette Chromebook ↔ téléphone
+et attendre ses réponses, puis compléter ce rapport,
 produire et vérifier le ZIP final. Aucun QR/PDF, compte, Android, synchronisation
 ou refonte graphique ne fait partie de ces étapes.
+
+## Recette humaine — journal des confirmations
+
+| Étape | État réel |
+| --- | --- |
+| 1. Site publié sur le Chromebook de Lu’uma | Contrôles automatiques réussis ; Lu’uma confirme : « l'affichage est correct » |
+| 2. Création d'un sondage fictif textuel | Lu’uma confirme : « c'est créé et le bouton apparaît » après les consignes textuelles sans images, seuil 5, publication locale sans vote |
+| 3. Challenge Turnstile réel | Lu’uma confirme la réussite du parcours protégé sur Pages ; la publication exige Siteverify serveur. Sondage publié également confirmé par lecture HTTP réelle ; replay réel non testé |
+| 4. Publication distante réelle | Lu’uma confirme : « publication réussirt » ; GET public via HttpRelayAdapter réel valide question, trois choix, statut published, seuil 5 et mode threshold |
+| 5. Ouverture du lien sur téléphone | Lu’uma confirme : « Je confirme pour le telephone » et fournit le lien public ; aucune action téléphone effectuée par l'agent |
+| 6. Vote du téléphone, sans compte ni Turnstile | Lu’uma confirme le message « Ton vote a bien été enregistré. » après les consignes de sélection/confirmation de Pomme ; contrôle public après vote réussi |
+| 7. Seuil et résultats | Avant premier vote : GET résultats renvoie RESULTS_LOCKED, distribution et compteur absents ; états à 4/5 réponses encore à tester |
+| 8. Verrouillage après premier vote | GET public : locked=true, empreinte présente, statut published. Lu’uma confirme également le message de verrouillage, l'absence de modification du fond, l'apparence toujours disponible et le refus de la route d'édition directe : « Je confirme que c'est bon » |
+| 9. Style après verrouillage | Enregistrement distant et propagation de la bordure confirmés par Lu’uma ; GET confirme lavender et empreinte/question/choix/règles inchangés. Limite CSS signalée ; micro-correction autorisée, revalidation du rendu complet après republication encore attendue |
+| 10. Fermeture et refus de nouveau vote | Non testés en production |
+| 11. Export/import secret de la clé admin | Non testés en production ; ne jamais transmettre le fichier dans le chat |
+| 12. Suppression et NOT_FOUND | Non testés en production ; contrôles D1 ensuite en lecture seule |
+
+Rétention/cron/usage de production restent à observer après les manipulations.
+Le ZIP final ne sera créé qu'après ces confirmations et les derniers contrôles.
+
+Sondage fictif de recette : `09f5d0ce-80d7-4765-a2eb-7a5a651d1f79`, lien
+public `https://luuma8888.github.io/voti/#/p/09f5d0ce-80d7-4765-a2eb-7a5a651d1f79`.
+Avant premier vote, contrôle HTTP en lecture seule : définition non verrouillée,
+trois choix Pomme/Banane/Poire, minimum 5, threshold, pas de bulletins bruts ni
+capacité administrateur dans la projection publique. Aucun vote envoyé par l'agent.
+Après le message de succès du premier vote humain : GET public confirme
+locked=true et empreinte sémantique présente ; GET résultats reste RESULTS_LOCKED,
+sans distribution ni total. L'agent ne récupère aucun bulletin ni capacité.

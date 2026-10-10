@@ -42,6 +42,21 @@ export async function graphicChecks(id, width) {
     document.documentElement.dataset.theme=theme;
     assert(document.documentElement.scrollWidth<=innerWidth, 'Débordement '+theme+' '+width);
     assert(getComputedStyle(document.querySelector('.question-block img')).objectFit==='contain','Image recadrée');
+    const card=document.querySelector('.card[data-accent]'), initialAccent=card.dataset.accent;
+    const buttons=[],questions=[];
+    for(const accent of ['mint','lavender','peach']){
+      card.dataset.accent=accent;
+      const palette=getComputedStyle(card),rgb=hex=>'rgb('+hex.trim().slice(1).match(/../g).map(value=>parseInt(value,16)).join(', ')+')';
+      const color=rgb(palette.getPropertyValue('--accent')),soft=rgb(palette.getPropertyValue('--soft'));
+      buttons.push(getComputedStyle(card.querySelector('.primary')).backgroundColor);
+      questions.push(getComputedStyle(card.querySelector('.question-block')).backgroundColor);
+      assert(buttons.at(-1)===color && questions.at(-1)===soft,'Accent illustré incohérent '+theme+'/'+accent);
+      const radio=card.querySelector('input[type=radio]');radio.checked=true;
+      assert(getComputedStyle(radio.closest('.vote-choice')).borderColor===color,'Sélection illustrée hors accent');radio.checked=false;
+      assert(document.documentElement.scrollWidth<=innerWidth && card.querySelector('.primary').getBoundingClientRect().height>=44,'Accent responsive '+theme+'/'+accent+' '+width);
+    }
+    assert(new Set(buttons).size===3 && new Set(questions).size===3,'Accents illustrés non distincts '+theme);
+    card.dataset.accent=initialAccent;
   }
   document.documentElement.dataset.theme='pop';
   window.scrollTo(0,document.body.scrollHeight); await new Promise(requestAnimationFrame);

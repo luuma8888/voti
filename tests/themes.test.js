@@ -36,7 +36,29 @@ for (const { id } of THEME_OPTIONS) {
     for (const background of ['surface','main','header','soft']) assert.ok(ratio(palette.focus, palette[background]) >= 3, `${id}: focus/${background}`);
     assert.notEqual(palette.focus, palette.danger);
   });
+  test(`accents des sondages ${id} : trois palettes distinctes, texte et focus lisibles`, () => {
+    const palette = palettes[id];
+    const accents = ['mint', 'lavender', 'peach'];
+    assert.equal(new Set(accents.map(accent => palette[`poll-${accent}`])).size, 3);
+    assert.equal(new Set(accents.map(accent => palette[`poll-${accent}-soft`])).size, 3);
+    for (const accent of accents) {
+      const color = palette[`poll-${accent}`], soft = palette[`poll-${accent}-soft`];
+      for (const [foreground, background] of [[palette['on-accent'], color], [palette.ink, soft], [palette.muted, soft], [color, soft]]) {
+        assert.ok(ratio(foreground, background) >= 4.5, `${id}/${accent}: contraste texte ${ratio(foreground, background)}`);
+      }
+      for (const background of [palette.surface, soft]) assert.ok(ratio(color, background) >= 3, `${id}/${accent}: focus`);
+      assert.notEqual(color, palette.danger);
+    }
+  });
 }
+
+test('accents limités aux cadres des sondages, impression neutre préservée', () => {
+  for (const accent of ['mint', 'lavender', 'peach']) {
+    assert.match(css, new RegExp(`\\.card\\[data-accent=${accent}\\] \\{ --accent:var\\(--poll-${accent}\\); --soft:var\\(--poll-${accent}-soft\\); \\}`));
+  }
+  assert.match(css, /\.card\[data-accent\] \{[^}]*--app-focus:var\(--accent\)/);
+  assert.match(css, /@media print[\s\S]*\.card\[data-accent\] \{ --accent:#222; --soft:#eee; --on-accent:#fff; \}/);
+});
 
 test('palettes locales et focus contextualisé, sans ressource distante', () => {
   assert.doesNotMatch(css, /@import|https?:/i);

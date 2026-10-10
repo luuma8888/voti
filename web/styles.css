@@ -4,6 +4,9 @@
   --ink:#25334b; --muted:#566077; --line:#d7cfe3; --accent:#684397; --on-accent:#ffffff;
   --secondary:#137680; --warm:#ac741c; --peach:#f2c9ac; --positive:#216b56;
   --soft:#eee7f7; --focus:#5348b0; --shadow:0 3px 12px #3528550a;
+  --poll-mint:#176e65; --poll-mint-soft:#e2f1ed;
+  --poll-lavender:#684397; --poll-lavender-soft:#eee7f7;
+  --poll-peach:#8f522f; --poll-peach-soft:#fae9df;
   --draft-ink:#705015; --draft-bg:#fff0c7; --open-ink:#14636c; --open-bg:#d9f3ef;
   --closed-ink:#58407e; --closed-bg:#ece3f8; --danger:#a22b38; --danger-bg:#fff0f1;
 }
@@ -13,6 +16,9 @@
   --ink:#263b35; --muted:#53685e; --line:#c8d9cc; --accent:#286449; --on-accent:#ffffff;
   --secondary:#196d7b; --warm:#936c29; --peach:#e9d1ae; --positive:#286449;
   --soft:#e4f0e5; --focus:#176978; --shadow:0 3px 12px #224c350a;
+  --poll-mint:#286449; --poll-mint-soft:#e4f0e5;
+  --poll-lavender:#675378; --poll-lavender-soft:#ede8f0;
+  --poll-peach:#885b32; --poll-peach-soft:#f2e9dc;
   --draft-ink:#725319; --draft-bg:#f7edcf; --open-ink:#236346; --open-bg:#dff0e4;
   --closed-ink:#3e5672; --closed-bg:#e4edf7; --danger:#a22b38; --danger-bg:#fff0f1;
 }
@@ -22,6 +28,9 @@
   --ink:#34374e; --muted:#646076; --line:#ddd1e1; --accent:#72528e; --on-accent:#ffffff;
   --secondary:#486c91; --warm:#a4773b; --peach:#f6d9c8; --positive:#356d64;
   --soft:#f0e9f5; --focus:#5651a0; --shadow:0 3px 12px #60437208;
+  --poll-mint:#356d64; --poll-mint-soft:#e2f1eb;
+  --poll-lavender:#72528e; --poll-lavender-soft:#f0e9f5;
+  --poll-peach:#8b5945; --poll-peach-soft:#f9e7dd;
   --draft-ink:#785226; --draft-bg:#faeeda; --open-ink:#35645d; --open-bg:#e2f1eb;
   --closed-ink:#654b80; --closed-bg:#f0e6f7; --danger:#a22b38; --danger-bg:#fff0f1;
 }
@@ -31,6 +40,9 @@
   --ink:#f2f2fa; --muted:#bdc7df; --line:#4d5974; --accent:#c9aff0; --on-accent:#252033;
   --secondary:#8bddd7; --warm:#edc16b; --peach:#eac4aa; --positive:#97dcba;
   --soft:#37334f; --focus:#8bddd7; --shadow:0 3px 12px #00000018;
+  --poll-mint:#8bddd7; --poll-mint-soft:#254843;
+  --poll-lavender:#c9aff0; --poll-lavender-soft:#37334f;
+  --poll-peach:#eac4aa; --poll-peach-soft:#46372f;
   --draft-ink:#f5d58f; --draft-bg:#483b26; --open-ink:#a4e6d9; --open-bg:#254843;
   --closed-ink:#dcc4fa; --closed-bg:#40334f; --danger:#ffb3bc; --danger-bg:#492c38;
 }
@@ -40,6 +52,9 @@
   --ink:#273443; --muted:#566372; --line:#ccd5df; --accent:#3f536b; --on-accent:#ffffff;
   --secondary:#46677c; --warm:#887044; --peach:#e3d9c9; --positive:#376250;
   --soft:#e8edf3; --focus:#315b88; --shadow:0 2px 8px #263e5506;
+  --poll-mint:#37685f; --poll-mint-soft:#e7eeeb;
+  --poll-lavender:#625478; --poll-lavender-soft:#ece9f0;
+  --poll-peach:#805c42; --poll-peach-soft:#f1eae5;
   --draft-ink:#625335; --draft-bg:#f0ebdd; --open-ink:#3a5b50; --open-bg:#e5eeea;
   --closed-ink:#48546b; --closed-bg:#e7ebf2; --danger:#a22b38; --danger-bg:#fff0f1;
 }
@@ -91,9 +106,12 @@ p { overflow-wrap:anywhere; }
 .muted,.help { color:var(--muted); }
 .help { font-size:13px; }
 .card { background:var(--surface); padding:22px; border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); margin:16px 0; }
-.card[data-accent=lavender] { border-top:4px solid var(--accent); }
-.card[data-accent=peach] { border-top:4px solid var(--warm); }
-.card[data-accent=mint] { border-top:4px solid var(--secondary); }
+/* Accent propre au sondage : le thème global et les couleurs de danger restent
+   intacts. Les composants existants héritent de ces deux tokens dans le cadre. */
+.card[data-accent] { border-top:4px solid var(--accent); --app-focus:var(--accent); }
+.card[data-accent=lavender] { --accent:var(--poll-lavender); --soft:var(--poll-lavender-soft); }
+.card[data-accent=peach] { --accent:var(--poll-peach); --soft:var(--poll-peach-soft); }
+.card[data-accent=mint] { --accent:var(--poll-mint); --soft:var(--poll-mint-soft); }
 .actions { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 0; }
 .badge { display:inline-block; border-radius:6px; padding:3px 8px; font-size:12px; font-weight:750; color:var(--accent); background:var(--soft); }
 .status-draft { color:var(--draft-ink); background:var(--draft-bg); }
@@ -240,6 +258,7 @@ footer details { margin-top:6px; } footer summary { font-size:12px; font-weight:
   .topbar,.actions,.skip-link,.new-poll,.library-toolbar,.filter-chips,.advanced,#message,#notice,.breadcrumb { display:none!important; }
   main,footer { max-width:none; padding:0; }
   .card,.poll-row { box-shadow:none; break-inside:avoid; border-radius:0; }
+  .card[data-accent] { --accent:#222; --soft:#eee; --on-accent:#fff; }
   .badge { color:#222; background:none; }
   body::before { display:none; }
   footer { font-size:9pt; } progress { print-color-adjust:exact; }

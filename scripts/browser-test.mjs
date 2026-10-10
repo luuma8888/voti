@@ -177,6 +177,43 @@ async function browserScenario(fixtures) {
   await until(() => stored().polls[0].style.themeId === 'lavender', 'style sauvé');
   assert(stored().polls[0].definitionHash === hash, 'Style hors empreinte');
 
+  // Micro-correction autorisée pendant la recette v0.3D : l'accent du sondage
+  // doit atteindre les composants, pas seulement la bordure. Aucun vote envoyé.
+  await navigate(`#vote/${id}`, 'Choisis une réponse');
+  const pollCard = document.querySelector('.card[data-accent]');
+  const initialTheme = document.documentElement.dataset.theme;
+  const initialAccent = pollCard.dataset.accent;
+  const beforeAccentChecks = localStorage.getItem(key);
+  const rgb = hex => 'rgb(' + hex.trim().slice(1).match(/../g).map(value => parseInt(value, 16)).join(', ') + ')';
+  for (const theme of ['pop', 'nature', 'douceur', 'dark', 'minimal']) {
+    document.documentElement.dataset.theme = theme;
+    const palette = getComputedStyle(document.documentElement);
+    const headerColor = getComputedStyle(document.querySelector('.topbar')).backgroundColor;
+    const buttonColors = [], questionColors = [];
+    for (const accent of ['mint', 'lavender', 'peach']) {
+      pollCard.dataset.accent = accent;
+      const color = rgb(palette.getPropertyValue(`--poll-${accent}`));
+      const soft = rgb(palette.getPropertyValue(`--poll-${accent}-soft`));
+      const next = pollCard.querySelector('.primary'), question = pollCard.querySelector('.question-block');
+      const radio = pollCard.querySelector('input[type=radio]'); radio.checked = true;
+      buttonColors.push(getComputedStyle(next).backgroundColor);
+      questionColors.push(getComputedStyle(question).backgroundColor);
+      assert(buttonColors.at(-1) === color && getComputedStyle(next).color === rgb(palette.getPropertyValue('--on-accent')), `Bouton contextualisé ${theme}/${accent}`);
+      assert(questionColors.at(-1) === soft, `Question contextualisée ${theme}/${accent}`);
+      assert(getComputedStyle(radio.closest('.vote-choice')).borderColor === color && getComputedStyle(radio.closest('.vote-choice')).backgroundColor === soft, `Sélection contextualisée ${theme}/${accent}`);
+      assert(getComputedStyle(radio).accentColor === color, `Radio contextualisé ${theme}/${accent}`);
+      radio.focus();
+      assert(parseFloat(getComputedStyle(radio).outlineWidth) >= 3 && getComputedStyle(radio).outlineColor === color, `Focus contextualisé ${theme}/${accent}`);
+      assert(getComputedStyle(document.querySelector('.topbar')).backgroundColor === headerColor, `Thème global intact ${theme}/${accent}`);
+      assert(next.getBoundingClientRect().height >= 44 && document.documentElement.scrollWidth <= innerWidth, `Tactile et largeur ${theme}/${accent}`);
+      radio.checked = false;
+    }
+    assert(new Set(buttonColors).size === 3 && new Set(questionColors).size === 3, `Trois apparences distinctes ${theme}`);
+  }
+  pollCard.dataset.accent = initialAccent;
+  document.documentElement.dataset.theme = initialTheme;
+  assert(localStorage.getItem(key) === beforeAccentChecks, 'Vérification des accents sans mutation des sondages ou des bulletins');
+
   for (const count of [4, 5, 6]) {
     const state = fixtures[count]; const poll = state.polls[0];
     await seed(state, `#results/${poll.id}`, count >= 5 ? `${count} réponses` : 'pas encore disponibles');
