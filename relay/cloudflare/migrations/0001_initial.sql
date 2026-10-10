@@ -42,11 +42,11 @@ CREATE TABLE mutation_guards (id TEXT PRIMARY KEY, ok INTEGER NOT NULL CHECK(ok 
 
 -- Ces triggers et l'INSERT appartiennent à UNE transaction SQLite/D1.
 CREATE TRIGGER ballot_validate BEFORE INSERT ON ballots BEGIN
-  SELECT CASE WHEN NOT EXISTS (
+  SELECT (CASE WHEN NOT EXISTS (
     SELECT 1 FROM polls p, json_each(p.definition, '$.choices') c
     WHERE p.poll_id = NEW.poll_id AND p.status = 'published'
       AND json_extract(c.value, '$.id') = NEW.choice_id
-  ) THEN RAISE(ABORT, 'INVALID_BALLOT') END;
+  ) THEN RAISE(ABORT, 'INVALID_BALLOT') END);
 END;
 CREATE TRIGGER ballot_lock AFTER INSERT ON ballots BEGIN
   UPDATE polls SET locked = 1, revision = revision + 1 + abs(random() % 1000000)

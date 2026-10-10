@@ -9,7 +9,7 @@ import { IndexedDBAssetAdapter } from './asset-storage.js';
 import { verifyDecodedAsset } from './image-processing.js';
 import { ImageViews, imagePicker } from './image-ui.js';
 import { HttpRelayAdapter } from './http-relay.js';
-import { RELAY_CONFIG } from './relay-config.js';
+import { RELAY_CONFIG, REMOTE_IMAGES_MESSAGE, remoteImagesAllowed, assertRemoteImagePolicy } from './relay-config.js';
 import { RelayClient } from '../shared/relay-client.js';
 import { LocalStorageRemoteConnectionAdapter, REMOTE_STORAGE_KEY } from './remote-storage.js';
 import { assetReferences } from '../shared/assets.js';
@@ -55,6 +55,7 @@ async function remoteAction(node, operation, after = () => render()) {
 }
 async function publishOnline(id) {
   if (!relay) throw new Error('Relais non configuré.');
+  assertRemoteImagePolicy(RELAY_CONFIG, localPoll(await repository.load(), id).definition);
   const initial = await connections.get({ relayId: RELAY_CONFIG.relayId, pollId: id });
   let needsPreparation = !initial;
   if (initial) {
@@ -73,6 +74,7 @@ async function publishOnline(id) {
   }
   await repository.exclusive(async () => {
     const current = await repository.load(), poll = localPoll(current, id);
+    assertRemoteImagePolicy(RELAY_CONFIG, poll.definition);
     if (current.ballots.some(b => b.pollId === id)) throw new Error('Publication en ligne impossible : ce sondage contient déjà des votes locaux.');
     const connection = await connections.get({ relayId: RELAY_CONFIG.relayId, pollId: id });
     if (!connection || needsPreparation) await relay.preparePublication(current, id, token);
@@ -126,7 +128,8 @@ function showError(error) {
     RATE_LIMITED: 'Le relais reçoit trop de demandes. Réessayez dans une minute.',
     INVALID_CAPABILITY: 'Cette clé ne permet pas d’administrer ce sondage.',
     RELAY_UNAVAILABLE: 'Le relais est momentanément indisponible. Le mode local reste utilisable.',
-    CAPABILITY_CONFLICT: 'Une autre clé est déjà conservée. Son remplacement nécessite votre confirmation.' };
+    CAPABILITY_CONFLICT: 'Une autre clé est déjà conservée. Son remplacement nécessite votre confirmation.',
+    REMOTE_ASSETS_DISABLED: REMOTE_IMAGES_MESSAGE };
   message.textContent = french[error.code] || error.message || String(error); message.hidden = false;
 }
 function clearError() { message.textContent = ''; message.hidden = true; }
@@ -359,6 +362,7 @@ function management(id) {
       actions(keyExport, remove), adminKeyImport(id));
   } else if (relay && poll.status === 'published') {
     if (state.ballots.some(b => b.pollId === id)) card.append(el('p', 'Publication en ligne impossible : ce sondage contient déjà des votes locaux.'));
+    else if (!remoteImagesAllowed(RELAY_CONFIG) && assetReferences({ polls: [poll] }).size) card.append(el('p', REMOTE_IMAGES_MESSAGE));
     else {
       const online = button('Publier en ligne', () => remoteAction(online, () => publishOnline(id), async () => { await render(); notify('Publication en ligne réussie. Vous pouvez partager le lien public.'); }), 'primary');
       card.append(actions(online));
@@ -379,6 +383,7 @@ function makeEditor(id) {
 }
 
 function editorImage(owner, target, key, kind, label) {
+  if (owner.id && bindings.has(owner.id) && !remoteImagesAllowed(RELAY_CONFIG)) return el('p', REMOTE_IMAGES_MESSAGE, { class: 'help' });
   return imagePicker({ label, kind, getId: () => target[key], staged: owner.staged, views: activeImages(),
     change: asset => {
       target[key] = asset?.id || null;
@@ -458,6 +463,7 @@ function edit(id) {
         choices: snapshot.choices.map((choice, order) => ({ id: choice.id, label: choice.label.trim(), shortLabel: choice.shortLabel || null,
           emoji: choice.emoji || null, imageRef: choice.imageRef || null, order })) };
       await remoteAction(submit, async () => {
+        assertRemoteImagePolicy(RELAY_CONFIG, definition);
         const refs = [...assetReferences({ polls: [{ definition }] }).keys()];
         await relay.uploadMissingAssets(id, refs, { get: assetId => snapshot.staged.get(assetId) || activeImages().adapter.get(assetId) }, snapshot.remoteRevision);
         await relay.updateDefinition(id, definition, snapshot.rules);

@@ -47,3 +47,24 @@ test('rendu des données : pas de sinks HTML exécutables', async () => {
   assert.doesNotMatch(source, /innerHTML|outerHTML|insertAdjacentHTML|document\.write|\beval\s*\(|new Function/);
   assert.match(source, /node\.textContent = text/);
 });
+
+test('build connecté gratuit : politique publique explicite, helpers conservés, valeurs ambiguës refusées', async () => {
+  const names = ['VOTI_RELAY_URL', 'VOTI_RELAY_ID', 'VOTI_TURNSTILE_MODE', 'VOTI_TURNSTILE_SITE_KEY', 'VOTI_REMOTE_ASSETS_ENABLED'];
+  const previous = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  try {
+    Object.assign(process.env, { VOTI_RELAY_URL: 'http://127.0.0.1:8787', VOTI_RELAY_ID: 'voti-free-test',
+      VOTI_TURNSTILE_MODE: 'local-test', VOTI_REMOTE_ASSETS_ENABLED: 'false' });
+    delete process.env.VOTI_TURNSTILE_SITE_KEY;
+    const html = await build();
+    const map = JSON.parse(html.match(/<script type="importmap">(.*?)<\/script>/s)[1]);
+    const source = Buffer.from(map.imports['voti/web/relay-config.js'].split(',')[1], 'base64').toString();
+    assert.match(source, /"remoteAssetsEnabled":false/);
+    assert.match(source, /export function assertRemoteImagePolicy/);
+    assert.doesNotMatch(source, /TURNSTILE_SECRET|voti-admin-v1\./);
+    process.env.VOTI_REMOTE_ASSETS_ENABLED = 'yes';
+    await assert.rejects(build(), /images distantes invalide/);
+  } finally {
+    for (const name of names) { if (previous[name] === undefined) delete process.env[name]; else process.env[name] = previous[name]; }
+    await build();
+  }
+});

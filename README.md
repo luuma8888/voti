@@ -1,12 +1,23 @@
 # Voti
 
+Le pilote v0.3D est en préparation : D1 UE et Worker sont **déployés après Gate B**,
+le bug fetch workerd du contrôle Turnstile est corrigé (token factice refusé
+en 403). Le HTML connecté est construit ; challenge humain et recette réelle
+restent à terminer. Gate C autorisé par Lu’uma : publication Pages en cours,
+pilote non encore validé. Arbitrage validé :
+Workers **Free seulement**, pas de R2 ni d'images utilisateur distantes ; les
+images locales restent disponibles. État précis et gates :
+[guide du pilote gratuit](docs/PRODUCTION_DEPLOYMENT_V0.md).
+Les indications v0.3C suivantes décrivent le socle local historique.
+
 Prototype de sondages locaux pour choisir ensemble. Création guidée, 2 à 6 choix,
 vote confirmé, verrouillage au premier bulletin accepté et résultats conditionnels.
 
 v0.3C durcit le relais HTTP optionnel Worker/D1/R2, testé **uniquement en local** :
 Turnstile à la création, quota indépendant des capacités, cache/quota par image,
 suppression distante, nettoyage cron et transfert explicite des clés secrètes.
-Aucun service distant n'est déployé. Le HTML livré reste sans relais configuré.
+À cette étape historique, aucun service distant n'était déployé et le HTML
+restait sans relais configuré. L'état actuel v0.3D est indiqué en tête de page.
 Voir [le guide local](docs/CLOUDFLARE_RELAY_V0.md),
 [les instructions de déploiement non exécutées](docs/CLOUDFLARE_DEPLOYMENT_V0.md)
 et [le rapport v0.3C](docs/CODEX_RELAY_V0_3C_REPORT.md).
@@ -38,6 +49,7 @@ Les scripts npm utilisent ce Node local. Aucune dépendance réseau à l'exécut
 
 ```sh
 npm run build        # régénère index.html à partir des sources
+npm run build:production # HTML connecté au pilote ; après validation Worker/Gate B
 npm run dev          # build puis http://127.0.0.1:4173
 npm test             # node:test : métier, import/export, stockage et build
 npm run check        # vérification de syntaxe
@@ -46,6 +58,7 @@ npm run worker:migrate # migrations D1 locales seulement
 npm run worker:local   # Worker + D1/R2 locaux sur 127.0.0.1:8787
 npm run test:relay     # tests HTTP/D1/R2 locaux, avec redémarrage
 npm run test:integration # même suite + deux contextes navigateur
+npm run test:free-pilot # HTTP/D1 SANS R2 + deux contextes Chromium, local seulement
 npm run worker:cleanup # scheduled explicite du Worker local
 npm run audit:bundle # ZIP léger, uniquement fichiers Git admissibles, après tests/rapport
 ```

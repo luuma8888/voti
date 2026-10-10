@@ -489,8 +489,19 @@ try {
       await writeFile(resolve(ROOT, `.browser-tests/v03b-images-${graphicIds.indexOf(id)}-${width}.png`), Buffer.from(capture.data,'base64'));
     }
   }
-  if (process.env.VOTI_TEST_RELAY === '1') {
-    const id = graphicIds[1];
+  if (process.env.VOTI_TEST_RELAY === '1' || process.env.VOTI_TEST_FREE_PILOT === '1') {
+    let id = graphicIds[1];
+    if (process.env.VOTI_TEST_FREE_PILOT === '1') {
+      await navigateReady(sessionId, servedUrl + '?free-check=' + crypto.randomUUID() + '#poll/' + id);
+      if (!await evaluate(sessionId, `document.getElementById('app').textContent.includes('Ce relais gratuit accepte uniquement les sondages sans images') && ![...document.querySelectorAll('#app button')].some(b=>b.textContent==='Publier en ligne') && !document.querySelector('.human-verification')`)) throw new Error('Pilote gratuit : publication illustrée doit être bloquée avant challenge.');
+      relayChecks++;
+      await navigateReady(sessionId, servedUrl + '?free-check=' + crypto.randomUUID() + '#edit/' + id);
+      if (!await evaluate(sessionId, `Boolean(document.querySelector('#app input[type="file"]'))`)) throw new Error('Images locales désactivées par erreur.');
+      relayChecks++;
+      const textState = published(); id = textState.polls[0].id;
+      await evaluate(sessionId, `localStorage.setItem('voti.local.v1', ${JSON.stringify(JSON.stringify(textState))})`);
+      await navigateReady(sessionId, servedUrl + '?free=' + crypto.randomUUID() + '#poll/' + id);
+    }
     relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('publish',${JSON.stringify(id)})`);
     const context = await command('Target.createBrowserContext', { disposeOnDetach:true });
     const target = await command('Target.createTarget', { url:'about:blank', browserContextId:context.browserContextId });
@@ -499,7 +510,7 @@ try {
     await command('Page.setLifecycleEventsEnabled', { enabled:true }, voter.sessionId);
     for (let n=0;n<5;n++) {
       await navigateReady(voter.sessionId, servedUrl + '?visit=' + crypto.randomUUID() + '#/p/' + id);
-      relayChecks += await evaluate(voter.sessionId, `(${remoteBrowserAction.toString()})('vote',${JSON.stringify(id)})`);
+      relayChecks += await evaluate(voter.sessionId, `(${remoteBrowserAction.toString()})('vote',${JSON.stringify(id)},${process.env.VOTI_TEST_FREE_PILOT !== '1'})`);
       if(n===0) {
         await navigateReady(sessionId, servedUrl+'?visit='+crypto.randomUUID()+'#poll/'+id);
         relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('locked',${JSON.stringify(id)})`);
@@ -519,7 +530,7 @@ try {
     await command('Target.disposeBrowserContext', { browserContextId:context.browserContextId });
   }
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
-  if (requests.some(item => /^https?:/.test(item) && !['http://127.0.0.1:4173', ...(process.env.VOTI_TEST_RELAY === '1' ? ['http://127.0.0.1:8787'] : [])].includes(new URL(item).origin))) throw new Error('Requête réseau externe inattendue.');
+  if (requests.some(item => /^https?:/.test(item) && !['http://127.0.0.1:4173', ...((process.env.VOTI_TEST_RELAY === '1' || process.env.VOTI_TEST_FREE_PILOT === '1') ? ['http://127.0.0.1:8787'] : [])].includes(new URL(item).origin))) throw new Error('Requête réseau externe inattendue.');
   console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks + relayChecks} contrôles réussis (mode local, graphiques, images, thèmes, clavier, responsive, offline, /voti/${process.env.VOTI_TEST_RELAY ? ', HTTP multi-contextes' : ''}).`);
 } catch (error) {
   console.error(`Tests navigateur ÉCHEC : ${error.message}`); process.exitCode = 1;

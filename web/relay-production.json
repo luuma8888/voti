@@ -1,0 +1,7 @@
+{
+  "relayId": "voti-production",
+  "baseUrl": "https://voti-relay.voti-luuma8888.workers.dev",
+  "turnstileSiteKey": "0x4AAAAAAFSr8Ez4dZ22j76S",
+  "turnstileMode": "siteverify",
+  "remoteAssetsEnabled": false
+}

@@ -1,13 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { inflateRawSync } from 'node:zlib';
-import { createZip, auditPaths, AUDIT_NAME } from '../scripts/audit-bundle.mjs';
+import { createZip, auditPaths, AUDIT_NAME, isAuditArchive } from '../scripts/audit-bundle.mjs';
 import { crc32 } from '../relay/cloudflare/image-validation.js';
-test('Bundle audit : liste Git exacte sans cache, dépendance ni ZIP lui-même', async () => {
+test('Bundle audit : fichiers Git admissibles sans aucune archive VOTI récursive', async () => {
   const paths = await auditPaths(); assert.ok(paths.includes('AGENTS.md'));
   assert.ok(paths.includes('docs/VOTI_RELAY_V0_3C_SPEC.md'));
   assert.ok(!paths.includes(AUDIT_NAME));
+  assert.ok(!paths.some(isAuditArchive));
   assert.equal(new Set(paths).size, paths.length);
+});
+test('Audit : exclusion des ZIP VOTI même anciens, imbriqués ou suivis', () => {
+  for (const path of ['VOTI_AUDIT_V0_3B.zip', 'VOTI_AUDIT_V0_3C.zip', AUDIT_NAME, 'docs/VOTI_AUDIT_ancien.zip']) assert.ok(isAuditArchive(path));
+  assert.equal(isAuditArchive('docs/rapport.md'), false);
 });
 test('Archive audit : ZIP UTF-8 déterministe, octets/CRC et répertoire corrects', () => {
   const entries = [['docs/rapport-é.json', Buffer.from('{"test":true}')], ['assets/image.webp', Buffer.from([0, 255, 12, 9])]];

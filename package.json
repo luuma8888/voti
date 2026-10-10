@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:production": "node scripts/build-production.mjs",
     "dev": "node scripts/dev.mjs",
     "test": "node --test --test-reporter=dot tests/*.test.js",
     "test:browser": "node scripts/browser-test.mjs",
@@ -17,6 +18,7 @@
     "worker:cleanup": "node scripts/relay-local.mjs cleanup",
     "test:relay": "node scripts/relay-integration.mjs",
     "test:integration": "node scripts/relay-integration.mjs --browser",
+    "test:free-pilot": "node scripts/free-pilot-integration.mjs --browser",
     "audit:bundle": "node scripts/audit-bundle.mjs"
   },
   "devDependencies": {

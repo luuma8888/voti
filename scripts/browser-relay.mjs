@@ -52,7 +52,7 @@ export async function graphicChecks(id, width) {
   window.scrollTo(0,0);
   return checks;
 }
-export async function remoteBrowserAction(action, id) {
+export async function remoteBrowserAction(action, id, expectImages = true) {
   const wait=async f=>{const until=performance.now()+15000;while(!f()){if(performance.now()>until)throw new Error('Attente distante : '+action+' / '+document.getElementById('app').textContent+' / '+document.getElementById('message').textContent);await new Promise(requestAnimationFrame);}};
   const click=label=>{const node=[...document.querySelectorAll('#app button,#app a')].find(n=>n.textContent===label);if(!node)throw new Error('Action absente '+label);node.click();};
   if(action==='publish') {
@@ -63,7 +63,7 @@ export async function remoteBrowserAction(action, id) {
   }
   if(action==='vote') {
     await wait(()=>document.querySelector('.vote-choice input'));
-    await wait(()=>document.querySelector('.question-block img')?.naturalWidth);
+    if (expectImages) await wait(()=>document.querySelector('.question-block img')?.naturalWidth);
     document.querySelector('.vote-choice input').click(); click('Continuer');
     await wait(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='Oui, je confirme'));
     click('Oui, je confirme'); click('Oui, je confirme');

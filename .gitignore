@@ -6,5 +6,6 @@ coverage/
 .relay-local/
 .wrangler/
 .dev.vars*
+.aws
 
 VOTI_AUDIT_*.zip

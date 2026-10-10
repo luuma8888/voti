@@ -6,7 +6,7 @@ import { verifyHuman, limitRoute } from './abuse.js';
 const statuses = { NOT_FOUND: 404, INVALID_CAPABILITY: 403, REVISION_CONFLICT: 409, POLL_CLOSED: 409,
   POLL_LOCKED: 409, RESULTS_LOCKED: 423, IDEMPOTENCY_CONFLICT: 409, PUBLICATION_CONFLICT: 409,
   PAYLOAD_TOO_LARGE: 413, RATE_LIMITED: 429, CREATION_RATE_LIMITED: 429, RELAY_UNAVAILABLE: 503,
-  HUMAN_VERIFICATION_REQUIRED: 403, HUMAN_VERIFICATION_FAILED: 403 };
+  HUMAN_VERIFICATION_REQUIRED: 403, HUMAN_VERIFICATION_FAILED: 403, REMOTE_ASSETS_DISABLED: 422 };
 export default {
   async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin');
@@ -32,7 +32,8 @@ export default {
       const service = new CloudflareRelay(env);
       // Limiter avant lecture du corps et toute validation coûteuse (y compris Siteverify).
       await limitRoute(env, name, id, assetId, capability, name === 'preparePublication');
-      const body = request.method === 'GET' ? {} : await readBoundedJson(request, name === 'putAssets' ? 20_000_000 : 65_536);
+      const body = request.method === 'GET' ? {} : await readBoundedJson(request,
+        name === 'putAssets' && env.REMOTE_ASSETS_ENABLED !== 'false' ? 20_000_000 : 65_536);
       if (name === 'preparePublication') {
         const token = body.humanVerificationToken; delete body.humanVerificationToken;
         const existing = await service.row(body.poll?.id || '');

@@ -86,8 +86,15 @@ export class CloudflareRelay {
     return { ...meta, blob: new Blob([await obj.arrayBuffer()], { type: meta.mimeType }) };
   }
   async references(id, definition) {
+    this.checkAssetPolicy(definition);
     try { await validateReferences({ polls: [{ definition }] }, assetId => this.asset(id, assetId)); }
     catch (error) { if (error instanceof RelayError) throw error; throw new RelayError('ASSET_INVALID'); }
+  }
+  /** Le pilote gratuit refuse les images, sans modifier ni dépouiller la définition. */
+  checkAssetPolicy(definition) {
+    if (this.env.REMOTE_ASSETS_ENABLED === 'false') {
+      need(assetReferences({ polls: [{ definition }] }).size === 0, 'REMOTE_ASSETS_DISABLED');
+    }
   }
   async execute(method, id, body, capability, assetId) {
     try { object(body, fields[method], 'Requête'); } catch { throw new RelayError('INVALID_REQUEST'); }
@@ -97,6 +104,7 @@ export class CloudflareRelay {
       need(!localBallots.length && !poll.lockedAt && !poll.definitionHash && poll.stats?.totalBallots === 0, 'LOCAL_VOTES_PRESENT');
       need(poll.status !== 'closed', 'POLL_CLOSED'); need(expectedRevision === 0, 'REVISION_CONFLICT');
       try { await validateState({ ...emptyState(), polls: [poll] }); } catch { throw new RelayError('INVALID_DEFINITION'); }
+      this.checkAssetPolicy(poll.definition);
       const hash = await capabilityDigest(this.env.RELAY_ID, id, capability), signature = canonical(poll);
       const semantic = await semanticHash(poll);
       await this.db.batch([
@@ -115,7 +123,11 @@ export class CloudflareRelay {
       const view = await this.projection(id), result = { remoteRef: view.remoteRef, ...view.results };
       need(result.available, 'RESULTS_LOCKED', 'Résultats non disponibles.', result); return result;
     }
-    if (method === 'getAsset') { need(isAssetId(assetId), 'INVALID_REQUEST'); return encodeAsset(await this.asset(id, assetId, true)); }
+    if (method === 'getAsset') {
+      need(isAssetId(assetId), 'INVALID_REQUEST');
+      need(this.env.REMOTE_ASSETS_ENABLED !== 'false', 'NOT_FOUND');
+      return encodeAsset(await this.asset(id, assetId, true));
+    }
     if (method === 'castVote') {
       need(isPublicPollId(body.actionId), 'INVALID_REQUEST');
       need(typeof body.choiceId === 'string', 'INVALID_CHOICE');
@@ -146,6 +158,10 @@ export class CloudflareRelay {
     }
     if (method === 'getMissingAssets') {
       need(Array.isArray(body.assetIds) && body.assetIds.length <= 14 && body.assetIds.every(isAssetId), 'INVALID_REQUEST');
+      if (this.env.REMOTE_ASSETS_ENABLED === 'false') {
+        need(body.assetIds.length === 0, 'REMOTE_ASSETS_DISABLED');
+        return { remoteRef: this.ref(row), missingAssetIds: [] };
+      }
       const { results } = await this.sql('SELECT asset_id FROM asset_links WHERE poll_id=?', id).all();
       return { remoteRef: this.ref(row), missingAssetIds: [...new Set(body.assetIds)].filter(id => !results.some(a => a.asset_id === id)) };
     }
@@ -155,6 +171,12 @@ export class CloudflareRelay {
     }
     if (method === 'putAssets') {
       need(row.status !== 'closed', 'POLL_CLOSED'); need(!row.locked, 'POLL_LOCKED');
+      if (this.env.REMOTE_ASSETS_ENABLED === 'false') {
+        need(Array.isArray(body.assets), 'ASSET_INVALID');
+        need(body.assets.length === 0, 'REMOTE_ASSETS_DISABLED');
+        // Le contrat client envoie aussi les lots vides : no-op, sans R2 ni révision.
+        return { remoteRef: this.ref(row), assetIds: [] };
+      }
       need(Array.isArray(body.assets) && body.assets.length <= 14, 'ASSET_INVALID');
       const assets = [];
       // Sérialisé pour borner la mémoire/CPU par image avant toute écriture R2.

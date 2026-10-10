@@ -24,10 +24,19 @@ const fails = (promise, code) => assert.rejects(promise, { code });
 test('Turnstile : vrai protocole Siteverify, token/secret POST seulement, pas de remoteip', async () => {
   await verifyHuman(request, env, 'token-fixture', async (url, options) => {
     assert.equal(url, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
-    assert.equal(options.method, 'POST'); assert.equal(options.redirect, 'error');
+    assert.equal(options.method, 'POST'); assert.equal(options.redirect, 'manual');
     assert.deepEqual(JSON.parse(options.body), { secret: env.TURNSTILE_SECRET, response: 'token-fixture' });
     return Response.json(valid());
   });
+});
+test('Turnstile : redirection Siteverify refusée, aucun transfert du secret', async () => {
+  let calls = 0;
+  await fails(verifyHuman(request, env, 'fixture', async (url, options) => {
+    calls++; assert.equal(url, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    assert.equal(options.redirect, 'manual');
+    return new Response(null, { status: 302, headers: { Location: 'https://untrusted.invalid/' } });
+  }), 'RELAY_UNAVAILABLE');
+  assert.equal(calls, 1);
 });
 test('Turnstile : absence de token, token excessif, secret absent et clé factice fermés', async () => {
   await fails(verifyHuman(request, env), 'HUMAN_VERIFICATION_REQUIRED');

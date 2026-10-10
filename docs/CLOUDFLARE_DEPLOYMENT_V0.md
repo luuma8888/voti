@@ -1,6 +1,17 @@
 # Voti — préparation du déploiement Cloudflare
 
-**Aucune ressource distante n'a été créée ou modifiée. Aucune commande de cette
+> **Mise à jour v0.3D :** le Gate A a permis de créer D1 UE, le sous-domaine
+> workers.dev et Turnstile. Lu’uma a validé un pilote **Workers Free uniquement,
+> sans R2 ni images distantes**. Les exemples R2 ci-dessous sont historiques et
+> **ne doivent pas être exécutés pour ce pilote**. Gate B autorisé : migrations
+> D1 et Worker déployés ; secret installé, bug fetch workerd corrigé,
+> jeton factice refusé en 403. HTML connecté construit ; challenge humain réel
+> et recette restant à terminer.
+> Gate C autorisé par Lu’uma ; publication Pages en cours, pilote non validé.
+> Voir l'état exact et les
+> instructions prioritaires dans [PRODUCTION_DEPLOYMENT_V0.md](PRODUCTION_DEPLOYMENT_V0.md).
+
+**État historique v0.3C : aucune ressource distante n'avait été créée ou modifiée. Aucune commande de cette
 section distante ne doit être exécutée sans instruction explicite de Lu’uma.**
 La configuration livrée est locale, avec un database_id factice, bindings non
 distants et `workers_dev: false`. Elle ne constitue pas une configuration de production.

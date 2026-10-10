@@ -27,7 +27,9 @@ export async function verifyHuman(request, env, token, fetchImpl = globalThis.fe
   need(!/^[123]x0{20}/.test(env.TURNSTILE_SECRET), 'RELAY_UNAVAILABLE');
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
   try {
-    const response = await fetchImpl.call(globalThis, SITEVERIFY, { method: 'POST', redirect: 'error', signal: controller.signal,
+    // workerd ne supporte pas redirect:'error'. manual + response.ok refuse les 3xx
+    // sans retransmettre le secret vers une autre URL.
+    const response = await fetchImpl.call(globalThis, SITEVERIFY, { method: 'POST', redirect: 'manual', signal: controller.signal,
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: env.TURNSTILE_SECRET, response: token }) });
     need(response.ok, 'RELAY_UNAVAILABLE');
     const value = await readBoundedJson(response, 16384);
