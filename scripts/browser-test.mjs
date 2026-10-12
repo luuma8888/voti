@@ -368,6 +368,27 @@ async function browserScenario(fixtures) {
   return checks;
 }
 
+/** Recette ciblée rapide : disposition réelle, sans refaire 28 exports PDF. */
+async function studioWorkspaceChecks(sessionId) {
+  let checks=0;
+  for(const [width,height] of [[1365,768],[1280,720],[1024,768],[768,1024],[360,740],[320,640]]) {
+    await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<500},sessionId);
+    checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('mount')`);
+    try {checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('scroll')`);}
+    finally {const capture=await command('Page.captureScreenshot',{format:'png'},sessionId);
+      await writeFile(resolve(ROOT,`.browser-tests/studio-workspace-${width}.png`),Buffer.from(capture.data,'base64'));}
+    await command('Page.bringToFront',{},sessionId);
+    checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('prepare-keyboard')`);
+    for(const type of ['keyDown','keyUp'])await command('Input.dispatchKeyEvent',{type,key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40},sessionId);
+    checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('keyboard-scroll')`);
+    for(const type of ['keyDown','keyUp'])await command('Input.dispatchKeyEvent',{type,key:'Enter',code:'Enter',windowsVirtualKeyCode:13,...(type==='keyDown'?{text:'\r',unmodifiedText:'\r'}:{})},sessionId);
+    checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('keyboard-open')`);
+    checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('pages')`);
+    checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('cleanup')`);
+  }
+  return checks;
+}
+
 try {
   const { targetId } = await command('Target.createTarget', { url: 'about:blank' });
   const { sessionId } = await command('Target.attachToTarget', { targetId, flatten: true });
@@ -377,6 +398,12 @@ try {
   await command('Page.setLifecycleEventsEnabled', { enabled: true }, sessionId);
   await command('Emulation.setDeviceMetricsOverride', { width: 1200, height: 820, deviceScaleFactor: 1, mobile: false }, sessionId);
   await navigateReady(sessionId, url);
+  if(process.argv.includes('--studio-workspace')) {
+    const checks=await studioWorkspaceChecks(sessionId);
+    if(runtimeErrors.length)throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
+    if(requests.some(url=>/^https?:/.test(url)))throw new Error('Requête externe depuis le Studio local.');
+    console.log(`Studio Chromium : ${checks} contrôles réussis (formulaire gauche une colonne, aperçu hauteur disponible, clavier, mobile, pages).`);
+  } else {
   const closed = await votes(3, { releaseMode: 'closed' });
   const { closePoll } = await import('../shared/poll-engine.js');
   const { now } = await import('../tests/fixtures.js');
@@ -520,22 +547,7 @@ try {
     await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<500},sessionId);
     qrChecks.checks+=await evaluate(sessionId,`(${browserStudioScenario.toString()})()`);
   }
-  for(const [width,height] of [[1365,768],[360,740],[320,640]]) {
-    await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<500},sessionId);
-    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('mount')`);
-    try {qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('scroll')`);}
-    finally {const capture=await command('Page.captureScreenshot',{format:'png'},sessionId);
-      await writeFile(resolve(ROOT,`.browser-tests/studio-workspace-${width}.png`),Buffer.from(capture.data,'base64'));}
-    await command('Page.bringToFront',{},sessionId);
-    await command('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40},sessionId);
-    await command('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40},sessionId);
-    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('keyboard-scroll')`);
-    await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'},sessionId);
-    await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},sessionId);
-    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('keyboard-open')`);
-    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('pages')`);
-    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('cleanup')`);
-  }
+  qrChecks.checks+=await studioWorkspaceChecks(sessionId);
   await mkdir(resolve(ROOT,'.browser-tests/pdfs'),{recursive:true});
   const posterFiles=[];
   // La recette PDF coûteuse appartient à test:browser/test:poster ; pas trois
@@ -811,6 +823,7 @@ try {
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
   if (requests.some(item => /^https?:/.test(item) && !['http://127.0.0.1:4173', ...((process.env.VOTI_TEST_RELAY === '1' || process.env.VOTI_TEST_FREE_PILOT === '1') ? ['http://127.0.0.1:8787'] : [])].includes(new URL(item).origin))) throw new Error('Requête réseau externe inattendue.');
   console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks + relayChecks + dialogChecks + qrChecks.checks} contrôles réussis (mode local, QR/PDF, dialogues, graphiques, images, thèmes, clavier, responsive, offline, /voti/${process.env.VOTI_TEST_RELAY ? ', HTTP multi-contextes' : ''}).`);
+  }
 } catch (error) {
   console.error(`Tests navigateur ÉCHEC : ${error.message}`); process.exitCode = 1;
   if (process.env.VOTI_TEST_RELAY && httpDiagnostics.length) console.error(JSON.stringify(httpDiagnostics.slice(-8)));

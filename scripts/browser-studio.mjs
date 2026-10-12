@@ -15,13 +15,12 @@ export async function browserStudioScenario() {
   const originalTheme=document.documentElement.dataset.theme;
   try {
     await wait(()=>view.element.dataset.previewVersion);
-    const openGroup=control=>{const section=control.closest('.studio-section');if(section)section.open=true;};
+    const openGroup=control=>{if(innerWidth<960)view.element.querySelector('.studio-view-switch button').click();const section=control.closest('.studio-section');if(section)section.open=true;};
     assert(view.element.querySelectorAll('.studio-section').length===6&&view.element.querySelectorAll('.studio-section[open]').length===1,'Six catégories, seule la composition ouverte');
-    assert(getComputedStyle(view.element.querySelector('.studio-grid')).flexDirection==='column','Studio sans deux colonnes');
-    assert(view.element.querySelector('.studio-preview').nextElementSibling.classList.contains('studio-controls'),'Aperçu au-dessus des réglages');
+    assert(view.element.querySelector('.studio-controls').nextElementSibling.classList.contains('studio-preview'),'Formulaire gauche, aperçu droite');
     const previewBox=view.element.querySelector('.studio-preview'),sheet=view.element.querySelector('.studio-sheets');
-    assert(getComputedStyle(previewBox).position==='sticky'&&sheet.clientWidth>=view.element.clientWidth*.7,'Aperçu large et accroché');
-    const zoom=[...view.element.querySelectorAll('button')].find(b=>b.textContent==='Voir la page entière');zoom.click();assert(previewBox.classList.contains('studio-fit-page')&&zoom.textContent==='Agrandir pour lire','Vue page entière explicite');zoom.click();assert(!previewBox.classList.contains('studio-fit-page'),'Retour à la lecture large');
+    assert(getComputedStyle(view.element.querySelector('.studio-controls')).overflowY==='auto','Défilement indépendant du formulaire');
+    const zoom=[...view.element.querySelectorAll('button')].find(b=>b.textContent==='Agrandir pour lire');assert(previewBox.classList.contains('studio-fit-page'),'Page entière par défaut');zoom.click();assert(!previewBox.classList.contains('studio-fit-page')&&zoom.textContent==='Voir la page entière','Lecture agrandie explicite');zoom.click();assert(previewBox.classList.contains('studio-fit-page'),'Retour à la page entière');
     const change=async(label,value)=>{const l=[...view.element.querySelectorAll('label')].find(n=>n.textContent===label),input=document.getElementById(l.htmlFor),version=view.element.dataset.previewVersion;openGroup(input);input.value=value;input.dispatchEvent(new Event(input.type==='color'?'input':'change',{bubbles:true}));await wait(()=>view.element.dataset.previewVersion!==version);
       const key={'Disposition':'layout','Type d’affiche':'mode','Palette':'palette'}[label];
       if(key)await wait(()=>repo.get(poll.id)[key]===value);if(label==='Principale')await wait(()=>repo.get(poll.id).customColors.primary===value);
@@ -37,6 +36,7 @@ export async function browserStudioScenario() {
     for(const [kind,list] of [['title',TITLE_TYPOGRAPHIES],['body',BODY_TYPOGRAPHIES]]){
       const group=[...view.element.querySelectorAll('.typography-choices')].find(g=>g.querySelector('legend').textContent===(kind==='title'?'Typographie du titre':'Typographie du texte'));
       openGroup(group);
+      assert(group.querySelector('label').getBoundingClientRect().width>group.clientWidth*.8,'Options typographiques en une colonne');
       assert(group.querySelectorAll('input').length===list.length,'Variété typographique');
       for(const [id,,family] of list){const version=view.element.dataset.previewVersion,input=group.querySelector(`input[value="${id}"]`);if(!input.checked){input.click();await wait(()=>view.element.dataset.previewVersion!==version&&repo.get(poll.id)[kind+'Typography']===id);}assert(input.checked&&input.nextElementSibling.style.fontFamily.includes(family.split(',')[0].replaceAll('"','')),'Prévisualisation typo');}
     }
@@ -101,27 +101,33 @@ export async function browserStudioWorkspace(stage='mount') {
     const repo=new PosterRepository(localStorage,new MemoryAssetAdapter(),navigator.locks),errors=[];
     const view=posterStudio(poll,{repository:repo,error:e=>errors.push(e.message),notify:()=>{},refreshPoll:async()=>poll});
     const app=document.getElementById('app'),original=[...app.childNodes],title=document.createElement('h1');title.textContent='Studio d’affiche';app.replaceChildren(title,view.element);
-    window.__votiStudioWorkspaceTest={view,repo,poll,original,errors};window.scrollTo(0,0);await wait(()=>view.element.dataset.previewVersion);return 1;
+    window.__votiStudioWorkspaceTest={view,repo,poll,original,errors};window.scrollTo(0,0);await wait(()=>view.element.dataset.previewVersion&&view.element.style.getPropertyValue('--studio-height'));return 1;
   }
   const {view,repo,poll,original,errors}=window.__votiStudioWorkspaceTest;
   if(stage==='cleanup'){view.dispose();document.getElementById('app').replaceChildren(...original);delete window.__votiStudioWorkspaceTest;await repo.remove(poll.id);window.scrollTo(0,0);return 1;}
-  const preview=view.element.querySelector('.studio-preview'),sheet=view.element.querySelector('.studio-sheets'),sections=view.element.querySelectorAll('.studio-section');
-  if(stage==='keyboard-scroll'){await wait(()=>sheet.scrollTop>0);const summary=sections[3].querySelector('summary');summary.focus();await new Promise(requestAnimationFrame);if(summary.getBoundingClientRect().top<preview.getBoundingClientRect().bottom)throw new Error('Focus clavier masqué par l’aperçu');return 2;}
+  const preview=view.element.querySelector('.studio-preview'),sheet=view.element.querySelector('.studio-sheets'),sections=view.element.querySelectorAll('.studio-section'),controls=view.element.querySelector('.studio-controls');
+  const pane=name=>{if(innerWidth<960)[...view.element.querySelectorAll('.studio-view-switch button')].find(b=>b.textContent===name).click();};
+  const frame=async()=>{await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);};
+  if(stage==='prepare-keyboard'){if(preview.classList.contains('studio-fit-page'))[...preview.querySelectorAll('button')].find(b=>b.textContent==='Agrandir pour lire').click();sheet.focus({preventScroll:true});return 1;}
+  if(stage==='keyboard-scroll'){await wait(()=>sheet.scrollTop>0);pane('Réglages');await frame();const before=preview.getBoundingClientRect().toJSON(),summary=sections[3].querySelector('summary');summary.focus();await frame();const target=summary.getBoundingClientRect(),area=controls.getBoundingClientRect();if(target.top<area.top||target.bottom>area.bottom)throw new Error('Focus clavier hors du formulaire');if(innerWidth>=960&&Math.abs(preview.getBoundingClientRect().top-before.top)>1)throw new Error('Le focus formulaire déplace l’aperçu');return 2;}
   if(stage==='keyboard-open'){await wait(()=>sections[3].open);if(sections[2].open||view.element.querySelectorAll('.studio-section[open]').length!==1)throw new Error('Accordéon clavier non exclusif');return 1;}
   if(stage==='pages') {
     for(const [label,value] of [['Type d’affiche','choices'],['Choix par ligne','1'],['Densité','airy'],['Taille des QR','large']]){const title=[...view.element.querySelectorAll('label')].find(n=>n.textContent===label),input=document.getElementById(title.htmlFor);input.value=value;input.dispatchEvent(new Event('change'));}
     const page=view.element.querySelector('[aria-label="Page de l’aperçu"]');await wait(()=>page.options.length>1&&repo.get(poll.id).qrSize==='large');
+    pane('Aperçu');await frame();
     page.value='1';page.dispatchEvent(new Event('change'));
     await wait(()=>view.element.querySelector('.studio-sheets canvas')?.getAttribute('aria-label').includes('page 2 sur'));
     if(view.element.querySelectorAll('.studio-sheets canvas').length!==1)throw new Error('L’aperçu conserve plusieurs canvases');
     return 2;
   }
-  sections[2].open=true;sections[2].querySelector('summary').scrollIntoView({block:'start'});await new Promise(requestAnimationFrame);
-  const rect=preview.getBoundingClientRect(),summary=sections[2].querySelector('summary').getBoundingClientRect();
-  if(rect.top<0||rect.top>10||rect.bottom>innerHeight-100||rect.width<view.element.clientWidth*.85||summary.top<rect.bottom)throw new Error('Aperçu masqué/petit ou réglage sous l’aperçu : '+JSON.stringify({width:innerWidth,preview:rect.toJSON(),summary:summary.toJSON()}));
+  pane('Réglages');sections[2].open=true;await frame();
+  const before=preview.getBoundingClientRect().toJSON(),summary=sections[2].querySelector('summary');controls.scrollTop+=summary.getBoundingClientRect().top-controls.getBoundingClientRect().top-8;await frame();
+  if(innerWidth>=960){const rect=preview.getBoundingClientRect(),left=controls.getBoundingClientRect();if(left.width>310||rect.left<left.right+8||rect.top<0||rect.bottom>innerHeight-8||rect.height<innerHeight*.6||sheet.clientHeight<innerHeight*.42||Math.abs(rect.top-before.top)>1)throw new Error('Formulaire gauche/aperçu haut droite incorrect : '+JSON.stringify({width:innerWidth,preview:rect.toJSON(),form:left.toJSON(),sheetHeight:sheet.clientHeight}));if(controls.scrollTop<=0)throw new Error('Le formulaire ne défile pas indépendamment');}
+  else {pane('Aperçu');await frame();if(getComputedStyle(controls).display!=='none'||preview.getBoundingClientRect().height<innerHeight*.5)throw new Error('Bascule mobile ou hauteur aperçu incorrecte');}
+  if(!preview.classList.contains('studio-fit-page'))[...preview.querySelectorAll('button')].find(b=>b.textContent==='Voir la page entière').click();
   if(document.documentElement.scrollWidth>innerWidth||sections[0].open||!sections[2].open)throw new Error('Accordéon ou largeur incorrect');
   sheet.focus({preventScroll:true});if(document.activeElement!==sheet||getComputedStyle(sheet).outlineStyle==='none')throw new Error('Aperçu non accessible au clavier');
-  if(innerWidth<500&&(view.element.querySelector('.typography-choices label').getBoundingClientRect().width<180||sheet.querySelector('canvas:not([hidden])').getBoundingClientRect().width<500))throw new Error('Typographies ou lecture mobile trop étroites');
+  const canvas=sheet.querySelector('canvas');if(canvas.getBoundingClientRect().height>sheet.clientHeight||!view.element.querySelector('.studio-fit-page'))throw new Error('La page A4 entière ne tient pas en hauteur');
   if(errors.length)throw new Error(errors.join(' / '));
   return 5;
 }

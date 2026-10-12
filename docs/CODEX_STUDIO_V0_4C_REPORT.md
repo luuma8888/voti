@@ -431,3 +431,109 @@ Le build production attendu est celui de 1 223 952 octets et du SHA-256 indiqué
 ci-dessus. Vérification Pages à effectuer après push, puis reprise de la recette
 humaine, sans en revendiquer la validation. Aucun ZIP final ni déploiement
 Cloudflare dans cette publication.
+
+### Correction publiée — contrôle GitHub Pages
+
+Commit `6b476fd`, poussé sur main sur l’accord explicite de Lu’uma. Douze fichiers
+inclus, aucun fichier backend/configuration distante, aucun ZIP suivi. Les trois
+autres rapports locaux et la spécification v0.3E sont laissés intacts hors commit.
+Le build a été reproduit avant commit et comparé au build testé : 40 modules,
+1 223 952 octets et SHA-256 identique. Le contrôle de littéraux sensibles dans
+le HTML et ses modules n’a trouvé aucun secret identifié ; il ne constitue pas
+une garantie universelle de détection de secrets.
+
+Après push, les deux premières lectures de `https://luuma8888.github.io/voti/`
+servaient encore l’ancien build. La troisième a renvoyé HTTP 200, exactement
+1 223 952 octets, et une comparaison binaire identique au build local ; SHA-256 :
+`b159b0ce4ddf88d5d5741c945f9969d6ebf7628c77a6376fb4e6878cbe77f828`.
+Aucune mutation Cloudflare, aucun déploiement Worker ou changement du profil R2.
+
+La correction est publiée, pas encore validée humainement. Recette ciblée à
+reprendre avec Lu’uma, d’abord le partage puis l’ergonomie du Studio et les couleurs.
+Ce suivi de propagation reste local jusqu’au prochain suivi documentaire autorisé ;
+pas de second commit/push ni de régénération de l’archive avant la recette finale.
+
+### Reprise de la recette humaine après correction
+
+A — Après publication du correctif, Lu’uma répond « oui » à la vérification :
+le bouton Un QR pour chaque choix affiche un panneau autonome clair, sans
+accordéon. Ce parcours est confirmé humainement. Cette réponse ne vaut pas
+validation des autres panneaux, de l’ergonomie du Studio ou des couleurs ;
+la recette continue, une manipulation à la fois. Aucun nouveau changement de code.
+
+### Clarification humaine — formulaire gauche, aperçu droite
+
+Lu’uma rejette le Studio empilé publié dans `6b476fd` : l’aperçu ne prend qu’environ
+30 % de la hauteur et l’A4 portrait reste trop petit. Il précise : « L’idée était
+une seule colonne pour le formulaire pas pour l’ensemble. Formulaire à gauche,
+Aperçu à droite toujours disponible. » Puis : le formulaire précédent avait
+deux colonnes dans certaines sections et était trop large. La première correction
+du Studio résulte donc d’une mauvaise interprétation par Codex ; ni sa publication
+ni ses tests automatiques ne valent validation humaine de son ergonomie.
+
+Lu’uma valide en revanche les accordéons : « Le système d’accordéon est en revanche
+bien je pense : conserve le tel quel. Le rendu et manipulation semble bien. »
+Les éléments summary, explications, ouverture exclusive et interactions sont
+conservés. Le partage validé reste également inchangé.
+
+Correction de disposition, encore locale :
+
+- >=960 pixels : formulaire à gauche, 300 pixels de large, TOUS les champs et
+  cartes typographiques en une colonne ; aperçu à droite. Seul le Studio peut
+  utiliser jusqu’à 1480 pixels de largeur, sans élargir les autres vues.
+- Espace de travail borné à la hauteur réellement disponible sous le header,
+  titres et avis. Formulaire à défilement indépendant ; il ne déplace pas l’aperçu.
+  Focus clavier maintenu dans la zone visible du formulaire.
+- A4 entier par défaut, utilisant la hauteur de l’aperçu, et commande explicite
+  Agrandir pour lire / Voir la page entière. Sélecteur de page, téléchargement
+  et canvas unique restent présents ; aucune modification du PDF final.
+- <960 pixels : bascule Réglages / Aperçu, nommée et utilisable au clavier,
+  pour éviter deux panneaux illisibles ou un bandeau A4 très aplati. Aucun ajout
+  de préférence persistée ni changement du design sauvegardé.
+- Observer et événements de taille/défilement libérés à la sortie du Studio.
+
+Tests adaptés à la demande réelle, pas à l’hypothèse d’un Studio empilé :
+formulaire étroit à gauche, aperçu haut à droite, formulaire en une colonne,
+défilement indépendant et focus, A4 entier, zoom, pages, bascule mobile et
+absence d’overflow. Une option de la suite existante isole ce contrôle rapide :
+`npm run test:browser -- --studio-workspace`. Même harnais Chromium/CDP et
+nettoyage de processus, pas de copie d’un nouveau harnais ni de dépendance.
+Formats : 1365×768, 1280×720, 1024×768, 768×1024, 360×740, 320×640.
+
+Première recette ciblée : 78 contrôles réussis. Captures Chromebook et mobile
+inspectées réellement. La capture montre l’A4 entier à droite et le formulaire
+à gauche, et non une bande d’aperçu au-dessus. Résultats des contrôles finaux :
+
+| Commande | Résultat |
+| --- | --- |
+| npm test | 340 tests Node réussis |
+| npm run check | 85 fichiers JavaScript, syntaxe valide |
+| npm run test:browser -- --studio-workspace | 78 contrôles ciblés réussis |
+| npm run test:browser | 2 826 contrôles Chromium réussis, dont cette recette ciblée |
+| npm run build | 1 227 291 octets, HTML autonome |
+| npm run build:production | 1 227 539 octets, profil gratuit sans images distantes |
+| git diff --check | Aucune erreur |
+
+Build production régénéré en dernier, SHA-256 :
+`5b9c6f6c8f05b3e8f69f3a2ee38031f7461cb3c4c84be5ad0caf3911353401f7`.
+Les suites HTTP et Poppler ne sont pas relancées pour cette disposition :
+aucun code relais, plan ou renderer PDF modifié. La suite Chromium complète
+conserve les générations, images, couleurs, thèmes, clavier, offline et /voti/.
+La perception de lisibilité reste à faire valider
+par Lu’uma : aucune approbation visuelle de ce nouveau Studio revendiquée.
+
+Fichiers concernés : web/poster-studio.js, web/styles.css ; scripts/browser-studio.mjs,
+scripts/browser-test.mjs ; ce rapport, POSTER_STUDIO_POLISH_V0.md, UX_FLOWS_V0.md ;
+index.html à régénérer. Aucun fichier créé ni dépendance ajoutée. Aucun changement
+de partage, backend, modèle, stockage, agrégats, protocole ou configuration sans R2.
+Pas de commit/push, publication ou ZIP pour cette seconde correction à ce stade.
+
+### Autorisation de publier la disposition clarifiée
+
+Lu’uma demande explicitement : « je ne peux pas voir sur le site pour l’instant,
+donc commit et publie. » Accord pour publier les huit fichiers de cette seconde
+correction, sans inclure les autres modifications documentaires locales ni ZIP.
+Le build attendu est celui de 1 227 539 octets et du SHA-256 indiqué ci-dessus.
+Vérification binaire de GitHub Pages après push, puis jugement humain du Studio.
+Cet accord de publication ne vaut pas validation visuelle du rendu.
+Aucune modification Cloudflare ou du profil sans R2 n’est autorisée ni nécessaire.

@@ -15,18 +15,21 @@ essentiels sont corrigés lorsque nécessaire. QR toujours noir/blanc.
 
 ## Contrôles et typographies
 
-Après retour humain et autorisation explicite de Lu’uma, la disposition en deux
-colonnes est retirée. L’aperçu occupe la largeur utile au-dessus des réglages et
-reste accroché en haut pendant leur défilement. Sa zone de lecture défile au
-clavier/souris/tactile ; « Voir la page entière » / « Agrandir pour lire » alterne
-vision globale et lecture large. Une page à la fois, avec sélecteur si nécessaire.
-L’aperçu est borné à 900 pixels de large ; sur petit écran, le mode lecture
-affiche une largeur de 600 pixels avec défilement interne horizontal/vertical,
-pas de débordement de la page. La vue entière permet de revoir l’ensemble.
-Les cartes typographiques passent en une colonne sur mobile, pour ne pas
-découper les mots. Le PDF haute résolution est inchangé.
-Le téléchargement reste dans ce bandeau. La hauteur réelle du bandeau détermine
-la marge de défilement des contrôles, pour éviter leur masquage.
+La clarification de Lu’uma concerne la colonne du FORMULAIRE, pas l’ensemble
+de l’espace de travail. Sur écran >=960 pixels : panneau de réglages à gauche
+(300 pixels, champs et cartes typographiques en une colonne), aperçu à droite.
+Le Studio utilise une largeur maximale de 1480 pixels, sans changer les autres
+vues. Sa hauteur suit la place réelle sous les titres/avis ; le formulaire défile
+dans son propre panneau et ne pousse pas l’aperçu hors écran.
+
+L’A4 entier est montré par défaut dans un aperçu haut. « Agrandir pour lire » /
+« Voir la page entière » alterne lecture et vision globale. Une page à la fois,
+un seul canvas de 900 pixels, sélecteur si nécessaire. Le téléchargement reste
+dans le bandeau de l’aperçu. Les événements/observer de taille sont libérés à
+la fermeture. Sur écran plus petit, boutons Réglages / Aperçu pour utiliser
+la place disponible sans deux panneaux minuscules. Le mode lecture mobile
+utilise 600 pixels avec défilement interne ; aucun overflow horizontal de la page.
+Le PDF haute résolution est inchangé.
 
 Six accordéons natifs à titre, repère et explication : Composer l’affiche,
 Choisir les couleurs, Choisir les écritures, Choisir des images, Cadrer les images,
@@ -130,3 +133,5 @@ Suites Node, Chromium, PDF/Poppler et intégrations locales ; aucune validation
 humaine v0.4C ni impression papier revendiquée avant audit/publication autorisée.
 test:poster-polish isole la rasterisation et le décodage des nouvelles affiches.
 Voir CODEX_STUDIO_V0_4C_REPORT.md pour les résultats exacts et limites.
+`npm run test:browser -- --studio-workspace` vérifie rapidement cette disposition
+sur six formats d’écran, le clavier et les pages, sans refaire les 28 PDF.

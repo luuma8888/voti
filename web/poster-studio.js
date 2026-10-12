@@ -27,19 +27,35 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
   };
   const status=node('p','Préparation de l’aperçu…','help');status.setAttribute('role','status');
   box.append(node('p','Personnalise ton affiche, sans changer le sondage ni les images vues par les votants.','help'));
-  const layout=node('div',null,'studio-grid');layout.append(preview,controls);box.append(layout);
+  const viewSwitch=node('div',null,'studio-view-switch');viewSwitch.setAttribute('role','group');viewSwitch.setAttribute('aria-label','Vue du Studio');box.dataset.studioPane='settings';
+  controls.id='studio-settings-'+crypto.randomUUID();preview.id='studio-preview-'+crypto.randomUUID();
+  for(const [pane,label,id] of [['settings','Réglages',controls.id],['preview','Aperçu',preview.id]]){const entry=button(label,()=>{box.dataset.studioPane=pane;for(const b of viewSwitch.children)b.setAttribute('aria-pressed',String(b===entry));fitWorkspace();});entry.setAttribute('aria-controls',id);entry.setAttribute('aria-pressed',String(pane==='settings'));viewSwitch.append(entry);}
+  const layout=node('div',null,'studio-grid');layout.append(controls,preview);box.append(viewSwitch,layout);
+  preview.classList.add('studio-fit-page');
   const toolbar=node('div',null,'studio-preview-toolbar');toolbar.append(node('h2','Ton affiche'));
   const sheets=node('div',null,'studio-sheets');sheets.tabIndex=0;sheets.setAttribute('role','region');sheets.setAttribute('aria-label','Aperçu de l’affiche, défilement pour lire la page');
-  const page=node('select');page.setAttribute('aria-label','Page de l’aperçu');let pageIndex=0;
+  const page=node('select');page.setAttribute('aria-label','Page de l’aperçu');let pageIndex=0,previewPages=0,previewWarnings=[];
+  function updatePreviewStatus(){if(previewPages)status.textContent=`${previewPages} page(s) A4 · ${preview.classList.contains('studio-fit-page')?'Vue entière. Agrandis pour lire les détails.':'Vue agrandie. Fais défiler pour lire les détails.'} ${previewWarnings.join(' ')}`;}
   page.addEventListener('change',()=>{pageIndex=Number(page.value);schedule();sheets.scrollTo(0,0);});
-  const zoom=button('Voir la page entière',()=>{const full=preview.classList.toggle('studio-fit-page');zoom.textContent=full?'Agrandir pour lire':'Voir la page entière';zoom.setAttribute('aria-pressed',String(full));sheets.scrollTo(0,0);});zoom.setAttribute('aria-pressed','false');
+  const zoom=button('Agrandir pour lire',()=>{const full=preview.classList.toggle('studio-fit-page');zoom.textContent=full?'Agrandir pour lire':'Voir la page entière';updatePreviewStatus();sheets.scrollTo(0,0);});
   toolbar.append(page,zoom);preview.append(toolbar,status,sheets);
-  // Le repère de défilement suit la hauteur réelle du bandeau (mobile, erreurs,
-  // retour à la ligne), pour qu'un contrôle focalisé ne passe pas derrière lui.
-  const previewSize=new ResizeObserver(()=>box.style.setProperty('--studio-preview-clearance',`${Math.ceil(preview.getBoundingClientRect().height)+24}px`));previewSize.observe(preview);
+  // Le Studio utilise la hauteur réellement disponible sous les titres/avis.
+  // Seul le formulaire défile : il ne doit jamais pousser l'aperçu hors écran.
+  let fitScheduled=false;
+  function fitWorkspace(){if(fitScheduled)return;fitScheduled=true;requestAnimationFrame(()=>{
+    fitScheduled=false;if(disposed||!box.isConnected)return;
+    const nav=document.querySelector('.main-nav'),bottom=nav&&getComputedStyle(nav).position==='fixed'?nav.getBoundingClientRect().height+12:12;
+    const height=Math.floor(Math.max(260,(window.visualViewport?.height||innerHeight)-Math.max(8,layout.getBoundingClientRect().top)-bottom));
+    if(box.style.getPropertyValue('--studio-height')!==`${height}px`)box.style.setProperty('--studio-height',`${height}px`);
+  });}
+  const workspaceSize=new ResizeObserver(fitWorkspace);workspaceSize.observe(box);
+  requestAnimationFrame(()=>{if(disposed)return;const main=box.closest('main');if(main)workspaceSize.observe(main);fitWorkspace();});
+  window.addEventListener('resize',fitWorkspace);window.addEventListener('scroll',fitWorkspace,{passive:true});window.visualViewport?.addEventListener('resize',fitWorkspace);
   controls.addEventListener('focusin',event=>{const target=event.target;requestAnimationFrame(()=>{
     if(disposed||!target.isConnected)return;const rect=target.getBoundingClientRect();
-    if(rect.height&&(rect.top<preview.getBoundingClientRect().bottom+12||rect.bottom>innerHeight-(innerWidth<=680?74:12)))target.scrollIntoView({block:'start'});
+    const frame=controls.getBoundingClientRect();if(!rect.height)return;
+    if(rect.top<frame.top+8)controls.scrollTop+=rect.top-frame.top-8;
+    else if(rect.bottom>frame.bottom-8)controls.scrollTop+=rect.bottom-frame.bottom+8;
   });});
   function freeCanvas(){for(const canvas of canvases)canvas.width=canvas.height=1;canvases.length=0;sheets.replaceChildren();}
   async function draw(){
@@ -61,7 +77,7 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
       }
       page.replaceChildren(...plan.pages.map((_,index)=>{const option=node('option',`Page ${index+1} / ${plan.pages.length}`);option.value=String(index);return option;}));
       page.disabled=plan.pages.length===1;page.value=String(pageIndex);
-      status.textContent=`${plan.pages.length} page(s) A4 · Fais défiler l’aperçu pour lire les détails. ${plan.warnings.join(' ')}`;
+      previewPages=plan.pages.length;previewWarnings=plan.warnings;updatePreviewStatus();
       box.dataset.previewVersion=String(current);
     } catch(e){if(!disposed&&current===version){status.textContent='Aperçu indisponible.';error(e);}}
     finally{measure.release();if(media)releasePrintMedia(media);}
@@ -148,7 +164,7 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
   });download.className='primary';toolbar.append(download);controls.append(node('p','Design et médias d’affiche locaux, exclus de la sauvegarde générale. Le stockage du navigateur peut être effacé.','help'));
   const reset=button('Réinitialiser le design et retirer ses images',async()=>{if(reset.disabled)return;reset.disabled=true;try{await queue;await repository.remove(poll.remoteRef.pollId);onReset();notify('Design réinitialisé. Images affiche-only retirées si elles ne sont plus partagées.');}catch(e){error(e);}finally{reset.disabled=false;}});
   controls.append(reset);if(JSON.stringify(design)!==JSON.stringify(saved))save();else schedule();
-  return {element:box,dispose:()=>{disposed=true;version++;previewSize.disconnect();freeCanvas();for(const crop of crops)crop.dispose();for(const v of [views,focalViews]){for(const url of v.urls.values())URL.revokeObjectURL(url);v.urls.clear();}staged.clear();}};
+  return {element:box,dispose:()=>{disposed=true;version++;workspaceSize.disconnect();window.removeEventListener('resize',fitWorkspace);window.removeEventListener('scroll',fitWorkspace);window.visualViewport?.removeEventListener('resize',fitWorkspace);freeCanvas();for(const crop of crops)crop.dispose();for(const v of [views,focalViews]){for(const url of v.urls.values())URL.revokeObjectURL(url);v.urls.clear();}staged.clear();}};
 }
 
 /** Disponible sur la vue résultats, jamais alimenté par des bulletins. */
