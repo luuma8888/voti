@@ -3,7 +3,7 @@ import { validateDefinition } from '../shared/validation.js';
 import { isPublicPollId } from '../shared/relay.js';
 import { buildPollUrl, buildChoiceUrl, buildResultsUrl } from '../shared/qr-links.js';
 import { createQrMatrix } from './qr.js';
-import { validateDesign, designPalette, TITLE_TYPOGRAPHIES, BODY_TYPOGRAPHIES, safeSurfaceOpacity, defaultImageSettings } from './poster-design.js';
+import { validateDesign, designPalette, TITLE_TYPOGRAPHIES, BODY_TYPOGRAPHIES, safeSurfaceOpacity, defaultImageSettings, imageHeightValue } from './poster-design.js';
 
 export const PRINT_WIDTH=2480, PRINT_HEIGHT=3508;
 const PAD=140;
@@ -50,16 +50,15 @@ function basePlan(poll,design,measure,mediaSizes={}) {
     const ratio=s.ratio==='original'?(dimensions?dimensions.width/dimensions.height:16/9):s.ratio.split(':').map(Number).reduce((a,b)=>a/b);
     ensure(Number.isFinite(ratio)&&ratio>0,'Dimensions d’image invalides.');return ratio;}
   function imageFrame(id,key,w,autoHeight,maxHeight=Infinity){
-    if(!id)return {width:0,height:0};const s=d.imageSettings[key]||defaultImageSettings(),ratio=imageRatio(id,key);
-    const presets=key==='main'?{small:400,medium:800,large:1600}:{small:220,medium:440,large:900};
-    const desired=Math.min(w/ratio,s.height==='auto'?autoHeight:presets[s.height]);
+    if(!id)return {width:0,height:0};const s=d.imageSettings[key]||defaultImageSettings(),full=s.ratio==='full-width',ratio=full?null:imageRatio(id,key);
+    const requested=imageHeightValue(s.height,key,autoHeight),desired=full?requested:Math.min(w/ratio,requested);
     ensure(maxHeight>0,'Pas assez de place pour l’image : réduis la taille des QR ou change de disposition.');
     if(desired>maxHeight&&!plan.warnings.includes('Hauteur des images adaptée à la page pour préserver les QR et les textes.'))plan.warnings.push('Hauteur des images adaptée à la page pour préserver les QR et les textes.');
-    const height=Math.min(desired,maxHeight);return {width:height*ratio,height};
+    const height=Math.min(desired,maxHeight);return {width:full?w:height*ratio,height};
   }
   function image(p,id,x,y,w,h,fit='cover',position='center',key='main'){
     if(!id)return;const s=d.imageSettings[key]||{...defaultImageSettings(),fit,focalY:position==='top'?0:position==='bottom'?1:.5};
-    const ratio=imageRatio(id,key);
+    const ratio=s.ratio==='full-width'?w/h:imageRatio(id,key);
     const frameWidth=Math.min(w,h*ratio),frameHeight=frameWidth/ratio;
     p.nodes.push({type:'image',id,imageKey:key,x:x+(w-frameWidth)*({left:0,center:.5,right:1}[s.align]),y:y+(h-frameHeight)/2,width:frameWidth,height:frameHeight,fit:s.fit,position,radius:28,focalX:s.focalX,focalY:s.focalY});
   }

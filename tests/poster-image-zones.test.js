@@ -24,7 +24,7 @@ test('Fond : le preset de hauteur ne remplace jamais les dimensions de la page',
 test('Ancien cadrage v1 : taille Auto et alignement Centre, sans mutation',()=>{
   const {d}=fixture();d.imageSettings.main={ratio:'original',fit:'cover',focalX:.25,focalY:.75};const before=structuredClone(d),normalized=validateDesign(d);
   assert.deepEqual(d,before);assert.equal(normalized.imageSettings.main.height,'auto');assert.equal(normalized.imageSettings.main.align,'center');
-  for(const patch of [{height:'huge'},{height:900},{align:'free'},{adminCapability:'secret'}])assert.throws(()=>validateDesign({...d,imageSettings:{main:{...d.imageSettings.main,...patch}}}));
+  for(const patch of [{height:'huge'},{height:1601},{height:79},{height:NaN},{align:'free'},{adminCapability:'secret'}])assert.throws(()=>validateDesign({...d,imageSettings:{main:{...d.imageSettings.main,...patch}}}));
   assert.throws(()=>validateDesign({...d,imageSettings:{background:settings('large')}}));
 });
 test('Principale paysage Grande : largeur utile entière, pas une vignette centrée',()=>{
@@ -68,4 +68,24 @@ test('Images agrandies : 2/3/6 choix, quatre layouts, deux types, QR et textes p
 test('Trois choix illustrés Compact : une page en 3 ou 2+1 avec Auto',()=>{
   for(const columns of ['2','3']){const {p,d}=fixture(3);d.densityPreset='compact';d.qrSize='small';d.choicesPerRow=columns;
     const plan=makeStudioPlan(p,d,{mediaSizes:metadata});assert.equal(plan.pages.length,1);}
+});
+test('Pleine largeur : hauteur précise indépendante du ratio natif, sans étirement',()=>{
+  for(const layout of ['essential','cards','magazine','mosaic'])for(const fit of ['cover','contain'])for(const height of [80,210,590]){
+    const {p,d}=fixture();d.layout=layout;d.imageSettings.main=settings(height,'center','full-width',fit);
+    const plan=makeStudioPlan(p,d,{mediaSizes:metadata}),main=images(plan).find(n=>n.imageKey==='main');
+    assert.equal(main.x,140);assert.equal(main.width,plan.width-280);assert.equal(main.height,height);
+    const crop=imageCrop(1600,900,main.width,main.height,fit,'center',main);assert.ok(Math.abs(crop.width/crop.height-1600/900)<1e-8);
+  }
+});
+test('Curseur : nombres bornés et anciens presets conservés, Pleine largeur seulement principale',()=>{
+  const {p,d}=fixture();for(const height of [80,125,850,1600]){d.imageSettings.main=settings(height);assert.equal(validateDesign(d).imageSettings.main.height,height);}
+  for(const height of [40,65,900]){d.imageSettings[p.definition.choices[0].id]=settings(height);assert.equal(validateDesign(d).imageSettings[p.definition.choices[0].id].height,height);}
+  for(const height of [0,39,901,Infinity,'120']){d.imageSettings[p.definition.choices[0].id]=settings(height);assert.throws(()=>validateDesign(d));}
+  d.imageSettings[p.definition.choices[0].id]=settings(80,'center','full-width');assert.throws(()=>validateDesign(d));
+});
+test('Cartes Équilibré : trois choix sur deux lignes et une page grâce aux petites hauteurs',()=>{
+  const {p,d}=fixture(3);d.choicesPerRow='2';d.qrSize='small';d.imageSettings.main=settings(200,'center','full-width');
+  for(const c of p.definition.choices)d.imageSettings[c.id]=settings(80);
+  const plan=makeStudioPlan(p,d,{mediaSizes:metadata});assert.equal(plan.pages.length,1);assert.equal(plan.pages[0].items.length,3);
+  assert.ok(plan.pages[0].items[2].y>plan.pages[0].items[1].y);for(const q of plan.pages[0].qrs)assert.ok(q.size>=400&&q.pixels>=5);
 });

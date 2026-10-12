@@ -775,3 +775,64 @@ photo de Lu’uma, ni un scan physique ou une impression papier.
 Build production final : SHA-256
 `5b5c333143943aad1f04f378ca090c2d5f59ddb5fcd880a4f02adf96443d03e5`.
 Publication autorisée ; résultat Pages consigné après comparaison distante.
+
+Publication effective : commit `d52bb05` poussé sur main à la demande de Lu’uma.
+Douze fichiers exclusivement Studio/tests/documentation/build ; la capture
+personnelle et les modifications documentaires d’autres lots sont exclues.
+GitHub Pages vérifié en lecture seule sur https://luuma8888.github.io/voti/ :
+troisième contrôle HTTP 200, 1 232 535 octets, SHA-256 identique à celui ci-dessus
+et comparaison binaire exacte avec index.html local. Aucun Worker redéployé ni
+ressource Cloudflare modifiée. Cette note de propagation reste locale jusqu’à
+la clôture documentaire. La validation humaine de la correction d’images reste
+à recueillir : aucune réponse positive n’est anticipée.
+
+### Retour humain et ajustement Pleine largeur / curseur de hauteur
+
+Après publication de d52bb05, Lu’uma confirme « Oui, c’est bon comme ça » pour
+les zones agrandies. Il réserve toutefois la largeur de l’image principale et
+la finesse des hauteurs : même Petite lui paraît insuffisante pour trois choix
+sur deux lignes en Cartes. Il autorise explicitement ces corrections, commit
+et push, en demandant de ne tester que les parties concernées.
+
+Ajout de Pleine largeur dans Ratio de la principale uniquement : cadre sur
+toute la largeur utile, hauteur indépendante du ratio de la photo. Remplir
+recadre avec le point focal, sans étirer ; Ajuster conserve la photo entière
+dans ce cadre. Alignement désactivé puisqu’il n’a plus d’effet sur ce cadre.
+Les ratios historiques sont conservés et les choix ne reçoivent pas cette option.
+
+Le menu des hauteurs prédéfinies est remplacé par un curseur borné, pas de
+10 pixels du plan A4 : principale 80–1600, choix 40–900, avec valeur approximative
+en mm et nom accessible. Le bouton Hauteur automatique conserve l’alternative
+Auto. Les anciens presets small/medium/large sont encore acceptés et gardent
+leurs valeurs ; la nouvelle valeur numérique est enregistrée seulement après
+manipulation. Aucune migration, perte de design ni modification du schéma métier.
+L’aperçu basse résolution se met à jour pendant le geste ; sauvegarde à sa fin.
+
+Contrôles ciblés réalisés, à la demande de Lu’uma :
+
+- Tests Node : tests/poster-image-zones.test.js, tests/poster-polish.test.js,
+  tests/poster-studio.test.js — 127 passés, 0 échec, 0 sauté/annulé/todo.
+- npm run check — 86 fichiers JavaScript valides.
+- npm run test:browser -- --studio-images — 249 contrôles Chromium, 320/360/1200,
+  curseur, sauvegarde, retour Auto, Pleine largeur et cadrage, cinq thèmes,
+  sans requête externe. Trois PDF synthétiques seulement, sans les autres suites.
+- npm run test:poster-images — 49 contrôles Poppler, 3 PDF A4, 15 QR réellement
+  décodés à 300 dpi. Cartes 3 choix, deux lignes, une page, QR par choix et accès.
+- Inspection réelle des PNG Poppler Cartes/choix et Cartes/accès : cadre principal
+  pleine largeur, trois choix sur une page, textes et QR sans chevauchement.
+  Petites hauteurs volontaires de fixture ; pas une nouvelle validation esthétique
+  humaine ni un scan physique revendiqué.
+
+Suites globales Node/Chromium et HTTP Wrangler non relancées conformément à la
+demande ; moteur, stockage métier, backend, vote et protocole non modifiés.
+Pas de dépendance ajoutée. Pas de ZIP avant fin de la recette.
+Fichiers : web/poster-design.js, web/poster-controls.js, web/poster-studio.js,
+web/print-layout.js ; tests/poster-image-zones.test.js ; scripts/browser-studio.mjs,
+scripts/browser-test.mjs (option ciblée) ; guide polish, ce rapport, index.html.
+La copie personnelle de capture reste hors Git, comme les documents d’autres lots.
+
+Build production final reconstruit après les contrôles : 1 234 815 octets,
+profil gratuit sans images distantes, SHA-256
+`d830af5255c8018baa49a8f57f9e0526d0d252307d151386a26c2771fe17c1ff`.
+git diff --check : succès. Commit/push autorisés par la demande ci-dessus ;
+la propagation Pages et le jugement humain de ces réglages restent à confirmer.

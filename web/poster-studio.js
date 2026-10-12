@@ -132,7 +132,7 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
       error,statusReady:'Image prête. Cette image personnalise seulement l’affiche.'});
     group.prepend(node('h3',label));mediaBox.append(group);
     const effectiveId=()=>get()||(design.usePollImages?(key==='main'?poll.definition.pollImageAssetId:poll.definition.choices.find(c=>c.id===key)?.imageRef):null);
-    crop=focalPicker({label:`Cadrage : ${label}`,getId:effectiveId,getSettings:()=>settingsFor(design,key),views:focalViews,staged,allowRatio:key!=='background',
+    crop=focalPicker({label:`Cadrage : ${label}`,getId:effectiveId,getSettings:()=>settingsFor(design,key),views:focalViews,staged,allowRatio:key!=='background',imageKey:key,
       change:(settings,commit)=>{design.imageSettings[key]=settings;if(key==='background'){design.background.fit=settings.fit;syncBackground();}if(commit)save();else schedule();}});
     crops.push(crop);cropBox.append(crop.element);
   }

@@ -403,6 +403,22 @@ try {
     if(runtimeErrors.length)throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
     if(requests.some(url=>/^https?:/.test(url)))throw new Error('Requête externe depuis le Studio local.');
     console.log(`Studio Chromium : ${checks} contrôles réussis (formulaire gauche une colonne, aperçu hauteur disponible, clavier, mobile, pages).`);
+  } else if(process.argv.includes('--studio-images')) {
+    let checks=0;
+    for(const width of [320,360,1200]){
+      await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<500},sessionId);
+      checks+=await evaluate(sessionId,`(${browserStudioScenario.toString()})()`);
+    }
+    const files=[];await mkdir(resolve(ROOT,'.browser-tests/image-pdfs'),{recursive:true});
+    for(const [layout,mode,n,height,focalY] of [['cards','choices',3,200,0],['cards','access',3,300,1],['mosaic','choices',6,250,.5]]){
+      const options={densityPreset:'balanced',choicesPerRow:'2',qrSize:'small',...(mode==='access'?{palette:'ivory'}:{}),imageSettings:{main:{ratio:'full-width',height,fit:'cover',focalX:.5,focalY}}};
+      const file=await evaluate(sessionId,`(${browserStudioPdfScenario.toString()})(${JSON.stringify(layout)},${JSON.stringify(mode)},${n},'poster',false,${JSON.stringify(options)},80)`);
+      const {base64,...metadata}=file;files.push(metadata);await writeFile(resolve(ROOT,'.browser-tests/image-pdfs',file.name),Buffer.from(base64,'base64'));
+    }
+    await writeFile(resolve(ROOT,'.browser-tests/image-pdfs/plans.json'),JSON.stringify(files));
+    if(runtimeErrors.length)throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
+    if(requests.some(url=>/^https?:/.test(url)))throw new Error('Requête externe depuis le Studio local.');
+    console.log(`Studio images Chromium : ${checks} contrôles réussis, curseur/persistance/ratios/mobile/thèmes, trois PDF ciblés.`);
   } else {
   const closed = await votes(3, { releaseMode: 'closed' });
   const { closePoll } = await import('../shared/poll-engine.js');

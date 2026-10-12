@@ -13,6 +13,11 @@ export const TITLE_TYPOGRAPHIES = [...TYPOGRAPHIES,
 export const BODY_TYPOGRAPHIES = TYPOGRAPHIES.map(t=>t[0]==='display'?['display','Compacte','Verdana, system-ui, sans-serif']:t);
 export const IMAGE_RATIOS = [['original','Original'],['1:1','Carré 1:1'],['16:9','16:9'],['9:16','9:16'],['3:4','3:4'],['4:3','4:3']];
 export const IMAGE_HEIGHTS = [['auto','Auto'],['small','Petite'],['medium','Moyenne'],['large','Grande']];
+export const imageHeightLimits = key => key==='main'?{min:80,max:1600}:{min:40,max:900};
+export function imageHeightValue(value,key,automatic=key==='main'?600:240){
+  if(typeof value==='number')return value;
+  return value==='auto'?automatic:(key==='main'?{small:400,medium:800,large:1600}:{small:220,medium:440,large:900})[value];
+}
 export const defaultImageSettings = () => ({ratio:'original',fit:'cover',focalX:.5,focalY:.5,height:'auto',align:'center'});
 export const PALETTES = [
   ['pop','Voti Pop','#f4eff9','#ffffff','#684397','#137680'],
@@ -92,9 +97,10 @@ export function validateDesign(input) {
   ensure(d.imageSettings&&Object.getPrototypeOf(d.imageSettings)===Object.prototype&&Object.keys(d.imageSettings).length<=8,'Cadrages invalides.');
   for(const [id,s] of Object.entries(d.imageSettings)){
     ensure(['main','background'].includes(id)||isUuid(id),'Cadrage étranger.');object(s,['ratio','fit','focalX','focalY',...['height','align'].filter(k=>Object.hasOwn(s||{},k))],'Cadrage');
-    ensure(IMAGE_RATIOS.some(r=>r[0]===s.ratio)&&['cover','contain'].includes(s.fit)&&[s.focalX,s.focalY].every(v=>Number.isFinite(v)&&v>=0&&v<=1),'Cadrage invalide.');
+    ensure((IMAGE_RATIOS.some(r=>r[0]===s.ratio)||(id==='main'&&s.ratio==='full-width'))&&['cover','contain'].includes(s.fit)&&[s.focalX,s.focalY].every(v=>Number.isFinite(v)&&v>=0&&v<=1),'Cadrage invalide.');
     const normalized={height:'auto',align:'center',...s};
-    ensure(IMAGE_HEIGHTS.some(h=>h[0]===normalized.height)&&['left','center','right'].includes(normalized.align),'Taille ou alignement d’image invalide.');
+    const bounds=imageHeightLimits(id),validHeight=Number.isFinite(normalized.height)&&normalized.height>=bounds.min&&normalized.height<=bounds.max;
+    ensure((IMAGE_HEIGHTS.some(h=>h[0]===normalized.height)||validHeight)&&['left','center','right'].includes(normalized.align),'Taille ou alignement d’image invalide.');
     ensure(id!=='background'||(normalized.height==='auto'&&normalized.align==='center'),'Le fond utilise le cadrage, pas une zone d’image.');
     d.imageSettings[id]=normalized;
   }

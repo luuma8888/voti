@@ -55,19 +55,24 @@ export async function browserStudioScenario() {
     openGroup(crop);
     assert(crop&&!crop.hidden,'Cadrage visible');
     await wait(()=>crop.querySelector('img')?.naturalWidth);
-    assert(crop.querySelector('input[type=range]').disabled,'Image entière : aucun faux cadrage actif');
+    const focalX=[...crop.querySelectorAll('label')].find(n=>n.textContent==='Position horizontale').control;
+    assert(focalX.disabled,'Image entière : aucun faux cadrage actif');
     const ratio=crop.querySelector('select');ratio.value='1:1';ratio.dispatchEvent(new Event('change'));
-    await wait(()=>!crop.querySelector('input[type=range]').disabled);
+    await wait(()=>!focalX.disabled);
     const rect=crop.querySelector('.focal-preview').getBoundingClientRect(),preview=crop.querySelector('.focal-preview');
     for(const type of ['pointerdown','pointermove','pointerup'])preview.dispatchEvent(new PointerEvent(type,{bubbles:true,pointerId:1,pointerType:'touch',button:0,clientX:rect.left+rect.width*.5,clientY:rect.top+rect.height*.8}));
     await wait(()=>repo.get(poll.id).imageSettings.main?.focalY>.7);assert(repo.get(poll.id).imageSettings.main.focalY>.7,'Point focal tactile simulé conservé');
     [...crop.querySelectorAll('button')].find(b=>b.textContent==='Gauche').click();await wait(()=>repo.get(poll.id).imageSettings.main.focalX<.5);
     [...crop.querySelectorAll('button')].find(b=>b.textContent==='Réinitialiser au centre').click();await wait(()=>repo.get(poll.id).imageSettings.main.focalX===.5&&repo.get(poll.id).imageSettings.main.focalY===.5);assert(true,'Clavier/directions et reset centre');
     for(const value of ['original','1:1','16:9','9:16','3:4','4:3']){ratio.value=value;ratio.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main.ratio===value);assert(true,'Ratio '+value);}
-    for(const [text,key,values] of [['Hauteur de la zone','height',['small','medium','large','auto']],['Alignement du cadre','align',['left','right','center']]]){
+    for(const [text,key,values] of [['Hauteur de la zone','height',[80,400,810,1600]],['Alignement du cadre','align',['left','right','center']]]){
       const select=[...crop.querySelectorAll('label')].find(n=>n.textContent===text).control;
-      for(const value of values){select.value=value;select.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main[key]===value);assert(true,text+' '+value);}
+      for(const value of values){select.value=value;select.dispatchEvent(new Event('input'));select.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main[key]===value);assert(true,text+' '+value);}
     }
+    ratio.value='full-width';ratio.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main.ratio==='full-width');assert(!focalX.disabled,'Pleine largeur : cadrage disponible');
+    assert(![...view.element.querySelectorAll('.focal-control')].filter(n=>n!==crop).some(n=>n.querySelector('option[value="full-width"]')),'Pleine largeur réservée à la principale');
+    [...crop.querySelectorAll('button')].find(b=>b.textContent==='Hauteur automatique').click();await wait(()=>repo.get(poll.id).imageSettings.main.height==='auto');assert(true,'Retour Auto préservé');
+    ratio.value='original';ratio.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main.ratio==='original');
     await repo.recover();assert(await adapter.has(imageId),'Médias affiche conservés au sweep');
     assert(JSON.stringify(poll)===before&&localStorage.getItem('voti.local.v1')===stored,'Médias sans mutation métier');
     await change('Mode du fond','contain');await change('Position du fond','bottom');await change('Voile du fond','dark');
@@ -141,7 +146,7 @@ export async function browserStudioWorkspace(stage='mount') {
 }
 
 /** Une génération par appel CDP, avec vrais pixels/media locaux et PDF final. */
-export async function browserStudioPdfScenario(layout,mode,n,kind='poster',long=false,polish=null) {
+export async function browserStudioPdfScenario(layout,mode,n,kind='poster',long=false,polish=null,choiceHeight=null) {
   const {defaultDesign}=await import('voti/web/poster-design.js');
   const {makeStudioPlan,makeResultsPlan}=await import('voti/web/print-layout.js');
   const {printMeasure,loadPrintMedia,releasePrintMedia,exportPrintPdf,printMediaSizes}=await import('voti/web/print-renderer.js');
@@ -160,6 +165,7 @@ export async function browserStudioPdfScenario(layout,mode,n,kind='poster',long=
     if(index===0)design.media.main=asset.id;if(index===1)design.background.assetId=asset.id;if(index===2)for(const choice of poll.definition.choices)design.media.choices[choice.id]=asset.id;
   }
   if(polish){for(const [i,key] of ['main','background',...poll.definition.choices.map(c=>c.id)].entries())design.imageSettings[key]={ratio:['original','16:9','1:1','9:16','3:4','4:3'][i%6],fit:i%2?'contain':'cover',focalX:i%2?1:0,focalY:i%3?1:0,...(polish.imageSettings?.[key]||{})};}
+  if(choiceHeight!==null)for(const choice of poll.definition.choices)design.imageSettings[choice.id]={ratio:'1:1',fit:'cover',focalX:.5,focalY:.5,height:choiceHeight,align:'center'};
   const measure=printMeasure();let media;
   try{
     const counts=kind==='results'&&n===2?[10,0]:Array(n).fill(5),total=counts.reduce((a,b)=>a+b,0);

@@ -79,11 +79,22 @@ les proportions ; Ajuster montre toute l’image, centrée.
 Après la réserve humaine sur les vignettes trop petites, chaque image principale
 et chaque image de choix dispose de **Hauteur de la zone : Auto / Petite /
 Moyenne / Grande** et **Alignement du cadre : Gauche / Centre / Droite**.
+Ces premiers presets sont désormais remplacés dans l’interface par un curseur
+de hauteur plus précis, avec indication approximative en mm sur l’A4 et bouton
+**Hauteur automatique**. Les presets déjà sauvegardés restent lisibles et gardent
+leur valeur : aucun design n’est perdu. Le curseur descend sous Petite, jusqu’à
+80 pixels du plan pour la principale et 40 pour un choix, par pas de 10 pixels.
+Maxima : 1600 / 900 pixels. La taille des QR n’est pas affectée par ce réglage.
 La hauteur est un maximum, limité par le ratio, la largeur disponible et la page.
 Une principale paysage en Grande peut occuper toute la largeur utile ; une
 photo portrait garde ses proportions, sans étirement pour remplir la largeur.
 Les zones Auto sont plus généreuses en Équilibré/Aéré ; Compact privilégie
 toujours la densité. Agrandir peut ajouter des pages sans réduire les QR.
+**Pleine largeur**, proposé seulement dans Ratio de l’image principale, fixe
+le cadre à toute la largeur utile tout en gardant la hauteur demandée. En
+Remplir, la photo est recadrée sans étirement et le point focal choisit la partie
+visible ; Ajuster montre toute la photo à l’intérieur du cadre. L’alignement
+horizontal du cadre est désactivé dans ce mode, puisqu’il remplit déjà la zone.
 Une limitation par la hauteur de page est signalée dans les avertissements.
 En accès, l’image du choix est désormais au-dessus de son texte, également
 en une colonne, au lieu d’une petite vignette latérale.
@@ -115,6 +126,9 @@ Ce dernier associe main/background/choiceId à ratio, fit, focalX, focalY.
 Les nouvelles propriétés facultatives height/align sont normalisées en Auto /
 Centre lorsqu’elles manquent dans un design existant. Le fond conserve ses
 réglages propres et n’utilise pas ces tailles de zones. Toujours formatVersion:1.
+height accepte désormais une valeur numérique bornée, Auto ou les anciens
+presets ; ratio accepte full-width uniquement pour main. Aucun schéma métier
+ou backup général modifié.
 Absence = valeurs par défaut ; les anciennes typographies initialisent titre et
 corps. Les anciennes couleurs personnalisées activées sont conservées ; celles
 inactives sont resynchronisées avec leur palette, puisqu’elles n’étaient pas rendues.
