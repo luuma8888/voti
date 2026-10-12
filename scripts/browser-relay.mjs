@@ -95,9 +95,22 @@ export async function remoteBrowserAction(action, id, expectImages = true) {
     if([...document.querySelectorAll('a')].some(a=>a.textContent==='Modifier le sondage'))throw new Error('Modification offerte après vote');
     if(!document.getElementById('app').textContent.includes('verrouillé'))throw new Error('Verrouillage absent'); return 2;
   }
-  if(action==='closed') {
-    const original=window.confirm; window.confirm=()=>true;click('Fermer le sondage');window.confirm=original;
-    await wait(()=>document.getElementById('app').textContent.includes('Sondage fermé'));return 1;
+  if(action==='closed-cancel' || action==='closed') {
+    const control=[...document.querySelectorAll('#app button')].find(b=>b.textContent==='Fermer le sondage');
+    control.focus();control.click();
+    const dialog=document.querySelector('.confirmation-dialog');
+    if(!dialog?.matches(':modal') || dialog.querySelector('h2').textContent!=='Fermer ce sondage ?' || !dialog.textContent.includes('minimum de réponses'))throw new Error('Confirmation fermeture incomplète');
+    if(action==='closed-cancel') {
+      dialog.querySelector('[data-confirmation=cancel]').click();await wait(()=>document.activeElement===control);
+      if(!document.getElementById('app').textContent.includes('Vote ouvert'))throw new Error('Annulation ferme le sondage');
+      control.click();document.querySelector('.confirmation-dialog').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+      await wait(()=>document.activeElement===control);
+      return 4;
+    }
+    const accept=dialog.querySelector('[data-confirmation=accept]');
+    if(accept.textContent!=='Fermer le sondage' || accept.classList.contains('danger'))throw new Error('Fermeture alarmiste ou action ambiguë');
+    accept.click();accept.click();
+    await wait(()=>document.getElementById('app').textContent.includes('Sondage fermé'));return 3;
   }
   if(action==='closed-public') {
     await wait(()=>document.getElementById('app').textContent.includes('Ce sondage est fermé.') && document.getElementById('app').getAttribute('aria-busy')==='false');

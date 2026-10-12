@@ -9,6 +9,7 @@ import { navigateAndWait, waitForApplication } from './browser-navigation.mjs';
 import { browserAssetScenario } from './browser-assets.mjs';
 import { graphicFixtures, graphicChecks, remoteBrowserAction } from './browser-relay.mjs';
 import { browserKeyExport, browserKeyImport, browserDelete } from './browser-hardening.mjs';
+import { browserDialogScenario, keyboardDialogChecks } from './browser-dialogs.mjs';
 
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
@@ -24,6 +25,7 @@ const browser = spawn(process.env.VOTI_CHROMIUM || '/usr/bin/chromium', [
 let buffer = ''; let sequence = 0; const pending = new Map();
 const runtimeErrors = []; const requests = [];
 const httpDiagnostics = [];
+const relayRequests = [];
 const events = new EventEmitter();
 let server;
 let browserFailure = '';
@@ -51,7 +53,10 @@ browser.stdio[4].on('data', chunk => {
       clearTimeout(task.timeout);
       if (packet.error) task.reject(new Error(packet.error.message)); else task.resolve(packet.result);
     } else if (packet.method === 'Runtime.exceptionThrown') runtimeErrors.push(packet.params.exceptionDetails);
-    else if (packet.method === 'Network.requestWillBeSent') requests.push(packet.params.request.url);
+    else if (packet.method === 'Network.requestWillBeSent') {
+      requests.push(packet.params.request.url);
+      if(packet.params.request.url.startsWith('http://127.0.0.1:8787/api/v1/')) relayRequests.push({sessionId:packet.sessionId,method:packet.params.request.method,url:packet.params.request.url});
+    }
   }
 });
 function command(method, params = {}, sessionId) {
@@ -216,6 +221,23 @@ async function browserScenario(fixtures) {
   document.documentElement.dataset.theme = initialTheme;
   assert(localStorage.getItem(key) === beforeAccentChecks, 'Vérification des accents sans mutation des sondages ou des bulletins');
 
+  await navigate(`#poll/${id}`, 'Fermer le sondage');
+  const closeControl=[...document.querySelectorAll('#app button')].find(b=>b.textContent==='Fermer le sondage');
+  const beforeClose=localStorage.getItem(key);
+  closeControl.focus();closeControl.click();closeControl.click();
+  assert(document.querySelectorAll('.confirmation-dialog:modal').length===1 && stored().polls[0].status==='published', 'Fermeture locale : un dialogue et aucune action avant confirmation');
+  document.querySelector('[data-confirmation=cancel]').click();
+  await until(()=>document.activeElement===closeControl, 'focus fermeture annulée');
+  assert(localStorage.getItem(key)===beforeClose, 'Fermeture locale annulée sans changement');
+  closeControl.click();location.hash='#home';
+  await until(()=>!document.querySelector('.confirmation-dialog') && text().includes('Mes sondages'), 'annulation à la navigation');
+  assert(localStorage.getItem(key)===beforeClose, 'Navigation pendant confirmation sans fermeture');
+  await navigate(`#poll/${id}`, 'Fermer le sondage');
+  click('Fermer le sondage');
+  const acceptClose=document.querySelector('[data-confirmation=accept]');acceptClose.click();acceptClose.click();
+  await until(()=>stored().polls[0].status==='closed', 'fermeture locale confirmée');
+  assert(stored().ballots.length===1 && stored().polls[0].definitionHash===hash, 'Fermeture confirmée conserve bulletins et empreinte');
+
   for (const count of [4, 5, 6]) {
     const state = fixtures[count]; const poll = state.polls[0];
     await seed(state, `#results/${poll.id}`, count >= 5 ? `${count} réponses` : 'pas encore disponibles');
@@ -356,6 +378,22 @@ try {
   await evaluate(sessionId, '(async () => { document.activeElement.blur(); window.scrollTo(0,0); await new Promise(requestAnimationFrame); })()');
   const desktopCapture = await command('Page.captureScreenshot', { format: 'png' }, sessionId);
   await writeFile(resolve(ROOT, '.browser-tests/ux-v0-2a-desktop.png'), Buffer.from(desktopCapture.data, 'base64'));
+  let dialogChecks = 0;
+  for (const width of [320,360,1200]) {
+    await command('Emulation.setDeviceMetricsOverride', { width, height:820, deviceScaleFactor:1, mobile:width<680 }, sessionId);
+    dialogChecks += await evaluate(sessionId, `(${browserDialogScenario.toString()})()`);
+  }
+  await command('Emulation.setDeviceMetricsOverride', { width:360, height:820, deviceScaleFactor:1, mobile:true }, sessionId);
+  await command('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion',value:'reduce'}] }, sessionId);
+  for(const theme of ['pop','nature','douceur','dark','minimal']) {
+    const scenario=await keyboardDialogChecks(command,evaluate,sessionId,theme);
+    if(!await evaluate(sessionId, "getComputedStyle(document.querySelector('.confirmation-dialog')).animationName==='none' && getComputedStyle(document.querySelector('.confirmation-dialog')).transitionDuration==='0s'")) throw new Error('Mouvement réduit non respecté');dialogChecks++;
+    const capture=await command('Page.captureScreenshot',{format:'png'},sessionId);
+    await writeFile(resolve(ROOT,`.browser-tests/ux-v0-3e-${theme}-360.png`),Buffer.from(capture.data,'base64'));
+    dialogChecks += await scenario.finish();
+  }
+  await command('Emulation.setEmulatedMedia', { features:[] }, sessionId);
+  await evaluate(sessionId, 'document.documentElement.dataset.theme="nature";window.scrollTo(0,0)');
   await command('Emulation.setDeviceMetricsOverride', { width: 360, height: 740, deviceScaleFactor: 1, mobile: true }, sessionId);
   const fits = await evaluate(sessionId, 'document.documentElement.scrollWidth <= innerWidth');
   if (!fits) throw new Error('Débordement horizontal à 360 px.');
@@ -551,6 +589,7 @@ try {
     const target = await command('Target.createTarget', { url:'about:blank', browserContextId:context.browserContextId });
     const voter = await command('Target.attachToTarget', { targetId:target.targetId, flatten:true });
     await command('Page.enable', {}, voter.sessionId); await command('Runtime.enable', {}, voter.sessionId);
+    await command('Network.enable', {}, voter.sessionId);
     await command('Page.setLifecycleEventsEnabled', { enabled:true }, voter.sessionId);
     for (let n=0;n<5;n++) {
       await navigateReady(voter.sessionId, servedUrl + '?visit=' + crypto.randomUUID() + '#/p/' + id);
@@ -566,19 +605,31 @@ try {
       }
     }
     await navigateReady(sessionId, servedUrl+'?visit='+crypto.randomUUID()+'#poll/'+id);
+    const requestCount=(sid,method,suffix)=>relayRequests.filter(r=>r.sessionId===sid && r.method===method && r.url.endsWith(suffix)).length;
+    const closeBefore=requestCount(sessionId,'POST',`/polls/${id}/close`);
+    relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('closed-cancel',${JSON.stringify(id)})`);
+    if(requestCount(sessionId,'POST',`/polls/${id}/close`)!==closeBefore)throw new Error('Fermeture annulée envoie une requête');relayChecks++;
     relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('closed',${JSON.stringify(id)})`);
+    if(requestCount(sessionId,'POST',`/polls/${id}/close`)!==closeBefore+1)throw new Error('Fermeture confirmée : nombre de requêtes incorrect');relayChecks++;
     await command('Emulation.setDeviceMetricsOverride', { width:360, height:820, deviceScaleFactor:1, mobile:true }, voter.sessionId);
     await navigateReady(voter.sessionId, servedUrl+'?closed='+crypto.randomUUID()+'#/p/'+id);
     relayChecks += await evaluate(voter.sessionId, `(${remoteBrowserAction.toString()})('closed-public',${JSON.stringify(id)})`);
     const exported = await evaluate(sessionId, `(${browserKeyExport.toString()})()`); relayChecks += exported.checks;
     await command('Emulation.setDeviceMetricsOverride', { width: 360, height: 820, deviceScaleFactor: 1, mobile: true }, voter.sessionId);
+    const adminBefore=requestCount(voter.sessionId,'GET',`/polls/${id}/admin`);
+    const mutationsBefore=relayRequests.filter(r=>r.sessionId===voter.sessionId && r.method!=='GET' && r.method!=='OPTIONS').length;
     relayChecks += await evaluate(voter.sessionId, `(${browserKeyImport.toString()})(${JSON.stringify(exported.key)})`);
+    if(requestCount(voter.sessionId,'GET',`/polls/${id}/admin`)!==adminBefore+5 || relayRequests.filter(r=>r.sessionId===voter.sessionId && r.method!=='GET' && r.method!=='OPTIONS').length!==mutationsBefore)throw new Error('Import clé : vérification distante ou action unique incorrecte');relayChecks++;
+    const deleteBefore=requestCount(sessionId,'DELETE',`/polls/${id}`);
+    relayChecks += await evaluate(sessionId, `(${browserDelete.toString()})(${JSON.stringify(id)},true)`);
+    if(requestCount(sessionId,'DELETE',`/polls/${id}`)!==deleteBefore)throw new Error('Suppression annulée envoie une requête');relayChecks++;
     relayChecks += await evaluate(sessionId, `(${browserDelete.toString()})(${JSON.stringify(id)})`);
+    if(requestCount(sessionId,'DELETE',`/polls/${id}`)!==deleteBefore+1)throw new Error('Suppression confirmée : nombre de requêtes incorrect');relayChecks++;
     await command('Target.disposeBrowserContext', { browserContextId:context.browserContextId });
   }
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
   if (requests.some(item => /^https?:/.test(item) && !['http://127.0.0.1:4173', ...((process.env.VOTI_TEST_RELAY === '1' || process.env.VOTI_TEST_FREE_PILOT === '1') ? ['http://127.0.0.1:8787'] : [])].includes(new URL(item).origin))) throw new Error('Requête réseau externe inattendue.');
-  console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks + relayChecks} contrôles réussis (mode local, graphiques, images, thèmes, clavier, responsive, offline, /voti/${process.env.VOTI_TEST_RELAY ? ', HTTP multi-contextes' : ''}).`);
+  console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks + relayChecks + dialogChecks} contrôles réussis (mode local, dialogues, graphiques, images, thèmes, clavier, responsive, offline, /voti/${process.env.VOTI_TEST_RELAY ? ', HTTP multi-contextes' : ''}).`);
 } catch (error) {
   console.error(`Tests navigateur ÉCHEC : ${error.message}`); process.exitCode = 1;
   if (process.env.VOTI_TEST_RELAY && httpDiagnostics.length) console.error(JSON.stringify(httpDiagnostics.slice(-8)));

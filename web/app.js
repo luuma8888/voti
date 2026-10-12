@@ -15,6 +15,7 @@ import { LocalStorageRemoteConnectionAdapter, REMOTE_STORAGE_KEY } from './remot
 import { assetReferences } from '../shared/assets.js';
 import { humanVerification } from './human-verification.js';
 import { exportAdminKey, importAdminKey, parseAdminKey } from '../shared/admin-key.js';
+import { confirmAction } from './confirmation.js';
 
 const connections = new LocalStorageRemoteConnectionAdapter(localStorage, navigator.locks);
 const relay = RELAY_CONFIG ? new RelayClient(new HttpRelayAdapter(RELAY_CONFIG), connections) : null;
@@ -164,6 +165,7 @@ function adminKeyImport(expectedPollId) {
   const input = el('input', null, { type: 'file', accept: '.json,application/json', hidden: '', 'aria-label': 'Choisir une clé d’administration secrète' });
   const control = button('Importer une clé d’administration', () => input.click());
   input.addEventListener('change', async () => {
+    if (control.disabled) return;
     const file = input.files[0]; if (!file) return;
     control.disabled = true; clearError();
     try {
@@ -176,7 +178,9 @@ function adminKeyImport(expectedPollId) {
       catch (error) {
         if (error.code !== 'CAPABILITY_CONFLICT') throw error;
         const previous = await connections.get(key);
-        if (!window.confirm('Une autre clé est déjà conservée pour ce sondage. La clé importée a été vérifiée par le relais. Remplacer la clé locale existante ?')) return;
+        if (!await confirmAction({ trigger: control, title: 'Remplacer la clé d’administration ?',
+          description: 'Une autre clé est déjà conservée pour ce sondage. La nouvelle clé a été vérifiée. Elle remplacera la clé enregistrée dans ce navigateur ; le sondage restera inchangé.',
+          actionLabel: 'Remplacer la clé' })) return;
         view = await importAdminKey(raw, adapter, connections, { replaceCapability: previous.adminCapability });
       }
       remoteViews.set(key.pollId, { ...view, id: key.pollId, lockedAt: view.locked ? 'remote' : null });
@@ -335,8 +339,11 @@ function management(id) {
   }
   if (poll.status === 'published') {
     controls.push(link('Ouvrir le vote', `#vote/${id}`, 'primary'));
-    const close = button('Fermer le sondage', () => {
-      if (window.confirm('Fermer ce sondage ? Il n’acceptera plus de nouveaux votes. Le minimum de réponses restera obligatoire.')) {
+    const close = button('Fermer le sondage', async () => {
+      if (close.disabled) return;
+      if (await confirmAction({ trigger: close, title: 'Fermer ce sondage ?',
+        description: 'Il n’acceptera plus de nouveaux votes. Le minimum de réponses restera nécessaire pour afficher les résultats.',
+        actionLabel: 'Fermer le sondage' })) {
         if (bindings.has(id)) remoteAction(close, () => relay.closePoll(id));
         else transact(close, current => closePoll(current, id));
       }
@@ -354,8 +361,11 @@ function management(id) {
       try { download(await exportAdminKey(connections, RELAY_CONFIG.relayId, id), `voti-admin-${id}.json`); notify('Clé secrète exportée. Vérifiez son enregistrement et conservez-la en lieu sûr.'); }
       catch (error) { showError(error); }
     });
-    const remove = button('Supprimer en ligne', () => {
-      if (!window.confirm('Supprimer définitivement ce sondage en ligne, ses votes et ses images distantes ? La copie locale sans votes distants sera conservée.')) return;
+    const remove = button('Supprimer en ligne', async () => {
+      if (remove.disabled) return;
+      if (!await confirmAction({ trigger: remove, title: 'Supprimer définitivement ce sondage ?', danger: true,
+        description: 'Le sondage en ligne, ses votes et ses éventuelles images distantes seront supprimés. Les liens publics ne fonctionneront plus. La copie locale sans votes distants sera conservée.',
+        actionLabel: 'Supprimer définitivement' })) return;
       remoteAction(remove, () => relay.deletePoll(id), async () => { remoteViews.delete(id); navigate('#home'); notify('Sondage supprimé du relais. La copie locale est conservée.'); });
     }, 'danger');
     card.append(el('p', 'Cette clé permet d’administrer ce sondage. Toute personne qui la possède peut le modifier ou le supprimer. Conservez-la en lieu sûr.', { class: 'help' }),

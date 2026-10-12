@@ -35,38 +35,57 @@ export async function browserKeyImport(key) {
   const records = JSON.parse(localStorage.getItem('voti.remote.v1'));
   const old = 'voti-admin-v1.' + '1'.repeat(64); records.connections.find(c => c.pollId === key.pollId).adminCapability = old;
   localStorage.setItem('voti.remote.v1', JSON.stringify(records));
-  const original = window.confirm; let asked = 0;
-  try {
-    window.confirm = () => { asked++; return false; }; send(key);
-    await wait(() => asked === 1 && !document.querySelector('.admin-key-panel button').disabled);
-    assert(stored().adminCapability === old, 'Annulation écrase secret');
-    window.confirm = () => { asked++; return true; }; send(key);
-    await wait(() => location.hash === '#poll/' + key.pollId && document.getElementById('app').getAttribute('aria-busy') === 'false');
-    assert(asked === 2 && stored().adminCapability === key.adminCapability, 'Confirmation import non prise en compte');
-    assert(document.getElementById('app').textContent.includes('Supprimer en ligne'), 'Administration retrouvée sans snapshot local');
-    assert(!document.documentElement.querySelector('script[src*="turnstile"]'), 'Turnstile pendant import/admin');
-    assert(document.documentElement.scrollWidth <= innerWidth, 'Import déborde à 360');
-    location.hash = '#home'; await wait(() => document.getElementById('app').querySelector('h1')?.textContent === 'Mes sondages' && document.getElementById('app').getAttribute('aria-busy') === 'false');
-    assert(document.getElementById('app').textContent.includes('Administrations en ligne retrouvées'), 'Administration perdue sur accueil');
-  } finally { window.confirm = original; }
+  const control = document.querySelector('.admin-key-panel button');
+  const dialog = () => document.querySelector('.confirmation-dialog');
+  control.focus();send(key);await wait(()=>dialog()?.open);
+  assert(dialog().querySelector('h2').textContent==='Remplacer la clé d’administration ?' && dialog().textContent.includes('ce navigateur'), 'Titre et conséquence de clé');
+  assert(stored().adminCapability===old && document.activeElement.dataset.confirmation==='cancel', 'Ancienne clé conservée avant confirmation');
+  dialog().querySelector('[data-confirmation=cancel]').click();
+  await wait(()=>!control.disabled && document.activeElement===control);
+  assert(stored().adminCapability===old, 'Annulation écrase secret');
+  send(key);await wait(()=>dialog()?.open);
+  dialog().dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+  await wait(()=>!control.disabled && document.activeElement===control);
+  assert(stored().adminCapability===old, 'Échap remplace la clé');
+  send(key);await wait(()=>dialog()?.open);
+  const accept=dialog().querySelector('[data-confirmation=accept]');
+  assert(accept.textContent==='Remplacer la clé' && !accept.classList.contains('danger'), 'Action de remplacement ambiguë');
+  accept.click();accept.click();
+  await wait(() => location.hash === '#poll/' + key.pollId && document.getElementById('app').getAttribute('aria-busy') === 'false' &&
+    document.querySelector(`#app a[href="#/p/${key.pollId}"]`));
+  assert(stored().adminCapability === key.adminCapability, 'Confirmation import non prise en compte');
+  assert(document.getElementById('app').textContent.includes('Supprimer en ligne'), 'Administration retrouvée sans snapshot local');
+  assert(!document.documentElement.querySelector('script[src*="turnstile"]'), 'Turnstile pendant import/admin');
+  assert(document.documentElement.scrollWidth <= innerWidth, 'Import déborde à 360');
+  location.hash = '#home'; await wait(() => document.getElementById('app').querySelector('h1')?.textContent === 'Mes sondages' && document.getElementById('app').getAttribute('aria-busy') === 'false');
+  assert(document.getElementById('app').textContent.includes('Administrations en ligne retrouvées'), 'Administration perdue sur accueil');
   return checks;
 }
-export async function browserDelete(id) {
-  let checks = 0, asked = 0;
+export async function browserDelete(id, cancelOnly = false) {
+  let checks = 0;
   const wait = async f => { const end = performance.now() + 15000; while (!f()) { if (performance.now() > end) throw new Error('Suppression UI non terminée'); await new Promise(requestAnimationFrame); } };
   const control = [...document.querySelectorAll('#app button')].find(b => b.textContent === 'Supprimer en ligne');
   if (!control) throw new Error('Suppression absente');
-  const original = window.confirm;
-  try {
-    window.confirm = text => { asked++; if (!text.includes('définitivement')) throw new Error('Confirmation insuffisante'); return false; };
-    control.click(); if (control.disabled || asked !== 1) throw new Error('Annulation suppression non respectée'); checks++;
-    window.confirm = () => { asked++; return true; }; control.click();
-    await wait(() => location.hash === '#home' && document.getElementById('app').getAttribute('aria-busy') === 'false');
-    if (JSON.parse(localStorage.getItem('voti.remote.v1')).connections.some(c => c.pollId === id)) throw new Error('Connexion distante conservée'); checks++;
-    if (JSON.parse(localStorage.getItem('voti.local.v1')).ballots.length) throw new Error('Bulletins distants copiés'); checks++;
-    location.hash = '#/p/' + id;
-    await wait(() => document.getElementById('app').textContent.includes('Impossible d’ouvrir'));
-    if (document.querySelector('.vote-choices')) throw new Error('Vote proposé après suppression'); checks++;
-  } finally { window.confirm = original; }
+  const before=localStorage.getItem('voti.remote.v1');
+  control.focus();control.click();
+  const dialog=document.querySelector('.confirmation-dialog');
+  if(!dialog?.matches(':modal') || !dialog.querySelector('h2').textContent.includes('définitivement') || !dialog.textContent.includes('copie locale'))throw new Error('Confirmation suppression insuffisante');checks++;
+  if(localStorage.getItem('voti.remote.v1')!==before || control.disabled || document.activeElement.dataset.confirmation!=='cancel')throw new Error('Action avant consentement');checks++;
+  if(cancelOnly) {
+    dialog.querySelector('[data-confirmation=cancel]').click();await wait(()=>document.activeElement===control);
+    control.click();document.querySelector('.confirmation-dialog').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+    await wait(()=>document.activeElement===control);
+    if(localStorage.getItem('voti.remote.v1')!==before || !control.isConnected)throw new Error('Annulation supprime la connexion');checks++;
+    return checks;
+  }
+  const accept=dialog.querySelector('[data-confirmation=accept]');
+  if(accept.textContent!=='Supprimer définitivement' || !accept.classList.contains('danger'))throw new Error('Suppression sans bouton danger explicite');checks++;
+  accept.click();accept.click();
+  await wait(() => location.hash === '#home' && document.getElementById('app').getAttribute('aria-busy') === 'false');
+  if (JSON.parse(localStorage.getItem('voti.remote.v1')).connections.some(c => c.pollId === id)) throw new Error('Connexion distante conservée'); checks++;
+  if (JSON.parse(localStorage.getItem('voti.local.v1')).ballots.length) throw new Error('Bulletins distants copiés'); checks++;
+  location.hash = '#/p/' + id;
+  await wait(() => document.getElementById('app').textContent.includes('Impossible d’ouvrir'));
+  if (document.querySelector('.vote-choices')) throw new Error('Vote proposé après suppression'); checks++;
   return checks;
 }

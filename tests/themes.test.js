@@ -50,6 +50,18 @@ for (const { id } of THEME_OPTIONS) {
       assert.notEqual(color, palette.danger);
     }
   });
+  test(`dialogue ${id} : texte, danger et focus lisibles sur sa surface`, () => {
+    const palette = palettes[id];
+    for (const key of ['ink', 'muted', 'danger']) assert.ok(ratio(palette[key], palette.surface) >= 4.5, `${id}: ${key}/surface`);
+    for (const soft of [palette.soft, ...['mint', 'lavender', 'peach'].map(a => palette[`poll-${a}-soft`])]) {
+      assert.ok(ratio(palette.ink, soft) >= 4.5, `${id}: annulation hover`);
+      assert.ok(ratio(palette.danger, soft) >= 4.5, `${id}: danger hover`);
+    }
+    assert.ok(ratio(palette.focus, palette.surface) >= 3);
+    assert.match(css, /\.confirmation-dialog[\s\S]*color:var\(--ink\)/);
+    assert.match(css, /\.confirmation-dialog\[data-danger=true\] h2 \{ color:var\(--danger\)/);
+    assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
+  });
 }
 
 test('accents limités aux cadres des sondages, impression neutre préservée', () => {

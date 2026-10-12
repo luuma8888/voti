@@ -267,3 +267,26 @@ footer details { margin-top:6px; } footer summary { font-size:12px; font-weight:
 /* Le challenge est ajouté seulement dans le parcours de nouvelle publication. */
 .human-verification, .admin-key-panel { margin-top: 1rem; max-width: 100%; }
 .human-verification { min-height: 44px; overflow: hidden; }
+/* La top layer du dialog natif rend le reste du document inerte. */
+.confirmation-dialog {
+  width:min(440px,calc(100% - 32px)); max-width:none; max-height:calc(100dvh - 32px);
+  margin:auto; padding:22px; overflow:auto; overscroll-behavior:contain;
+  color:var(--ink); box-shadow:0 14px 48px #171c2a33;
+}
+.confirmation-dialog::backdrop { background:#171c2a80; }
+.confirmation-dialog h2 { margin:0; font-size:24px; }
+.confirmation-dialog p { margin:14px 0 0; color:var(--muted); }
+.confirmation-dialog .actions { justify-content:flex-end; }
+.confirmation-dialog .actions button { min-width:44px; max-width:100%; overflow-wrap:anywhere; }
+.confirmation-dialog[data-danger=true] { border-top:4px solid var(--danger); }
+.confirmation-dialog[data-danger=true] h2 { color:var(--danger); }
+body:has(.confirmation-dialog[open]) { overflow:hidden; }
+@media(max-width:480px) {
+  .confirmation-dialog { padding:18px; }
+  .confirmation-dialog .actions { flex-direction:column; align-items:stretch; }
+  .confirmation-dialog .actions button { flex:0 0 auto; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .confirmation-dialog,.confirmation-dialog::backdrop { animation:none; transition:none; scroll-behavior:auto; }
+}
+@media print { .confirmation-dialog,.confirmation-dialog::backdrop { display:none!important; } }
