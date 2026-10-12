@@ -836,3 +836,91 @@ profil gratuit sans images distantes, SHA-256
 `d830af5255c8018baa49a8f57f9e0526d0d252307d151386a26c2771fe17c1ff`.
 git diff --check : succès. Commit/push autorisés par la demande ci-dessus ;
 la propagation Pages et le jugement humain de ces réglages restent à confirmer.
+
+Publication : commit `79026ae`, poussé sur main avec les dix fichiers listés.
+Pages HTTP 200 au troisième contrôle, 1 234 815 octets, SHA-256 ci-dessus et
+égalité binaire exacte avec le build production local. Aucune ressource
+Cloudflare touchée. Note de propagation conservée localement pour la clôture
+documentaire ; validation physique des deux nouveaux réglages encore attendue.
+
+Retour suivant : Lu’uma signale d’abord un curseur sans effet et l’absence de
+Pleine largeur, puis confirme « ok ça marche ». Il précise ensuite qu’il
+s’agissait aussi d’un rafraîchissement où les nouveautés étaient partiellement
+présentes. Cette explication est son observation physique ; aucun mécanisme
+de cache précis n’est affirmé comme démontré. Pages vérifié en lecture seule :
+build 79026ae exact, taille et SHA-256 attendus.
+
+Diagnostic ciblé : 252 contrôles Chromium réussis après ajout d’une comparaison
+des pixels réels de l’affiche pour hauteur principale 100 puis 500, sur trois
+largeurs d’écran ; changement visuel confirmé automatiquement, pas seulement
+sauvegarde du réglage. Ce renforcement de test reste local. Aucune correction
+applicative supplémentaire ni nouvelle publication effectuée.
+
+Point indépendant observé en lecture seule, à ne pas confondre avec le problème
+de rafraîchissement résolu : deux images de choix d’une même rangée sont rendues
+à la hauteur maximale de la rangée. Exemple demandes 80 et 440, rendu 440 pour
+les deux. La taille individuelle peut donc paraître sans effet lorsque l’autre
+image impose la hauteur. Ce cas mixte n’est pas une validation du curseur
+individuel des choix ; réserve à traiter explicitement si elle gêne la recette,
+sans correction silencieuse après la confirmation ci-dessus.
+
+### Correction autorisée : cartes image/QR côte à côte et tailles individuelles
+
+Lu’uma refuse le rendu des trois choix après ses réglages : les blocs image+QR
+sont encore trop hauts. Nouvelle capture personnelle Screenshot 2026-10-12
+21.45.36.png inspectée, jamais ajoutée à Git. Elle montre deux cartes très
+verticales puis un grand espace avant le footer, le troisième choix étant
+repoussé. Le renderer cumule image, libellé, QR et lien dans chaque carte ;
+la place restante ne suffit pas à la rangée suivante. Aucune valeur précise
+de son design n’est déduite d’une simple capture.
+
+Proposition image/QR côte à côte et correction du défaut des tailles individuelles
+autorisées explicitement : « Oui, belle idée, tu peux corriger », en réponse à
+la demande incluant tests ciblés et commit/push.
+
+Nouveau réglage Composer l’affiche → Image et QR → Empilés / Côte à côte.
+Il reste volontaire : anciens designs en Empilés pour ne pas bouleverser leurs
+compositions. En Côte à côte, libellé au-dessus, image à gauche, QR à droite et
+lien textuel dessous. Hauteur de carte = maximum des hauteurs image/QR, plus
+texte et marges, au lieu de leur somme. Minimum QR, modules entiers, quiet zone
+et surfaces blanches opaques conservés. Si la carte laisse moins de 180 pixels
+à la photo, rendu empilé avec avertissement explicite ; aucune réduction risquée.
+Le mode QR d’accès ne crée aucun QR de choix supplémentaire.
+
+Les deux types d’affiche rendent désormais chaque image à sa propre hauteur
+calculée ; seule la hauteur de rangée reste commune pour aligner les cartes.
+Le défaut diagnostiqué 80/440 → deux photos 440 est corrigé et testé dans les
+modes accès/choix et dans les deux dispositions. Corps métier, votes, routes,
+QR payloads, résultats, backup et relais inchangés. Pas de dépendance ajoutée.
+PosterDesign v1 reste compatible : choiceComposition facultatif, stacked par
+défaut, side-by-side si choisi, valeur inconnue refusée, aucune mutation d’entrée.
+
+Contrôles proportionnés conformément à la demande de Lu’uma :
+
+| Commande | Résultat |
+| --- | --- |
+| Node ciblé, poster-image-zones / poster-polish / poster-studio | 131 tests passés, aucun échec |
+| npm run check | 86 fichiers JS valides |
+| npm run test:browser -- --studio-images | 258 contrôles Chromium, 320/360/1200, thèmes, réglage et persistance |
+| npm run test:poster-images | 53 contrôles Poppler, 3 PDF A4 et 16 QR redécodés à 300 dpi |
+| git diff --check | Succès |
+
+Cas ajoutés : trois choix sur deux lignes et une page en Cartes avec photos
+normales ; 2/3/6 choix, 1/2/3 colonnes, trois tailles de QR, images mixtes,
+fallback cartes étroites, absence de chevauchement et hauteurs distinctes.
+Inspection visuelle réelle des PNG Cartes/3 choix et Mosaïque/6 choix : image
+principale pleine largeur, association image/QR claire, textes et QR séparés,
+pas de déformation. Mosaïque six choix reste paginé si nécessaire : pas de
+promesse universelle de page unique. Photos synthétiques uniquement ; aucun
+scan physique ni validation esthétique humaine anticipés.
+
+Suites globales et HTTP non relancées : modifications limitées au Studio,
+au plan PDF et aux tests concernés. Fichiers : web/poster-design.js,
+web/poster-studio.js, web/print-layout.js ; tests/poster-image-zones.test.js ;
+scripts/browser-studio.mjs, scripts/browser-test.mjs ; guide polish, rapport
+et build index.html. Captures personnelles hors commit, pas de ZIP avant clôture.
+
+Build production final : 1 237 179 octets, profil gratuit sans images distantes,
+SHA-256 `2a33ba9f837eb040f5b7be2b8377172572004c0f0ef33709fc37779bb2260a2f`.
+Publication autorisée par la réponse ci-dessus ; comparaison Pages à effectuer
+après push. Aucun Worker redéployé ni ressource Cloudflare modifiée.

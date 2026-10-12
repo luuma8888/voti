@@ -105,6 +105,7 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
     select('Disposition',LAYOUTS,design.layout,v=>set('layout',v)),
     select('Densité',[['compact','Compact'],['balanced','Équilibré'],['airy','Aéré']],design.densityPreset,v=>set('densityPreset',v)),
     select('Choix par ligne',[['auto','Auto'],['1','1'],['2','2'],['3','3']],design.choicesPerRow,v=>set('choicesPerRow',v)),
+    select('Image et QR',[['stacked','Empilés'],['side-by-side','Côte à côte']],design.choiceComposition,v=>set('choiceComposition',v)),
     select('Taille des QR',[['small','Petit'],['medium','Moyen'],['large','Grand']],design.qrSize,v=>set('qrSize',v)),
     select('En-tête Voti',[['normal','Normal'],['discreet','Discret'],['hidden','Masqué']],design.headerMode,v=>set('headerMode',v)));
   const colors=section('Choisir les couleurs','Une palette harmonieuse ou tes propres couleurs.','02');

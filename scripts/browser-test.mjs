@@ -411,8 +411,8 @@ try {
     }
     const files=[];await mkdir(resolve(ROOT,'.browser-tests/image-pdfs'),{recursive:true});
     for(const [layout,mode,n,height,focalY] of [['cards','choices',3,200,0],['cards','access',3,300,1],['mosaic','choices',6,250,.5]]){
-      const options={densityPreset:'balanced',choicesPerRow:'2',qrSize:'small',...(mode==='access'?{palette:'ivory'}:{}),imageSettings:{main:{ratio:'full-width',height,fit:'cover',focalX:.5,focalY}}};
-      const file=await evaluate(sessionId,`(${browserStudioPdfScenario.toString()})(${JSON.stringify(layout)},${JSON.stringify(mode)},${n},'poster',false,${JSON.stringify(options)},80)`);
+      const options={densityPreset:'balanced',choicesPerRow:'2',qrSize:'medium',choiceComposition:'side-by-side',...(mode==='access'?{palette:'ivory'}:{}),imageSettings:{main:{ratio:'full-width',height:400,fit:'cover',focalX:.5,focalY}}};
+      const file=await evaluate(sessionId,`(${browserStudioPdfScenario.toString()})(${JSON.stringify(layout)},${JSON.stringify(mode)},${n},'poster',false,${JSON.stringify(options)},400)`);
       const {base64,...metadata}=file;files.push(metadata);await writeFile(resolve(ROOT,'.browser-tests/image-pdfs',file.name),Buffer.from(base64,'base64'));
     }
     await writeFile(resolve(ROOT,'.browser-tests/image-pdfs/plans.json'),JSON.stringify(files));

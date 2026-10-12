@@ -70,9 +70,21 @@ export async function browserStudioScenario() {
       for(const value of values){select.value=value;select.dispatchEvent(new Event('input'));select.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main[key]===value);assert(true,text+' '+value);}
     }
     ratio.value='full-width';ratio.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main.ratio==='full-width');assert(!focalX.disabled,'Pleine largeur : cadrage disponible');
+    const heightInput=[...crop.querySelectorAll('label')].find(n=>n.textContent==='Hauteur de la zone').control;
+    let previousPixels;
+    for(const height of [100,500]){
+      const previousVersion=view.element.dataset.previewVersion;
+      heightInput.value=height;heightInput.dispatchEvent(new Event('input'));heightInput.dispatchEvent(new Event('change'));
+      await wait(()=>view.element.dataset.previewVersion!==previousVersion&&repo.get(poll.id).imageSettings.main.height===height);
+      const pixels=view.element.querySelector('.studio-sheets canvas').toDataURL();
+      if(previousPixels)assert(pixels!==previousPixels,'Hauteur principale : changement des pixels réels de l’affiche');
+      previousPixels=pixels;
+    }
     assert(![...view.element.querySelectorAll('.focal-control')].filter(n=>n!==crop).some(n=>n.querySelector('option[value="full-width"]')),'Pleine largeur réservée à la principale');
     [...crop.querySelectorAll('button')].find(b=>b.textContent==='Hauteur automatique').click();await wait(()=>repo.get(poll.id).imageSettings.main.height==='auto');assert(true,'Retour Auto préservé');
     ratio.value='original';ratio.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main.ratio==='original');
+    await change('Image et QR','side-by-side');await wait(()=>repo.get(poll.id).choiceComposition==='side-by-side');assert(true,'Image et QR côte à côte conservé');
+    await change('Image et QR','stacked');await wait(()=>repo.get(poll.id).choiceComposition==='stacked');assert(true,'Retour Empilés conservé');
     await repo.recover();assert(await adapter.has(imageId),'Médias affiche conservés au sweep');
     assert(JSON.stringify(poll)===before&&localStorage.getItem('voti.local.v1')===stored,'Médias sans mutation métier');
     await change('Mode du fond','contain');await change('Position du fond','bottom');await change('Voile du fond','dark');

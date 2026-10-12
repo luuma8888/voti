@@ -89,3 +89,33 @@ test('Cartes Équilibré : trois choix sur deux lignes et une page grâce aux pe
   const plan=makeStudioPlan(p,d,{mediaSizes:metadata});assert.equal(plan.pages.length,1);assert.equal(plan.pages[0].items.length,3);
   assert.ok(plan.pages[0].items[2].y>plan.pages[0].items[1].y);for(const q of plan.pages[0].qrs)assert.ok(q.size>=400&&q.pixels>=5);
 });
+test('Images de même rangée : hauteurs individuelles 80/440 réellement respectées',()=>{
+  for(const mode of ['access','choices'])for(const choiceComposition of ['stacked','side-by-side']){
+    const {p,d}=fixture();d.media.main=null;d.mode=mode;d.choiceComposition=choiceComposition;
+    p.definition.choices.forEach((c,i)=>{d.imageSettings[c.id]=settings(i?440:80,'center','1:1');});
+    const plan=makeStudioPlan(p,d,{mediaSizes:metadata}),photos=images(plan);
+    assert.equal(photos[0].height,80);assert.equal(photos[1].height,440);
+  }
+});
+test('Cartes côte à côte : trois choix illustrés sur deux lignes, une page sans petites photos',()=>{
+  const {p,d}=fixture(3);d.choiceComposition='side-by-side';d.qrSize='medium';d.imageSettings.main=settings(400,'center','full-width');
+  const plan=makeStudioPlan(p,d,{mediaSizes:metadata});assert.equal(plan.pages.length,1);assert.equal(plan.pages[0].items.length,3);
+  for(const c of p.definition.choices){const photo=images(plan).find(n=>n.imageKey===c.id),q=plan.pages[0].qrs.find(q=>q.url.includes('/choice/'+c.id));
+    assert.ok(photo.width>300&&photo.height>180);assert.ok(photo.x+photo.width<q.x);assert.ok(q.size>=400&&q.pixels>=5);
+    const label=plan.pages[0].nodes.find(n=>n.type==='text'&&n.lines.join(' ')===c.label);assert.ok(label.y<photo.y&&label.y<q.y);}
+});
+test('Côte à côte : 2/3/6 choix, colonnes 1/2/3, images mixtes et pagination sûre',()=>{
+  for(const count of [2,3,6])for(const columns of ['1','2','3'])for(const qrSize of ['small','medium','large']){
+    const {p,d}=fixture(count);d.choiceComposition='side-by-side';d.choicesPerRow=columns;d.qrSize=qrSize;delete d.media.choices[p.definition.choices.at(-1).id];
+    const plan=makeStudioPlan(p,d,{mediaSizes:metadata});assert.equal(plan.pages.flatMap(p=>p.items).length,count);
+    for(const page of plan.pages){for(const photo of page.nodes.filter(n=>n.type==='image'))for(const q of page.qrs)
+      assert.ok(photo.x+photo.width<=q.x||q.x+q.size<=photo.x||photo.y+photo.height<=q.y||q.y+q.size<=photo.y);
+      for(const q of page.qrs)assert.ok(q.size>=400&&q.pixels>=5&&q.y+q.size<plan.height-80);
+    }
+    if(columns==='3')assert.ok(plan.warnings.some(w=>w.includes('carte trop étroite')));
+  }
+});
+test('Ancien design : Empilés par défaut, réglage inconnu rejeté sans mutation',()=>{
+  const d=defaultDesign();delete d.choiceComposition;const before=structuredClone(d);assert.equal(validateDesign(d).choiceComposition,'stacked');assert.deepEqual(d,before);
+  assert.throws(()=>validateDesign({...d,choiceComposition:'unknown'}));
+});

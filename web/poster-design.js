@@ -70,10 +70,10 @@ export function defaultDesign() {
     background:{assetId:null,fit:'cover',position:'center',intensity:.25,veil:'light'},
     media:{main:null,choices:{}},usePollImages:true,
     titleTypography:'modern',bodyTypography:'modern',headerMode:'normal',qrSurfaceMode:'large',
-    textSurfaceOpacity:1,densityPreset:'balanced',choicesPerRow:'auto',qrSize:'medium',imageSettings:{}};
+    textSurfaceOpacity:1,densityPreset:'balanced',choicesPerRow:'auto',qrSize:'medium',imageSettings:{},choiceComposition:'stacked'};
 }
 export function validateDesign(input) {
-  const optional=['titleTypography','bodyTypography','headerMode','qrSurfaceMode','textSurfaceOpacity','densityPreset','choicesPerRow','qrSize','imageSettings'];
+  const optional=['titleTypography','bodyTypography','headerMode','qrSurfaceMode','textSurfaceOpacity','densityPreset','choicesPerRow','qrSize','imageSettings','choiceComposition'];
   object(input,['formatVersion','layout','mode','palette','typography','customColors','background','media','usePollImages',...optional.filter(k=>Object.hasOwn(input||{},k))],'Design');
   ensure(input.formatVersion===1,'Version de design inconnue.');
   ensure(LAYOUTS.some(p=>p[0]===input.layout) && ['access','choices'].includes(input.mode),'Disposition ou type invalide.');
@@ -89,6 +89,7 @@ export function validateDesign(input) {
   for(const [id,ref] of Object.entries(input.media.choices)) ensure(isUuid(id)&&isAssetId(ref),'Référence de choix invalide.');
   ensure(typeof input.usePollImages==='boolean','Préférence médias invalide.');
   const d={...defaultDesign(),...structuredClone(input)};
+  ensure(['stacked','side-by-side'].includes(d.choiceComposition),'Disposition image/QR invalide.');
   d.titleTypography=input.titleTypography??input.typography;d.bodyTypography=input.bodyTypography??input.typography;
   ensure(TITLE_TYPOGRAPHIES.some(t=>t[0]===d.titleTypography)&&BODY_TYPOGRAPHIES.some(t=>t[0]===d.bodyTypography),'Typographie invalide.');
   ensure(['normal','discreet','hidden'].includes(d.headerMode)&&['large','compact','minimal'].includes(d.qrSurfaceMode),'Surface ou en-tête invalide.');

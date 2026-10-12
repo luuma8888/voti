@@ -56,6 +56,15 @@ La densité Compact/Équilibré/Aéré ajuste titre, espaces et zones d’images
 Trois choix illustrés peuvent tenir sur une page, en trois colonnes ou 2+1,
 avec des réglages sûrs. Les textes longs restent paginés, au plus huit pages.
 
+**Image et QR : Empilés / Côte à côte**, dans Composer l’affiche, réduit
+l’empilement vertical des cartes QR par choix illustrées. En Côte à côte :
+libellé au-dessus, photo à gauche et QR à droite, destination textuelle dessous.
+Ce mode ne réduit pas les QR ni leur marge blanche. Une carte trop étroite
+(par exemple trois colonnes avec QR importants) reste empilée et l’aperçu
+l’explique. Sans image, le parcours de rendu texte/QR reste disponible.
+Les designs existants restent Empilés ; le changement est volontaire.
+Le mode QR d’accès ne juxtapose pas un QR par choix, puisqu’il n’en possède pas.
+
 QR Petit/Moyen/Grand : tailles cibles selon accès ou choix, quantifiées en modules
 entiers. Minimum imposé : 400 pixels environ 34 mm à 300 dpi et 5 pixels/module,
 quiet zone de quatre modules. Une largeur insuffisante réduit les colonnes ou
@@ -99,6 +108,12 @@ Une limitation par la hauteur de page est signalée dans les avertissements.
 En accès, l’image du choix est désormais au-dessus de son texte, également
 en une colonne, au lieu d’une petite vignette latérale.
 
+La hauteur demandée est maintenant respectée individuellement pour chaque
+photo, même si une autre image de la ligne est plus haute. La hauteur de la
+rangée reste commune pour aligner les cartes ; réduire une seule photo ne peut
+donc pas toujours réduire la rangée entière. Côte à côte évite en revanche de
+cumuler systématiquement hauteur de photo et hauteur de QR.
+
 Point focal par contexte d’image : miniature, souris/tactile, positions horizontale
 et verticale, boutons directionnels et Réinitialiser au centre. Les bandes de
 letterboxing de la miniature sont exclues du calcul du point. Le drag met à jour
@@ -129,6 +144,8 @@ réglages propres et n’utilise pas ces tailles de zones. Toujours formatVersio
 height accepte désormais une valeur numérique bornée, Auto ou les anciens
 presets ; ratio accepte full-width uniquement pour main. Aucun schéma métier
 ou backup général modifié.
+choiceComposition est facultatif, normalisé à stacked (Empilés) pour les anciens
+designs, avec side-by-side pour Côte à côte ; toujours formatVersion:1.
 Absence = valeurs par défaut ; les anciennes typographies initialisent titre et
 corps. Les anciennes couleurs personnalisées activées sont conservées ; celles
 inactives sont resynchronisées avec leur palette, puisqu’elles n’étaient pas rendues.

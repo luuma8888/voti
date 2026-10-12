@@ -128,14 +128,18 @@ export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].len
     const maxQr=Math.min(desiredChoice,tile-80),minChoice=Math.max(...row.map(c=>{const m=createQrMatrix(buildChoiceUrl(id,c.id,baseUrl));return m.size*Math.max(5,Math.ceil(400/m.size));}));
     if(maxQr<desiredChoice&&!plan.warnings.some(w=>w.startsWith('Taille du QR')))plan.warnings.push('Taille du QR adaptée à la largeur des colonnes, sans descendre sous le minimum sûr.');
     ensure(maxQr>=minChoice,'Cette taille de QR ne tient pas. Choisis moins de colonnes.');
-    const labels=row.map(c=>text(c.label,columns===1?tile-maxQr-140:tile-70,42,700));
-    const destinations=row.map(c=>text(buildChoiceUrl(id,c.id,baseUrl),columns===1?maxQr:tile-70,24));
-    const hasMedia=row.some(c=>ref(c)),labelHeight=Math.max(...labels.map(ls=>ls.length))*54,linkHeight=Math.max(...destinations.map(ls=>ls.length))*31;
-    const mediaWidth=columns===1?tile-maxQr-160:tile-60;
-    const maxMediaHeight=columns===1?rowLimit-labelHeight-110:rowLimit-maxQr-linkHeight-labelHeight-115;
-    const mediaHeight=hasMedia?Math.max(...row.map(c=>imageFrame(ref(c),c.id,mediaWidth,autoMediaHeight,maxMediaHeight).height)):0;
-    const height=columns===1?Math.max(maxQr+linkHeight+85,labelHeight+80+(hasMedia?mediaHeight+30:0)):maxQr+linkHeight+labelHeight+95+(hasMedia?mediaHeight+20:0);
-    return {columns,gap,tile,row,maxQr,hasMedia,mediaHeight,labelHeight,linkHeight,height};
+    const hasMedia=row.some(c=>ref(c)),sideWidth=tile-maxQr-110;
+    const horizontal=hasMedia&&d.choiceComposition==='side-by-side'&&sideWidth>=180;
+    if(hasMedia&&d.choiceComposition==='side-by-side'&&!horizontal&&!plan.warnings.includes('Image et QR empilés : carte trop étroite pour les placer côte à côte.'))plan.warnings.push('Image et QR empilés : carte trop étroite pour les placer côte à côte.');
+    const labels=row.map(c=>text(c.label,!horizontal&&columns===1?tile-maxQr-140:tile-70,42,700));
+    const destinations=row.map(c=>text(buildChoiceUrl(id,c.id,baseUrl),!horizontal&&columns===1?maxQr:tile-70,24));
+    const labelHeight=Math.max(...labels.map(ls=>ls.length))*54,linkHeight=Math.max(...destinations.map(ls=>ls.length))*31;
+    const mediaWidth=horizontal?sideWidth:columns===1?tile-maxQr-160:tile-60;
+    const maxMediaHeight=horizontal?rowLimit-labelHeight-linkHeight-120:columns===1?rowLimit-labelHeight-110:rowLimit-maxQr-linkHeight-labelHeight-115;
+    const frames=row.map(c=>imageFrame(ref(c),c.id,mediaWidth,horizontal?Math.min(autoMediaHeight,maxQr):autoMediaHeight,maxMediaHeight));
+    const mediaHeight=hasMedia?Math.max(...frames.map(f=>f.height)):0,bodyHeight=Math.max(maxQr,mediaHeight);
+    const height=horizontal?labelHeight+bodyHeight+linkHeight+120:columns===1?Math.max(maxQr+linkHeight+85,labelHeight+80+(hasMedia?mediaHeight+30:0)):maxQr+linkHeight+labelHeight+95+(hasMedia?mediaHeight+20:0);
+    return {columns,gap,tile,row,maxQr,hasMedia,mediaWidth,frames,mediaHeight,labelHeight,linkHeight,height,horizontal,bodyHeight};
   }
   // Chaque layout conserve sa composition par défaut ; les colonnes sont explicites.
   if(d.mode==='access') {
@@ -146,17 +150,18 @@ export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].len
     function accessRow(i){const row=content.choices.slice(i,i+listCols),refs=row.map(ref),hasImages=refs.some(Boolean),labelWidth=tile-70;
       const labelHeight=Math.max(...row.map((c,col)=>text(`${i+col+1}. ${c.label}`,labelWidth,42,700).length))*54+65;
       const imageHeight=hasImages?Math.max(...row.map(c=>imageFrame(ref(c),c.id,tile-50,autoMediaHeight,rowLimit-labelHeight-20).height)):0;
-      return {row,refs,hasImages,labelWidth,imageHeight,rowHeight:labelHeight+(hasImages?imageHeight+20:0)};
+      const frames=row.map(c=>imageFrame(ref(c),c.id,tile-50,autoMediaHeight,rowLimit-labelHeight-20));
+      return {row,refs,frames,hasImages,labelWidth,imageHeight,rowHeight:labelHeight+(hasImages?imageHeight+20:0)};
     }
     const first=accessRow(0);mainImage(side?Math.max(first.rowHeight,qrSize+130):first.rowHeight);
     for(let i=0;i<content.choices.length;i+=listCols) {
-      const {row,refs,hasImages,imageHeight,labelWidth,rowHeight}=accessRow(i);
+      const {row,refs,frames,hasImages,imageHeight,labelWidth,rowHeight}=accessRow(i);
       room(side&&!p.qrs.some(q=>q.kind==='access')?Math.max(rowHeight,qrSize+130):rowHeight);
       if(side&&!p.qrs.some(q=>q.kind==='access'))qr(p,plan.accessUrl,PAD+listWidth+65,y+70,qrSize,'access');
       row.forEach((c,col)=>{
         const x=PAD+col*(tile+gap);surface(p,x,y,tile,rowHeight);
         surface(p,x,y,12,rowHeight,'secondary',6);
-        if(hasImages)image(p,refs[col],x+25,y+25,tile-50,imageHeight,'cover','center',c.id);
+        if(hasImages)image(p,refs[col],x+25,y+25,tile-50,frames[col].height,'cover','center',c.id);
         const tx=x+30,ty=y+30+(hasImages?imageHeight+20:0);
         words(p,`${i+col+1}. ${c.label}`,tx,ty,labelWidth,42,700);
         p.items.push({label:c.label,x,y,width:tile,height:rowHeight});
@@ -174,15 +179,25 @@ export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].len
   } else {
     mainImage(choiceRow(0).height);
     for(let i=0;i<content.choices.length;) {
-      const {columns,gap,tile,row,maxQr,hasMedia,mediaHeight,labelHeight,linkHeight,height}=choiceRow(i);
+      const {columns,gap,tile,row,maxQr,hasMedia,mediaWidth,frames,mediaHeight,labelHeight,linkHeight,height,horizontal,bodyHeight}=choiceRow(i);
       room(height);
       row.forEach((c,col)=>{
         const x=PAD+col*(tile+gap),asset=ref(c);
+        if(horizontal){
+          surface(p,x,y,tile,height);surface(p,x,y,12,Math.min(height,180),'secondary',6);
+          words(p,c.label,x+35,y+25,tile-70,42,700);
+          const bodyY=y+labelHeight+45;
+          image(p,asset,x+30,bodyY+(bodyHeight-frames[col].height)/2,mediaWidth,frames[col].height,'cover','center',c.id);
+          const url=buildChoiceUrl(id,c.id,baseUrl);
+          qr(p,url,x+tile-maxQr-30,bodyY+(bodyHeight-maxQr)/2,maxQr,'choice');
+          words(p,url,x+35,bodyY+bodyHeight+25,tile-70,24);
+          p.items.push({label:c.label,x,y,width:tile,height,choiceId:c.id,composition:'side-by-side'});return;
+        }
         if(d.qrSurfaceMode==='large')surface(p,x,y,tile,height);
         else surface(p,x,y,tile,columns===1?height:labelHeight+65+(hasMedia?mediaHeight+20:0));
         surface(p,x,y,12,Math.min(height,180),'secondary',6);
         let cy=y+35;
-        if(hasMedia){image(p,asset,x+30,cy,columns===1?tile-maxQr-160:tile-60,mediaHeight,'cover','center',c.id);cy+=mediaHeight+20;}
+        if(hasMedia){image(p,asset,x+30,cy,mediaWidth,frames[col].height,'cover','center',c.id);cy+=mediaHeight+20;}
         words(p,c.label,x+35,cy,columns===1?tile-maxQr-140:tile-70,42,700);
         const url=buildChoiceUrl(id,c.id,baseUrl),qx=columns===1?x+tile-maxQr-40:x+(tile-maxQr)/2,qy=columns===1?y+35:cy+labelHeight+25;
         const q=qr(p,url,qx,qy,maxQr,'choice');
