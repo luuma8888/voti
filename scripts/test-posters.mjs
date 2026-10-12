@@ -8,12 +8,14 @@ import jsQR from 'jsqr';
 
 // Artefacts créés par test:browser, tous ignorés et exclus du ZIP d'audit.
 const studio=process.argv.includes('--studio');
-const root=resolve(studio?'.browser-tests/studio-pdfs':'.browser-tests/pdfs');
+const polish=process.argv.includes('--polish');
+const root=resolve(polish?'.browser-tests/polish-pdfs':studio?'.browser-tests/studio-pdfs':'.browser-tests/pdfs');
 const UPNG=UPNGModule.default;
 const files=JSON.parse(await readFile(resolve(root,'plans.json'),'utf8'));
 let checks=0, decoded=0;
 const assert=(value,message)=>{if(!value)throw new Error(message);checks++;};
-assert(new Set(files.map(f=>f.theme)).size>=(studio?4:5),'Affiches générées avec des palettes variées');
+assert(new Set(files.map(f=>f.theme)).size>=(studio||polish?4:5),'Affiches générées avec des palettes variées');
+if(polish){assert(files.length===7,'Sept scénarios polish');assert(files.filter(f=>f.kind==='poster'&&f.layout==='cards'&&f.mode==='choices'&&f.pages===1).length===2,'Trois choix sur une page : 3 et 2+1');}
 if(studio){assert(new Set(files.filter(f=>f.kind==='poster').map(f=>f.layout)).size===4,'Quatre layouts PDF');assert(files.filter(f=>f.kind==='results').length===5,'PDF résultats Synthèse/Rapport');assert(new Set(files.filter(f=>f.kind==='results').map(f=>f.theme)).size===5,'Cinq palettes résultats');}
 for(const file of files) {
   const path=resolve(root,file.name), bytes=await readFile(path), pdf=await PDFDocument.load(bytes);
@@ -29,11 +31,15 @@ for(const file of files) {
     const rgba=new Uint8Array(UPNG.toRGBA8(image)[0]);
     assert(image.width>=planWidth && image.height>=planHeight,'Raster PDF à 300 dpi');
     for(const q of qrs) {
-      const x=Math.floor(q.x/planWidth*image.width),y=Math.floor(q.y/planHeight*image.height);
-      const width=Math.ceil(q.size/planWidth*image.width)+1,height=Math.ceil(q.size/planHeight*image.height)+1;
+      // Poppler arrondit séparément les axes A4 (ex. paysage 3508×2481).
+      // Garder deux pixels de la marge blanche réelle, sans modifier les pixels
+      // ni reconstruire la matrice, évite une découpe à la limite du raster.
+      const x=Math.floor(q.x/planWidth*image.width)-2,y=Math.floor(q.y/planHeight*image.height)-2;
+      const width=Math.ceil(q.size/planWidth*image.width)+5,height=Math.ceil(q.size/planHeight*image.height)+5;
+      assert(x>=0&&y>=0&&x+width<=image.width&&y+height<=image.height,'Découpe QR complète avec sa marge réelle');
       const crop=new Uint8ClampedArray(width*height*4);
       for(let row=0;row<height;row++)crop.set(rgba.subarray(((y+row)*image.width+x)*4,((y+row)*image.width+x+width)*4),row*width*4);
-      assert(jsQR(crop,width,height)?.data===q.url,'QR réellement décodé depuis le PDF : '+file.name);decoded++;
+      assert(jsQR(crop,width,height)?.data===q.url,'QR réellement décodé depuis le PDF : '+file.name+', page '+(index+1));decoded++;
     }
   }
 }

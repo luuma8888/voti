@@ -5,6 +5,7 @@ export async function browserQrScenario() {
   const { sharingPanel } = await import('voti/web/sharing.js');
   const { createPoll, publishPoll } = await import('voti/shared/poll-engine.js');
   const { emptyState } = await import('voti/shared/model.js');
+  const {contrast}=await import('voti/web/poster-design.js');
   let checks = 0; const assert = (v, m) => { if (!v) throw new Error(m); checks++; };
   const matrix = createQrMatrix('https://luuma8888.github.io/voti/#/p/09f5d0ce-80d7-4765-a2eb-7a5a651d1f79');
   const canvas = renderQrCanvas(matrix); assert(canvas.width === matrix.size * 8 && canvas.width === canvas.height, 'Dimensions canvas QR');
@@ -19,10 +20,16 @@ export async function browserQrScenario() {
     const poll = state.polls[0]; poll.remoteRef = { relayId:'voti-test',pollId:poll.id,revision:1 };
     for(const theme of ['pop','nature','douceur','dark','minimal']) {
       document.documentElement.dataset.theme=theme;
-      const panel=sharingPanel(poll,{error:e=>{throw e;},notify:()=>{},getAdminKey:async()=>({version:1,relayId:'voti-test',pollId:poll.id,adminCapability:'voti-admin-v1.'+'a'.repeat(64)})});
+      let studioOpened=0;
+      const panel=sharingPanel(poll,{error:e=>{throw e;},notify:()=>{},openStudio:()=>studioOpened++,getAdminKey:async()=>({version:1,relayId:'voti-test',pollId:poll.id,adminCapability:'voti-admin-v1.'+'a'.repeat(64)})});
       document.body.append(panel);
       assert(panel.querySelectorAll('.qr-grid .qr-card').length===n,'Cartes de choix '+n);
+      const entries=panel.querySelectorAll('.share-shortcut');assert(entries.length===3&&entries[0].textContent.includes('Un QR pour chaque choix')&&entries[1].textContent.includes('QR des résultats')&&entries[2].textContent.includes('Créer une affiche PDF'),'Trois accès visuels');
+      entries[0].click();assert(document.activeElement.textContent==='QR par choix','Accès choix avec focus');entries[1].click();assert(document.activeElement.textContent==='QR des résultats','Accès résultats avec focus');entries[2].click();assert(studioOpened===1,'Accès Studio unique');
       for(const detail of panel.querySelectorAll('details')) detail.open=true;
+      const warning=panel.querySelector('.secret-warning'),style=getComputedStyle(warning),hex=v=>'#'+v.match(/\d+/g).slice(0,3).map(n=>Number(n).toString(16).padStart(2,'0')).join('');
+      assert(contrast(hex(style.color),hex(style.backgroundColor))>=4.5,'Contraste avertissement '+theme);
+      assert(warning.textContent.includes('Ne le partage pas publiquement')&&warning.querySelector('svg').getAttribute('aria-hidden')==='true','Avertissement explicite et icône décorative');
       assert(panel.querySelector('.secret-qr').hidden && !panel.querySelector('.secret-qr img'),'Secret caché au chargement');
       assert(panel.querySelectorAll('.qr-card .qr-destination').length===n+2,'Destination textuelle de tous les QR publics');
       assert([...panel.querySelectorAll('.qr-card img')].every(img=>img.alt && img.src.startsWith('data:')),'QR locaux avec texte alternatif');

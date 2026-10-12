@@ -1,6 +1,7 @@
-import { validateDesign, designRefs, LAYOUTS, PALETTES, TYPOGRAPHIES } from './poster-design.js';
+import { validateDesign, designRefs, LAYOUTS, PALETTES, choosePalette, customizeColor, resetPalette } from './poster-design.js';
+import { typographyChoices, focalPicker, settingsFor } from './poster-controls.js';
 import { makeStudioPlan, makeResultsPlan } from './print-layout.js';
-import { loadPrintMedia, releasePrintMedia, printMeasure, paintPrintPage, exportPrintPdf } from './print-renderer.js';
+import { loadPrintMedia, releasePrintMedia, printMeasure, paintPrintPage, exportPrintPdf, printMediaSizes } from './print-renderer.js';
 import { ImageViews, imagePicker } from './image-ui.js';
 import { downloadBlob } from './qr.js';
 import { processImage } from './image-processing.js';
@@ -17,7 +18,8 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
   const saved=repository.get(poll.remoteRef.pollId);let design=structuredClone(saved),lastSaved=saved,disposed=false,version=0,busy=0,queue=Promise.resolve();
   const choices=new Set(poll.definition.choices.map(c=>c.id));
   for(const id of Object.keys(design.media.choices))if(!choices.has(id))delete design.media.choices[id];
-  const staged=new Map(),views=new ImageViews(repository.assets),canvases=[];
+  for(const id of Object.keys(design.imageSettings))if(!['main','background'].includes(id)&&!choices.has(id))delete design.imageSettings[id];
+  const staged=new Map(),views=new ImageViews(repository.assets),focalViews=new ImageViews({get:async id=>await repository.assets.get(id)||pollAssets?.get(id)}),canvases=[],crops=[];
   let imageQueue=Promise.resolve();
   const prepareImage=(file,kind)=>{
     const task=imageQueue.then(()=>{if(disposed)throw new Error('Préparation annulée : Studio fermé.');return processImage(file,kind);});
@@ -31,8 +33,9 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
   async function draw(){
     const current=++version,snapshot=structuredClone(design),measure=printMeasure();let media;
     try {
-      const plan=makeStudioPlan(poll,snapshot,{measure:measure.measure});
       const source={get:async id=>staged.get(id)||repository.assets.get(id)};
+      const mediaSizes=await printMediaSizes(poll,snapshot,source,pollAssets);
+      const plan=makeStudioPlan(poll,snapshot,{measure:measure.measure,mediaSizes});
       media=await loadPrintMedia(plan,source,pollAssets);if(disposed||current!==version)return;
       freeCanvas();
       for(let index=0;index<plan.pages.length;index++){
@@ -40,7 +43,7 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
         canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`Aperçu ${LAYOUTS.find(l=>l[0]===snapshot.layout)[1]}, page ${index+1} sur ${plan.pages.length}`);
         paintPrintPage(canvas,plan,index,{media,logo:document.querySelector('.brand-icon')});canvases.push(canvas);sheets.append(canvas);
       }
-      status.textContent=`${plan.pages.length} page(s) A4 · aperçu réduit, PDF haute résolution au téléchargement.`;
+      status.textContent=`${plan.pages.length} page(s) A4 · aperçu réduit, PDF haute résolution au téléchargement. ${plan.warnings.join(' ')}`;
       box.dataset.previewVersion=String(current);
     } catch(e){if(!disposed&&current===version){status.textContent='Aperçu indisponible.';error(e);}}
     finally{measure.release();if(media)releasePrintMedia(media);}
@@ -54,46 +57,73 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
     queue.catch(()=>{});schedule();
   }
   const set=(key,value)=>{design[key]=value;save();};
+  const colorFields=new Map(),colorMode=node('p',null,'color-mode');colorMode.setAttribute('role','status');
+  function syncColors(){for(const [key,{input,value}] of colorFields){input.value=design.customColors[key];value.textContent=input.value;}paletteSelect.value=design.customColors.enabled?'custom':design.palette;colorMode.textContent=design.customColors.enabled?`Personnalisé · palette de référence : ${PALETTES.find(p=>p[0]===design.palette)[1]}`:`Palette ${PALETTES.find(p=>p[0]===design.palette)[1]}`;}
+  const paletteField=select('Palette',[...PALETTES.map(p=>[p[0],p[1]]),['custom','Personnalisé']],design.customColors.enabled?'custom':design.palette,v=>{if(v==='custom'){syncColors();return;}design=choosePalette(design,v);syncColors();save();});
+  const paletteSelect=paletteField.querySelector('select');
+  paletteSelect.querySelector('option[value=custom]').disabled=true;
   controls.append(select('Type d’affiche',[['access','QR d’accès'],['choices','QR par choix']],design.mode,v=>set('mode',v)),
-    select('Disposition',LAYOUTS,design.layout,v=>set('layout',v)),select('Palette',PALETTES.map(p=>[p[0],p[1]]),design.palette,v=>set('palette',v)),
-    select('Typographie',TYPOGRAPHIES.map(p=>[p[0],p[1]]),design.typography,v=>set('typography',v)));
-  const advanced=node('details',null,'advanced');advanced.append(node('summary','Options avancées'));controls.append(advanced);
-  advanced.append(check('Couleurs personnalisées',design.customColors.enabled,v=>{design.customColors.enabled=v;save();}));
+    select('Disposition',LAYOUTS,design.layout,v=>set('layout',v)),paletteField,colorMode,
+    select('Densité',[['compact','Compact'],['balanced','Équilibré'],['airy','Aéré']],design.densityPreset,v=>set('densityPreset',v)),
+    select('Choix par ligne',[['auto','Auto'],['1','1'],['2','2'],['3','3']],design.choicesPerRow,v=>set('choicesPerRow',v)),
+    select('Taille des QR',[['small','Petit'],['medium','Moyen'],['large','Grand']],design.qrSize,v=>set('qrSize',v)),
+    select('En-tête Voti',[['normal','Normal'],['discreet','Discret'],['hidden','Masqué']],design.headerMode,v=>set('headerMode',v)),
+    typographyChoices('Typographie du titre','title',design.titleTypography,v=>set('titleTypography',v)),
+    typographyChoices('Typographie du texte','body',design.bodyTypography,v=>set('bodyTypography',v)));
+  const sections=node('div',null,'studio-sections');controls.append(sections);
+  function section(title){const s=node('section',null,'studio-section');s.append(node('h2',title));sections.append(s);return s;}
+  const colors=section('Couleurs personnalisées');
+  colors.append(node('p','Principale : en-tête et accents. Secondaire : repères des choix. Fond : toute la page.','help'));
   for(const [key,label] of [['primary','Principale'],['secondary','Secondaire'],['bg','Fond']]){
     const input=node('input');input.type='color';input.value=design.customColors[key];const value=node('output',input.value);
-    input.addEventListener('input',()=>{design.customColors[key]=input.value;value.textContent=input.value;save();});const group=field(label,input);group.append(value);advanced.append(group);
+    input.addEventListener('input',()=>{design=customizeColor(design,key,input.value);syncColors();save();});const group=field(label,input);group.append(value);colors.append(group);colorFields.set(key,{input,value});
   }
-  const mediaBox=node('div');advanced.append(mediaBox);
-  function picker(label,kind,get,setId){
+  colors.append(button('Revenir à la palette',()=>{design=resetPalette(design);syncColors();save();}));syncColors();
+  const mediaBox=section('Choisir des images'),cropBox=section('Cadrage'),surfaces=section('Surfaces et lisibilité');
+  let bgFitField,bgPositionField;
+  function syncBackground(){const s=settingsFor(design,'background');if(bgFitField)bgFitField.querySelector('select').value=s.fit;if(bgPositionField)bgPositionField.querySelector('select').value=s.focalX===.5&&[0,.5,1].includes(s.focalY)?(s.focalY===0?'top':s.focalY===1?'bottom':'center'):'manual';}
+  cropBox.append(node('p','Ajoute une image pour régler sa forme et la partie visible. Chaque image a son propre cadrage.','help'));
+  mediaBox.append(node('p','Ces images personnalisent seulement l’affiche, sur cet appareil. Aucun média du Studio n’est envoyé au relais.','help'));
+  function picker(label,kind,key,get,setId){
+    let crop;
     const group=imagePicker({label,kind,getId:get,staged,views,active:()=>!disposed,prepareImage,
-      change:asset=>{if(asset)staged.set(asset.id,asset);setId(asset?.id||null);save();},busy:delta=>{busy+=delta;download.disabled=busy>0;},
+      change:asset=>{if(asset)staged.set(asset.id,asset);setId(asset?.id||null);crop.update();save();},busy:delta=>{busy+=delta;download.disabled=busy>0;},
       error,statusReady:'Image prête. Cette image personnalise seulement l’affiche.'});
     group.prepend(node('h3',label));mediaBox.append(group);
+    const effectiveId=()=>get()||(design.usePollImages?(key==='main'?poll.definition.pollImageAssetId:poll.definition.choices.find(c=>c.id===key)?.imageRef):null);
+    crop=focalPicker({label:`Cadrage : ${label}`,getId:effectiveId,getSettings:()=>settingsFor(design,key),views:focalViews,staged,allowRatio:key!=='background',
+      change:(settings,commit)=>{design.imageSettings[key]=settings;if(key==='background'){design.background.fit=settings.fit;syncBackground();}if(commit)save();else schedule();}});
+    crops.push(crop);cropBox.append(crop.element);
   }
-  picker('Image de fond d’affiche','poll',()=>design.background.assetId,id=>design.background.assetId=id);
-  advanced.append(select('Mode du fond',[['cover','Remplir'],['contain','Ajuster']],design.background.fit,v=>{design.background.fit=v;save();}),
-    select('Position du fond',[['top','Haut'],['center','Centre'],['bottom','Bas']],design.background.position,v=>{design.background.position=v;save();}),
+  picker('Image de fond d’affiche','poll','background',()=>design.background.assetId,id=>design.background.assetId=id);
+  bgFitField=select('Mode du fond',[['cover','Remplir'],['contain','Ajuster']],design.background.fit,v=>{design.background.fit=v;design.imageSettings.background={...settingsFor(design,'background'),fit:v};crops[0].update();syncBackground();save();});
+  bgPositionField=select('Position du fond',[['top','Haut'],['center','Centre'],['bottom','Bas'],['manual','Point manuel']],design.background.position,v=>{if(v==='manual')return;design.background.position=v;design.imageSettings.background={...settingsFor(design,'background'),focalX:.5,focalY:v==='top'?0:v==='bottom'?1:.5};crops[0].update();syncBackground();save();});
+  syncBackground();
+  surfaces.append(bgFitField,bgPositionField,
     select('Voile du fond',[['light','Clair'],['dark','Sombre']],design.background.veil,v=>{design.background.veil=v;save();}));
   const intensity=node('input');intensity.type='range';intensity.min='0';intensity.max='60';intensity.step='5';intensity.value=design.background.intensity*100;
   const intensityValue=node('output',intensity.value+' %');intensity.addEventListener('input',()=>{design.background.intensity=Number(intensity.value)/100;intensityValue.textContent=intensity.value+' %';save();});
-  const range=field('Intensité de l’image de fond',intensity);range.append(intensityValue);advanced.append(range);
-  advanced.append(check('Utiliser les images du sondage disponibles sur cet appareil',design.usePollImages,v=>set('usePollImages',v)),
+  const range=field('Intensité de l’image de fond',intensity);range.append(intensityValue);surfaces.append(range,
+    select('Surface QR',[['large','Large'],['compact','Compacte'],['minimal','Minimal']],design.qrSurfaceMode,v=>set('qrSurfaceMode',v)),
+    select('Fond des textes',[['1','Opaque'],['0.85','Doux'],['0.65','Transparent renforcé']],String(design.textSurfaceOpacity),v=>set('textSurfaceOpacity',Number(v))));
+  mediaBox.append(check('Utiliser les images du sondage disponibles sur cet appareil',design.usePollImages,v=>{design.usePollImages=v;for(const c of crops)c.update();save();}),
     node('p','Cette image personnalise seulement l’affiche. Aucun média du Studio n’est envoyé au relais.','help'));
-  picker('Image principale d’affiche','poll',()=>design.media.main,id=>design.media.main=id);
-  for(const choice of poll.definition.choices)picker(`Image d’affiche : ${choice.label}`,'choice',()=>design.media.choices[choice.id]||null,id=>{if(id)design.media.choices[choice.id]=id;else delete design.media.choices[choice.id];});
+  picker('Image principale d’affiche','poll','main',()=>design.media.main,id=>design.media.main=id);
+  for(const choice of poll.definition.choices)picker(`Image d’affiche : ${choice.label}`,'choice',choice.id,()=>design.media.choices[choice.id]||null,id=>{if(id)design.media.choices[choice.id]=id;else delete design.media.choices[choice.id];});
   const download=button('Télécharger le PDF',async()=>{
     if(download.disabled)return;download.disabled=true;let media;const measure=printMeasure();
     try {await queue;if(disposed)return;
       // Relire la présence/les textes publics au téléchargement, jamais republier.
       const current=await refreshPoll();if(disposed)return;
-      const plan=makeStudioPlan(current,validateDesign(design),{measure:measure.measure});media=await loadPrintMedia(plan,repository.assets,pollAssets);
+      const mediaSizes=await printMediaSizes(current,design,repository.assets,pollAssets);
+      const plan=makeStudioPlan(current,validateDesign(design),{measure:measure.measure,mediaSizes});media=await loadPrintMedia(plan,repository.assets,pollAssets);
       const result=await exportPrintPdf(plan,{media,logo:document.querySelector('.brand-icon')});
       if(!disposed){downloadBlob(new Blob([result.bytes],{type:'application/pdf'}),`voti-affiche-${poll.remoteRef.pollId}-${design.mode}.pdf`);notify(`Affiche prête : ${plan.pages.length} page(s).`);}
     }catch(e){if(!disposed)error(e);}finally{if(media)releasePrintMedia(media);measure.release();download.disabled=busy>0;}
   });download.className='primary';controls.append(download,node('p','Design et médias d’affiche locaux, exclus de la sauvegarde générale. Le stockage du navigateur peut être effacé.','help'));
   const reset=button('Réinitialiser le design et retirer ses images',async()=>{if(reset.disabled)return;reset.disabled=true;try{await queue;await repository.remove(poll.remoteRef.pollId);onReset();notify('Design réinitialisé. Images affiche-only retirées si elles ne sont plus partagées.');}catch(e){error(e);}finally{reset.disabled=false;}});
-  advanced.append(reset);if(JSON.stringify(design)!==JSON.stringify(saved))save();else schedule();
-  return {element:box,dispose:()=>{disposed=true;version++;freeCanvas();for(const url of views.urls.values())URL.revokeObjectURL(url);views.urls.clear();staged.clear();}};
+  controls.append(reset);if(JSON.stringify(design)!==JSON.stringify(saved))save();else schedule();
+  return {element:box,dispose:()=>{disposed=true;version++;freeCanvas();for(const crop of crops)crop.dispose();for(const v of [views,focalViews]){for(const url of v.urls.values())URL.revokeObjectURL(url);v.urls.clear();}staged.clear();}};
 }
 
 /** Disponible sur la vue résultats, jamais alimenté par des bulletins. */
@@ -101,15 +131,18 @@ export function resultsPdfPanel(poll,result,{repository,pollAssets,refreshPoll,e
   const box=node('details',null,'results-pdf advanced');box.append(node('summary','Télécharger les résultats en PDF'));
   let design=repository.get(poll.id||poll.remoteRef.pollId),style='summary',usePosterMedia=false;
   box.append(select('Présentation',[['summary','Synthèse'],['report','Rapport']],style,v=>style=v),
-    select('Palette du PDF',PALETTES.map(p=>[p[0],p[1]]),design.palette,v=>design.palette=v),
-    select('Typographie du PDF',TYPOGRAPHIES.map(p=>[p[0],p[1]]),design.typography,v=>design.typography=v),
+    select('Palette du PDF',PALETTES.map(p=>[p[0],p[1]]),design.palette,v=>design=resetPalette(choosePalette(design,v))),
+    typographyChoices('Typographie du titre','title',design.titleTypography,v=>design.titleTypography=v),
+    typographyChoices('Typographie du texte','body',design.bodyTypography,v=>design.bodyTypography=v),
+    select('En-tête Voti',[['normal','Normal'],['discreet','Discret'],['hidden','Masqué']],design.headerMode,v=>design.headerMode=v),
     check('Inclure les images du sondage disponibles localement',design.usePollImages,v=>design.usePollImages=v),
     check('Inclure aussi les images affiche-only de ce Studio',false,v=>usePosterMedia=v));
   const download=button('Télécharger les résultats en PDF',async()=>{
     if(download.disabled)return;download.disabled=true;let media;const measure=printMeasure();
     try{
       const fresh=await refreshPoll();if(!download.isConnected)return;
-      const plan=makeResultsPlan(fresh.poll,fresh.results,design,{style,usePosterMedia,measure:measure.measure});
+      const mediaSizes=await printMediaSizes(fresh.poll,design,repository.assets,pollAssets);
+      const plan=makeResultsPlan(fresh.poll,fresh.results,design,{style,usePosterMedia,measure:measure.measure,mediaSizes});
       media=await loadPrintMedia(plan,repository.assets,pollAssets);const file=await exportPrintPdf(plan,{media,logo:document.querySelector('.brand-icon')});
       if(download.isConnected){downloadBlob(new Blob([file.bytes],{type:'application/pdf'}),`voti-resultats-${poll.id||poll.remoteRef.pollId}.pdf`);notify('PDF généré à partir des résultats disponibles au moment de l’export.');}
     }catch(e){if(download.isConnected)error(e);}finally{if(media)releasePrintMedia(media);measure.release();download.disabled=result.available!==true;}

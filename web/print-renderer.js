@@ -2,6 +2,14 @@ import { PDFDocument } from '../vendor/pdf.js';
 import { imageCrop, readableText } from './poster-design.js';
 import { drawQr } from './qr.js';
 import { validateAsset } from '../shared/assets.js';
+import { designRefs } from './poster-design.js';
+
+/** Métadonnées locales pour le ratio Original, sans décodage ni appel réseau. */
+export async function printMediaSizes(poll,design,posterAssets,pollAssets) {
+  const ids=new Set([...designRefs(design),poll.definition.pollImageAssetId,...poll.definition.choices.map(c=>c.imageRef)].filter(Boolean)),sizes={};
+  for(const id of ids){const a=await posterAssets?.get(id)||await pollAssets?.get(id);if(a)sizes[id]={width:a.width,height:a.height};}
+  return sizes;
+}
 
 /** Décodage de références locales uniquement. Pas de fetch ni d'URL externe. */
 export async function loadPrintMedia(plan,posterAssets,pollAssets) {
@@ -19,7 +27,8 @@ export function releasePrintMedia(media) { for(const bitmap of media.values())bi
 function rounded(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r);}
 function paintImage(c,image,node) {
   if(!image)return;
-  const crop=imageCrop(image.width,image.height,node.width,node.height,node.fit,node.position);
+  const focal=Number.isFinite(node.focalX)?{focalX:node.focalX,focalY:node.focalY}:undefined;
+  const crop=imageCrop(image.width,image.height,node.width,node.height,node.fit,node.position,focal);
   c.save();rounded(c,node.x,node.y,node.width,node.height,node.radius||0);c.clip();
   c.drawImage(image,node.x+crop.x,node.y+crop.y,crop.width,crop.height);c.restore();
 }
@@ -29,15 +38,15 @@ export function paintPrintPage(canvas,plan,index,{media=new Map(),logo}={}) {
   c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,canvas.width,canvas.height);c.scale(scale,scale);
   c.fillStyle=palette.bg;c.fillRect(0,0,plan.width,plan.height);
   const bg=plan.design.background,image=media.get(bg.assetId);
-  if(image){c.globalAlpha=bg.intensity;paintImage(c,image,{x:0,y:0,width:plan.width,height:plan.height,fit:bg.fit,position:bg.position});c.globalAlpha=1;
+  if(image){c.globalAlpha=bg.intensity;paintImage(c,image,{x:0,y:0,width:plan.width,height:plan.height,fit:bg.fit,position:bg.position,...plan.design.imageSettings?.background});c.globalAlpha=1;
     c.fillStyle=bg.veil==='dark'?'rgba(0,0,0,.18)':'rgba(255,255,255,.18)';c.fillRect(0,0,plan.width,plan.height);}
   for(const n of plan.pages[index].nodes){
-    if(n.type==='surface'){c.fillStyle=palette[n.color];rounded(c,n.x,n.y,n.width,n.height,n.radius);c.fill();}
+    if(n.type==='surface'){c.globalAlpha=n.opacity??1;c.fillStyle=palette[n.color];rounded(c,n.x,n.y,n.width,n.height,n.radius);c.fill();c.globalAlpha=1;}
     if(n.type==='image'){c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';paintImage(c,media.get(n.id),n);}
     if(n.type==='logo'&&logo?.naturalWidth)c.drawImage(logo,n.x,n.y,n.width,n.height);
     if(n.type==='text'){
       const color=n.color==='onPrimary'?readableText(palette.primary):n.color==='onSecondary'?readableText(palette.secondary):palette[n.color];
-      c.fillStyle=color;c.font=`${n.weight} ${n.font}px ${plan.family}`;c.textBaseline='top';
+      c.fillStyle=color;c.font=`${n.weight} ${n.font}px ${n.family||plan.family}`;c.textBaseline='top';
       n.lines.forEach((line,i)=>c.fillText(line,n.x,n.y+i*Math.ceil(n.font*1.28)));
     }
     if(n.type==='bar'){c.fillStyle=palette.bg;rounded(c,n.x,n.y,n.width,n.height,12);c.fill();c.fillStyle=palette.bar;if(n.value>0){rounded(c,n.x,n.y,n.width*n.value,n.height,12);c.fill();}}

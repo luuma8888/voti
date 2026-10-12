@@ -38,8 +38,11 @@ Sondage ouvert : « Résultats au moment de l’export. » Sondage fermé :
 « État final connu. » Aucune certification ou garantie officielle ajoutée.
 Le document exporté est un instantané ; il ne se met pas à jour après de nouveaux votes.
 
-Huit palettes et quatre typographies du Studio réutilisées. Les médias métier
-locaux sont optionnels ; l’inclusion des médias affiche-only demande un opt-in
+Huit palettes et quatre typographies du Studio réutilisées dans la fondation v0.4B.
+Depuis v0.4C, les piles titre/corps sont distinctes (six/quatre styles) et
+l’en-tête peut être Normal/Discret/Masqué ; les mêmes agrégats et règles restent
+appliqués, sans refonte de Synthèse/Rapport.
+Les médias métier locaux sont optionnels ; l’inclusion des médias affiche-only demande un opt-in
 distinct, désactivé par défaut. L’absence d’une image locale ne bloque pas le texte
 et les chiffres. Aucun média n’est envoyé au relais ; R2 reste désactivé.
 

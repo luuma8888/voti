@@ -18,7 +18,8 @@ import { exportAdminKey, importAdminKey, parseAdminKey } from '../shared/admin-k
 import { confirmAction } from './confirmation.js';
 import { consumeAdminFragment } from './admin-transfer.js';
 import { decodeAdminPayload, buildPollUrl, buildChoiceUrl } from '../shared/qr-links.js';
-import { sharingPanel } from './sharing.js';
+import { sharingPanel, secretWarning } from './sharing.js';
+import { PollContexts } from './poll-context.js';
 import { publicPollRoute } from '../shared/relay.js';
 import { PosterRepository } from './poster-storage.js';
 import { posterStudio, resultsPdfPanel } from './poster-studio.js';
@@ -102,6 +103,8 @@ const libraryView = { search: '', filter: 'all', sort: 'recent' };
 const assets = new IndexedDBAssetAdapter();
 const posterAssets = new IndexedDBAssetAdapter(indexedDB, assetDatabaseName() + ':poster');
 const posters = new PosterRepository(localStorage, posterAssets, navigator.locks);
+const contexts = new PollContexts(localStorage);
+function contextLabel(id){try{return contexts.label(id,bindings.get(id));}catch{return bindings.has(id)?'En ligne':'Local · repères indisponibles';}}
 const images = new ImageViews(assets);
 let repository;
 let state;
@@ -248,7 +251,7 @@ function adminTransfer() {
     finally { accept.disabled = false; if (accept.isConnected && location.hash === '#admin-transfer') accept.focus({ preventScroll: true }); }
   }, 'primary');
   const cancel = button('Annuler', () => { pendingAdminPayload = null; key = null; navigate('#home'); });
-  card.append(el('p', 'SECRET — Cette clé permet d’administrer ce sondage. Toute personne qui la possède peut le modifier ou le supprimer.'),
+  card.append(secretWarning(),
     el('p', 'Rien n’est importé automatiquement. Le relais vérifiera la clé après votre confirmation.'), actions(cancel, accept));
   app.append(card);
 }
@@ -322,7 +325,7 @@ function home() {
         el('time', new Date(entry.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }), { datetime: entry.createdAt }));
       if (Object.hasOwn(entry, 'responseCount')) metadata.append(el('span', `${entry.responseCount} réponses`));
       info.append(metadata, el('p', entry.available ? 'Résultats disponibles' : 'Résultats verrouillés', { class: `result-state ${entry.available ? 'available' : ''}` }));
-      if (bindings.has(entry.id)) metadata.append(el('span', 'En ligne', { class: 'badge' }));
+      metadata.append(el('span', contextLabel(entry.id), { class: 'badge context-badge' }));
       const controls = actions(...entry.actions.map(action => {
         if (action.operation === 'publish') {
           const publish = button(action.label, () => transact(publish, current => publishPoll(current, entry.id)), 'primary');
@@ -406,7 +409,7 @@ function management(id) {
   heading(poll.definition.question);
   const card = el('section', null, { class: 'card', 'data-accent': poll.style.themeId });
   card.append(questionBlock(poll));
-  append(card, el('span', statusLabel(poll), { class: `badge status-${poll.status}` }),
+  append(card, el('span', statusLabel(poll), { class: `badge status-${poll.status}` }), el('span',contextLabel(id),{class:'badge context-badge'}),
     el('p', poll.lockedAt ? 'Le premier vote a verrouillé la question, les choix et les règles. Vous pouvez encore changer l’apparence.' : 'Vous pouvez modifier la question, les choix et les règles avant le premier vote.'),
     choiceSummary(poll.definition.choices));
   const controls = [];
@@ -443,7 +446,7 @@ function management(id) {
       if (!await confirmAction({ trigger: remove, title: 'Supprimer définitivement ce sondage ?', danger: true,
         description: 'Le sondage en ligne, ses votes et ses éventuelles images distantes seront supprimés. Les liens publics ne fonctionneront plus. La copie locale sans votes distants sera conservée.',
         actionLabel: 'Supprimer définitivement' })) return;
-      remoteAction(remove, () => relay.deletePoll(id), async () => { remoteViews.delete(id); navigate('#home'); notify('Sondage supprimé du relais. La copie locale est conservée.'); });
+      remoteAction(remove, () => relay.deletePoll(id), async () => { remoteViews.delete(id);try{contexts.markDeleted(id);}catch{notify('Sondage supprimé. Le repère de copie locale n’a pas pu être conservé.');}navigate('#home'); notify('Sondage supprimé du relais. La copie locale est conservée, sans ses votes distants.'); });
     }, 'danger');
     card.append(el('p', 'Cette clé permet d’administrer ce sondage. Toute personne qui la possède peut le modifier ou le supprimer. Conservez-la en lieu sûr.', { class: 'help' }),
       actions(keyExport, remove), adminKeyImport(id));

@@ -1,5 +1,10 @@
 # Voti
 
+Studio v0.4C : couleurs palette/personnalisé synchronisées, typographies
+titre/corps prévisualisées, densité/QR, surfaces et cadrage focal local.
+Guide : `docs/POSTER_STUDIO_POLISH_V0.md`. Après `npm run test:browser`,
+`npm run test:poster-polish` vérifie les nouveaux PDF avec Poppler et jsQR.
+
 Le **pilote textuel v0.3D est validé par la recette Chromebook ↔ téléphone de
 Lu’uma** : publication Turnstile réelle, vote, seuil, verrouillage, style,
 fermeture, transfert de clé et suppression. Le site est publié sur

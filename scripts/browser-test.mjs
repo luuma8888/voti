@@ -473,8 +473,9 @@ try {
       const main = getComputedStyle(document.querySelector('main')).backgroundColor;
       if (header === main || main === getComputedStyle(document.body).backgroundColor) throw new Error('Surfaces non distinctes : '+mode);
       if (getComputedStyle(document.querySelector('.main-nav a[href="#new"]')).outlineColor !== 'rgb('+style.getPropertyValue('--focus').trim().slice(1).match(/../g).map(x=>parseInt(x,16)).join(', ')+')') throw new Error('Focus hors palette : '+mode);
-      if (![...document.querySelectorAll('.poll-row .badge')].every(node => ['Brouillon','Ouvert','Fermé'].includes(node.textContent))) throw new Error('Badge sans texte : '+mode);
-      checks += 3;
+      if (![...document.querySelectorAll('.poll-row .badge:not(.context-badge)')].every(node => ['Brouillon','Ouvert','Fermé'].includes(node.textContent))) throw new Error('Badge sans texte : '+mode);
+      if (![...document.querySelectorAll('.poll-row .context-badge')].every(node => node.textContent==='Local')) throw new Error('Contexte local absent : '+mode);
+      checks += 4;
     }
     document.documentElement.dataset.theme = 'nature';
     return checks;
@@ -543,6 +544,21 @@ try {
       const {base64,...metadata}=file;files.push(metadata);await writeFile(resolve(ROOT,'.browser-tests/studio-pdfs',file.name),Buffer.from(base64,'base64'));
     }
     await writeFile(resolve(ROOT,'.browser-tests/studio-pdfs/plans.json'),JSON.stringify(files));
+    const polishFiles=[];await mkdir(resolve(ROOT,'.browser-tests/polish-pdfs'),{recursive:true});
+    const cases=[
+      ['cards','choices',3,'poster',{choicesPerRow:'3',densityPreset:'compact',qrSize:'small',qrSurfaceMode:'minimal',headerMode:'hidden',textSurfaceOpacity:.65,titleTypography:'handwritten',bodyTypography:'modern'}],
+      ['cards','choices',3,'poster',{choicesPerRow:'2',densityPreset:'compact',qrSize:'small',qrSurfaceMode:'compact',headerMode:'discreet',textSurfaceOpacity:.85,titleTypography:'editorial',bodyTypography:'soft',palette:'night'}],
+      ['essential','access',3,'poster',{choicesPerRow:'3',densityPreset:'compact',qrSize:'small',qrSurfaceMode:'minimal',headerMode:'hidden',textSurfaceOpacity:.65,titleTypography:'fantasy',bodyTypography:'display'}],
+      ['magazine','choices',6,'poster',{densityPreset:'airy',qrSize:'large',qrSurfaceMode:'large',titleTypography:'display',bodyTypography:'editorial'}],
+      ['mosaic','choices',6,'poster',{choicesPerRow:'3',qrSurfaceMode:'compact',textSurfaceOpacity:.65,titleTypography:'modern',bodyTypography:'modern'}],
+      ['essential','choices',3,'poster',{choicesPerRow:'1',headerMode:'discreet',qrSurfaceMode:'minimal',textSurfaceOpacity:.65,titleTypography:'soft',bodyTypography:'soft'}],
+      ['cards','report',6,'results',{headerMode:'hidden',titleTypography:'fantasy',bodyTypography:'display',customColors:{enabled:true,primary:'#ffff00',secondary:'#ffcc00',bg:'#202638'}}],
+    ];
+    for(const [layout,mode,n,kind,options] of cases){
+      const file=await evaluate(sessionId,`(${browserStudioPdfScenario.toString()})(${JSON.stringify(layout)},${JSON.stringify(mode)},${n},${JSON.stringify(kind)},false,${JSON.stringify(options)})`);
+      const {base64,...metadata}=file;polishFiles.push(metadata);await writeFile(resolve(ROOT,'.browser-tests/polish-pdfs',file.name),Buffer.from(base64,'base64'));
+    }
+    await writeFile(resolve(ROOT,'.browser-tests/polish-pdfs/plans.json'),JSON.stringify(polishFiles));
   }
   await navigateReady(sessionId, offlineUrl);
   await evaluate(sessionId, `(async () => {
@@ -729,6 +745,7 @@ try {
     for(const width of [320,360,1200]) {
       await command('Emulation.setDeviceMetricsOverride',{width,height:820,deviceScaleFactor:1,mobile:width<680},sessionId);
       if(!await evaluate(sessionId,`document.querySelectorAll('.qr-grid .qr-card').length===${closedPoll.definition.choices.length} && document.querySelector('.secret-qr').hidden && !document.querySelector('.secret-qr img') && document.documentElement.scrollWidth<=innerWidth && [...document.querySelectorAll('.qr-destination')].every(a=>a.href.startsWith('https://luuma8888.github.io/voti/#/p/'))`))throw new Error('Centre de partage incorrect');relayChecks++;
+      if(!await evaluate(sessionId,"document.querySelectorAll('.share-shortcut').length===3 && document.querySelector('.secret-warning').textContent.includes('Ne le partage pas publiquement') && document.querySelector('.secret-warning svg').getAttribute('aria-hidden')==='true' && [...document.querySelectorAll('.share-shortcut')].every(b=>b.getBoundingClientRect().height>=44)"))throw new Error('Actions partage/avertissement secret incorrects');relayChecks++;
     }
     const shareCapture=await command('Page.captureScreenshot',{format:'png'},sessionId);await writeFile(resolve(ROOT,'.browser-tests/v04a-sharing.png'),Buffer.from(shareCapture.data,'base64'));
     await navigateReady(sessionId,servedUrl+'?admin-back='+crypto.randomUUID()+'#poll/'+id);
@@ -761,6 +778,10 @@ try {
     if(requestCount(sessionId,'DELETE',`/polls/${id}`)!==deleteBefore)throw new Error('Suppression annulée envoie une requête');relayChecks++;
     relayChecks += await evaluate(sessionId, `(${browserDelete.toString()})(${JSON.stringify(id)})`);
     if(requestCount(sessionId,'DELETE',`/polls/${id}`)!==deleteBefore+1)throw new Error('Suppression confirmée : nombre de requêtes incorrect');relayChecks++;
+    // browserDelete termine volontairement sur l'ancien lien public NOT_FOUND.
+    // Relire l'accueil réel avant d'inspecter la copie locale conservée.
+    await navigateReady(sessionId,servedUrl+'?deleted-copy='+crypto.randomUUID()+'#home');
+    if(!await evaluate(sessionId,`document.querySelector('[data-poll-id="${id}"] .context-badge')?.textContent==='Copie locale · ancien lien supprimé'`))throw new Error('Copie supprimée sans contexte local clair');relayChecks++;
     for(const suffix of ['', '/results', '/choice/'+closedPoll.definition.choices[0].id]) {
       await navigateAndWait(command,events,voter.sessionId,servedUrl+'?deleted='+crypto.randomUUID()+'#/p/'+id+suffix);
       if(!await evaluate(voter.sessionId,`(async()=>{const end=performance.now()+10000;while(!document.getElementById('app')?.textContent.includes('Impossible d’ouvrir') || document.getElementById('app').getAttribute('aria-busy')!=='false'){if(performance.now()>end)throw new Error('Sondage supprimé QR non refusé');await new Promise(requestAnimationFrame);}return !document.querySelector('.vote-choices');})()`))throw new Error('QR supprimé permet un vote');relayChecks++;

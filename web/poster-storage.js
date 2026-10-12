@@ -14,7 +14,7 @@ export class PosterRepository {
     object(data,['formatVersion','designs'],'Affiches');
     ensure(data.formatVersion===1,'Version de stockage des affiches inconnue.');
     ensure(data.designs&&Object.getPrototypeOf(data.designs)===Object.prototype&&Object.keys(data.designs).length<=200,'Bibliothèque d’affiches invalide.');
-    for(const [id,design] of Object.entries(data.designs)){ensure(isUuid(id),'Sondage d’affiche invalide.');validateDesign(design);}
+    for(const [id,design] of Object.entries(data.designs)){ensure(isUuid(id),'Sondage d’affiche invalide.');data.designs[id]=validateDesign(design);}
     return data;
   }
   get(id) { ensure(isUuid(id),'Sondage invalide.'); return structuredClone(this.read().designs[id]||defaultDesign()); }

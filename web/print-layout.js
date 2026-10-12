@@ -3,7 +3,7 @@ import { validateDefinition } from '../shared/validation.js';
 import { isPublicPollId } from '../shared/relay.js';
 import { buildPollUrl, buildChoiceUrl, buildResultsUrl } from '../shared/qr-links.js';
 import { createQrMatrix } from './qr.js';
-import { validateDesign, designPalette, TYPOGRAPHIES } from './poster-design.js';
+import { validateDesign, designPalette, TITLE_TYPOGRAPHIES, BODY_TYPOGRAPHIES, safeSurfaceOpacity, defaultImageSettings } from './poster-design.js';
 
 export const PRINT_WIDTH=2480, PRINT_HEIGHT=3508;
 const PAD=140;
@@ -29,108 +29,148 @@ function publicContent(poll) {
     choices:poll.definition.choices.map(c=>({id:c.id,label:c.label,imageRef:c.imageRef})),
     imageRef:poll.definition.pollImageAssetId};
 }
-function basePlan(poll,design,measure) {
+function basePlan(poll,design,measure,mediaSizes={}) {
   const d=validateDesign(design),content=publicContent(poll);
   const landscape=d.layout==='mosaic';
   const width=landscape?PRINT_HEIGHT:PRINT_WIDTH,height=landscape?PRINT_WIDTH:PRINT_HEIGHT;
-  const family=TYPOGRAPHIES.find(t=>t[0]===d.typography)[2];
-  const font=d.typography==='display'?80:d.typography==='editorial'?78:d.typography==='soft'?74:76;
+  const family=BODY_TYPOGRAPHIES.find(t=>t[0]===d.bodyTypography)[2],titleFamily=TITLE_TYPOGRAPHIES.find(t=>t[0]===d.titleTypography)[2];
+  const spacing={compact:24,balanced:32,airy:48}[d.densityPreset],font={compact:64,balanced:72,airy:80}[d.densityPreset];
   const text=(value,w,size=44,weight=400)=>wrapPrintText(value,w,t=>measure(t,size,weight,family));
-  const plan={width,height,pages:[],palette:designPalette(d),family,design:d,content};
+  const palette=designPalette(d),opacity=safeSurfaceOpacity(palette.surface,palette.text,d.textSurfaceOpacity);
+  if(opacity<1)palette.accentText=palette.text;
+  const plan={width,height,pages:[],palette,family,titleFamily,design:d,content,warnings:[],surfaceOpacity:opacity};
+  if(opacity>d.textSurfaceOpacity+.001)plan.warnings.push('Voile des textes renforcé automatiquement pour conserver un contraste sûr.');
   const page=()=>({nodes:[],qrs:[],items:[]});
-  function words(p,value,x,y,w,size=44,weight=400,color='text') {
-    const lines=text(value,w,size,weight);p.nodes.push({type:'text',lines,x,y,width:w,font:size,weight,color});
+  function words(p,value,x,y,w,size=44,weight=400,color='text',fontFamily=family) {
+    const lines=wrapPrintText(value,w,t=>measure(t,size,weight,fontFamily));p.nodes.push({type:'text',lines,x,y,width:w,font:size,weight,color,family:fontFamily});
     return lines.length*Math.ceil(size*1.28);
   }
-  function surface(p,x,y,w,h,color='surface',radius=32){p.nodes.push({type:'surface',x,y,width:w,height:h,color,radius});}
-  function image(p,id,x,y,w,h,fit='cover',position='center'){if(id)p.nodes.push({type:'image',id,x,y,width:w,height:h,fit,position,radius:28});}
-  function qr(p,url,x,y,maxSize,kind){const matrix=createQrMatrix(url),pixels=Math.floor(maxSize/matrix.size);ensure(pixels>=5,'QR trop dense.');const q={url,x:Math.round(x),y:Math.round(y),size:matrix.size*pixels,pixels,matrix,kind};p.qrs.push(q);return q;}
+  function surface(p,x,y,w,h,color='surface',radius=32){p.nodes.push({type:'surface',x,y,width:w,height:h,color,radius,opacity:color==='surface'?opacity:1});}
+  function image(p,id,x,y,w,h,fit='cover',position='center',key='main'){
+    if(!id)return;const s=d.imageSettings[key]||{...defaultImageSettings(),fit,focalY:position==='top'?0:position==='bottom'?1:.5};
+    const dimensions=mediaSizes[id],ratio=s.ratio==='original'?(dimensions?dimensions.width/dimensions.height:w/h):s.ratio.split(':').map(Number).reduce((a,b)=>a/b);
+    const frameWidth=Math.min(w,h*ratio),frameHeight=frameWidth/ratio;
+    p.nodes.push({type:'image',id,x:x+(w-frameWidth)/2,y:y+(h-frameHeight)/2,width:frameWidth,height:frameHeight,fit:s.fit,position,radius:28,focalX:s.focalX,focalY:s.focalY});
+  }
+  function qr(p,url,x,y,maxSize,kind){const matrix=createQrMatrix(url),pixels=Math.floor(maxSize/matrix.size);ensure(pixels>=5&&pixels*matrix.size>=400,'QR trop dense : agrandis la zone ou réduis le nombre de choix par ligne.');const q={url,x:Math.round(x),y:Math.round(y),size:matrix.size*pixels,pixels,matrix,kind};
+    const margin={large:30,compact:20,minimal:8}[d.qrSurfaceMode];surface(p,q.x-margin,q.y-margin,q.size+margin*2,q.size+margin*2,'qrSurface',12);p.qrs.push(q);return q;}
   function header(p,continued=false) {
-    surface(p,PAD,140,width-PAD*2,170,'primary',28);
-    words(p,'Voti · Choisir ensemble, simplement.',PAD+40,195,width-PAD*2-180,40,700,'onPrimary');
-    p.nodes.push({type:'logo',x:width-PAD-100,y:185,width:70,height:70});
-    const titleFont=continued?Math.min(font,60):font,titleWeight=d.typography==='display'?800:d.typography==='soft'?600:700;
-    let y=365;const h=words(p,content.question,PAD+36,y,width-PAD*2-72,titleFont,titleWeight);
-    surface(p,PAD,325,width-PAD*2,h+70);const title=p.nodes.splice(p.nodes.length-2,1)[0];p.nodes.push(title);y+=h+48;
+    let y=180;
+    if(d.headerMode!=='hidden'){
+      const small=d.headerMode==='discreet',height=small?80:145;
+      surface(p,PAD,140,width-PAD*2,height,'primary',24);
+      words(p,small?'Voti':'Voti · Choisir ensemble, simplement.',PAD+35,small?160:180,width-PAD*2-150,small?32:40,700,'onPrimary');
+      p.nodes.push({type:'logo',x:width-PAD-90,y:small?156:170,width:small?42:65,height:small?42:65});y=140+height+spacing+25;
+    }
+    const titleFont=continued?Math.min(font,58):font,titleWeight=d.titleTypography==='display'?800:700;
+    const h=words(p,content.question,PAD+36,y,width-PAD*2-72,titleFont,titleWeight,'text',titleFamily);
+    surface(p,PAD,y-20,width-PAD*2,h+40);const title=p.nodes.splice(p.nodes.length-2,1)[0];p.nodes.push(title);y+=h+spacing+30;
+    surface(p,PAD,y-h-spacing-50,10,h+40,'primary',6);
     if(!continued&&content.description){const h=words(p,content.description,PAD+36,y,width-PAD*2-72,38);surface(p,PAD,y-22,width-PAD*2,h+40);const t=p.nodes.splice(p.nodes.length-2,1)[0];p.nodes.push(t);y+=h+65;}
     return y;
   }
-  return {plan,content,text,words,surface,image,qr,page,header};
+  return {plan,content,text,words,surface,image,qr,page,header,spacing};
 }
 
-export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].length*size*.6}={}) {
+export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].length*size*.6,mediaSizes={}}={}) {
   const id=poll.remoteRef?.pollId;
   ensure(isPublicPollId(id)&&poll.remoteRef.revision>0,'Publie d’abord ce sondage en ligne pour créer ses QR de partage.');
-  const tools=basePlan(poll,design,measure),{plan,content,text,words,surface,image,qr,page,header}=tools;
+  const tools=basePlan(poll,design,measure,mediaSizes),{plan,content,text,words,surface,image,qr,page,header,spacing}=tools;
   const {width:w,height:h}=plan;const d=plan.design,main=d.media.main||(d.usePollImages?content.imageRef:null);
   plan.kind='poster';plan.mode=d.mode;plan.pollId=id;plan.accessUrl=buildPollUrl(id,baseUrl);
-  const limit=h-650;
+  const footerHeight=550,limit=h-footerHeight-40;
   let p=page(),y=header(p);
   function finish() {
-    surface(p,PAD,h-625,w-PAD*2,500);
-    words(p,d.mode==='choices'?'Ce QR ouvre directement la confirmation de ce choix. Le vote n’est envoyé qu’après validation.':'Scanne pour participer.',PAD+35,h-585,w-PAD*2-520,36,700);
-    words(p,'Voir les résultats',PAD+35,h-425,w-PAD*2-540,38,700,'accentText');
-    words(p,buildResultsUrl(id,baseUrl),PAD+35,h-360,w-PAD*2-550,28);
-    qr(p,buildResultsUrl(id,baseUrl),w-PAD-470,h-585,440,'results');
+    surface(p,PAD,h-footerHeight,w-PAD*2,footerHeight-105);
+    const q=qr(p,buildResultsUrl(id,baseUrl),w-PAD-440,h-footerHeight+30,430,'results');
+    // Un vrai minimum physique, pas une réduction silencieuse au profit du texte.
+    ensure(q.y+q.size<h-80,'QR résultats hors page.');
+    words(p,d.mode==='choices'?'Ce QR ouvre directement la confirmation de ce choix. Le vote n’est envoyé qu’après validation.':'Scanne pour participer.',PAD+35,h-footerHeight+30,w-PAD*2-540,32,700);
+    words(p,'Voir les résultats',PAD+35,h-footerHeight+180,w-PAD*2-540,36,700,'accentText');
+    words(p,buildResultsUrl(id,baseUrl),PAD+35,h-footerHeight+240,w-PAD*2-550,26);
     surface(p,PAD,h-80,w-PAD*2,65);
     words(p,`A4 · Imprimer à 100 % · ${plan.pages.length+1}`,PAD+20,h-65,w-PAD*2-40,28);
     plan.pages.push(p);ensure(plan.pages.length<=8,'Affiche trop longue.');
   }
   function next(){finish();p=page();y=header(p,true);}
   function room(size){if(y+size>limit)next();ensure(y+size<=limit,'Contenu trop long pour cette disposition.');}
-  // Les quatre accès sont des compositions distinctes, pas seulement des palettes.
+  const ref=c=>d.media.choices[c.id]||(d.usePollImages?c.imageRef:null);
+  const factor={compact:.78,balanced:1,airy:1.18}[d.densityPreset];
+  const desiredChoice={small:440,medium:500,large:620}[d.qrSize];
+  const defaultCols=d.layout==='essential'?1:d.layout==='mosaic'?3:2;
+  const requested=d.choicesPerRow==='auto'?defaultCols:Number(d.choicesPerRow);
+  function safeColumns(cols){
+    while(cols>1){const tile=(w-PAD*2-spacing*(cols-1))/cols;
+      const safe=content.choices.every(c=>{const m=createQrMatrix(buildChoiceUrl(id,c.id,baseUrl));return Math.floor((tile-70)/m.size)*m.size>=400&&Math.floor((tile-70)/m.size)>=5;});
+      if(safe)break;cols--;}
+    if(cols!==requested)plan.warnings.push('Nombre de colonnes réduit pour garder des QR lisibles.');return cols;
+  }
+  const cols=d.mode==='choices'?safeColumns(requested):requested;
+  // Chaque layout conserve sa composition par défaut ; les colonnes sont explicites.
   if(d.mode==='access') {
-    if(main){room(d.layout==='magazine'?520:360);image(p,main,PAD,y,w-PAD*2,d.layout==='magazine'?490:330);y+=d.layout==='magazine'?530:370;}
-    const side=d.layout==='magazine',compact=d.layout==='mosaic';
+    if(main){const hero=Math.round((d.layout==='magazine'?340:270)*factor);room(hero+spacing);image(p,main,PAD,y,w-PAD*2,hero);y+=hero+spacing;}
+    const side=d.layout==='magazine'&&d.choicesPerRow==='auto';
     const listWidth=side?(w-PAD*2)*.49:w-PAD*2;
-    const qrSize=compact?1000:side?950:1050;
-    const cols=d.layout==='cards'?2:compact?3:1,gap=40,tile=(listWidth-gap*(cols-1))/cols;
-    for(let i=0;i<content.choices.length;i+=cols) {
-      const row=content.choices.slice(i,i+cols),refs=row.map(c=>d.media.choices[c.id]||(d.usePollImages?c.imageRef:null));
-      const hasImages=refs.some(Boolean),imageHeight=hasImages?(cols===1?270:330):0;
-      const labelWidth=cols===1&&hasImages?tile-510:tile-90;
-      const height=Math.max(...row.map((c,col)=>text(`${i+col+1}. ${c.label}`,labelWidth,44,700).length))*57+65+(cols!==1?imageHeight:0);
-      const rowHeight=Math.max(height,cols===1&&hasImages?330:0);
+    const qrSize={small:650,medium:800,large:1000}[d.qrSize];
+    const listCols=side?1:cols,gap=spacing,tile=(listWidth-gap*(listCols-1))/listCols;
+    for(let i=0;i<content.choices.length;i+=listCols) {
+      const row=content.choices.slice(i,i+listCols),refs=row.map(ref);
+      const hasImages=refs.some(Boolean),imageHeight=hasImages?Math.round(180*factor):0;
+      const labelWidth=listCols===1&&hasImages?tile-370:tile-70;
+      const height=Math.max(...row.map((c,col)=>text(`${i+col+1}. ${c.label}`,labelWidth,42,700).length))*54+65+(listCols!==1?imageHeight+20:0);
+      const rowHeight=Math.max(height,listCols===1&&hasImages?imageHeight+50:0);
       room(side&&!p.qrs.some(q=>q.kind==='access')?Math.max(rowHeight,qrSize+130):rowHeight);
       if(side&&!p.qrs.some(q=>q.kind==='access'))qr(p,plan.accessUrl,PAD+listWidth+65,y+70,qrSize,'access');
       row.forEach((c,col)=>{
         const x=PAD+col*(tile+gap);surface(p,x,y,tile,rowHeight);
-        if(hasImages)image(p,refs[col],x+25,y+25,cols===1?420:tile-50,imageHeight);
-        const tx=x+(cols===1&&hasImages?470:30),ty=y+30+(cols!==1&&hasImages?imageHeight:0);
-        words(p,`${i+col+1}. ${c.label}`,tx,ty,labelWidth,44,700);
+        surface(p,x,y,12,rowHeight,'secondary',6);
+        if(hasImages)image(p,refs[col],x+25,y+25,listCols===1?290:tile-50,imageHeight,'cover','center',c.id);
+        const tx=x+(listCols===1&&hasImages?335:30),ty=y+30+(listCols!==1&&hasImages?imageHeight+20:0);
+        words(p,`${i+col+1}. ${c.label}`,tx,ty,labelWidth,42,700);
         p.items.push({label:c.label,x,y,width:tile,height:rowHeight});
       });y+=rowHeight+gap;
     }
     if(!side) {
-      room(qrSize+155);surface(p,PAD,y,w-PAD*2,qrSize+140);
-      words(p,'Scanne pour participer',PAD+35,y+35,w-PAD*2-70,44,700,'accentText');
-      qr(p,plan.accessUrl,(w-qrSize)/2,y+105,qrSize,'access');y+=qrSize+155;
+      room(qrSize+140);
+      if(d.qrSurfaceMode==='large')surface(p,PAD,y,w-PAD*2,qrSize+125,'qrSurface');
+      const cardWidth=d.qrSurfaceMode==='compact'?qrSize+100:qrSize+30;
+      if(d.qrSurfaceMode!=='large')surface(p,(w-cardWidth)/2,y+85,cardWidth,qrSize+40,'qrSurface');
+      surface(p,(w-1000)/2,y,1000,70);
+      words(p,'Scanne pour participer',(w-900)/2,y+14,900,38,700,'accentText');
+      qr(p,plan.accessUrl,(w-qrSize)/2,y+100,qrSize,'access');y+=qrSize+140;
     }
   } else {
-    if(main){const hero=d.layout==='mosaic'?200:330;room(hero+40);image(p,main,PAD,y,w-PAD*2,hero);y+=hero+40;}
+    if(main){const hero=Math.round((d.layout==='mosaic'?150:240)*factor);room(hero+spacing);image(p,main,PAD,y,w-PAD*2,hero);y+=hero+spacing;}
     for(let i=0;i<content.choices.length;) {
-      const columns=d.layout==='essential'||(d.layout==='magazine'&&i===0)?1:d.layout==='mosaic'?3:2;
-      const gap=48,tile=(w-PAD*2-gap*(columns-1))/columns;
+      const columns=d.layout==='magazine'&&i===0&&d.choicesPerRow==='auto'?1:cols;
+      const gap=spacing,tile=(w-PAD*2-gap*(columns-1))/columns;
       const row=content.choices.slice(i,i+columns);
-      const labels=row.map(c=>text(c.label,columns===1?tile-720:tile-70,44,700));
-      const hasMedia=row.some(c=>d.media.choices[c.id]||(d.usePollImages&&c.imageRef));
-      const mediaHeight=d.layout==='mosaic'?180:280;
-      const height=columns===1?Math.max(730,Math.max(...labels.map(ls=>ls.length))*57+80):Math.max(...labels.map(ls=>ls.length))*57+740+(hasMedia?mediaHeight+30:0);
+      const maxQr=Math.min(desiredChoice,tile-80),minChoice=Math.max(...row.map(c=>{const m=createQrMatrix(buildChoiceUrl(id,c.id,baseUrl));return m.size*Math.max(5,Math.ceil(400/m.size));}));
+      if(maxQr<desiredChoice&&!plan.warnings.some(w=>w.startsWith('Taille du QR')))plan.warnings.push('Taille du QR adaptée à la largeur des colonnes, sans descendre sous le minimum sûr.');
+      ensure(maxQr>=minChoice,'Cette taille de QR ne tient pas. Choisis moins de colonnes.');
+      const labels=row.map(c=>text(c.label,columns===1?tile-maxQr-140:tile-70,42,700));
+      const destinations=row.map(c=>text(buildChoiceUrl(id,c.id,baseUrl),columns===1?maxQr:tile-70,24));
+      const hasMedia=row.some(c=>ref(c));
+      const mediaHeight=Math.round((d.layout==='mosaic'?140:180)*factor);
+      const labelHeight=Math.max(...labels.map(ls=>ls.length))*54;
+      const linkHeight=Math.max(...destinations.map(ls=>ls.length))*31;
+      const height=columns===1?Math.max(maxQr+linkHeight+85,labelHeight+80+(hasMedia?mediaHeight+30:0)):maxQr+linkHeight+labelHeight+95+(hasMedia?mediaHeight+20:0);
       room(height);
       row.forEach((c,col)=>{
-        const x=PAD+col*(tile+gap),ref=d.media.choices[c.id]||(d.usePollImages?c.imageRef:null);
-        surface(p,x,y,tile,height);
-        if(d.layout==='magazine')surface(p,x,y,18,height,col%2?'secondary':'primary',8);
+        const x=PAD+col*(tile+gap),asset=ref(c);
+        if(d.qrSurfaceMode==='large')surface(p,x,y,tile,height);
+        else surface(p,x,y,tile,columns===1?height:labelHeight+65+(hasMedia?mediaHeight+20:0));
+        surface(p,x,y,12,Math.min(height,180),'secondary',6);
         let cy=y+35;
-        if(columns!==1&&hasMedia){image(p,ref,x+25,cy,tile-50,mediaHeight);cy+=mediaHeight+35;}
-        if(columns===1&&ref)image(p,ref,x+30,cy,tile-760,310);
-        if(columns===1&&ref)cy+=345;
-        words(p,c.label,x+35,cy,columns===1?tile-760:tile-70,44,700);
-        const url=buildChoiceUrl(id,c.id,baseUrl),qx=columns===1?x+tile-670:x+40,qy=columns===1?y+40:cy+labels[col].length*57+30;
-        const q=qr(p,url,qx,qy,560,'choice');
-        words(p,url,qx,qy+q.size+22,columns===1?630:tile-80,28);
+        if(hasMedia){image(p,asset,x+30,cy,columns===1?tile-maxQr-160:tile-60,mediaHeight,'cover','center',c.id);cy+=mediaHeight+20;}
+        words(p,c.label,x+35,cy,columns===1?tile-maxQr-140:tile-70,42,700);
+        const url=buildChoiceUrl(id,c.id,baseUrl),qx=columns===1?x+tile-maxQr-40:x+(tile-maxQr)/2,qy=columns===1?y+35:cy+labelHeight+25;
+        const q=qr(p,url,qx,qy,maxQr,'choice');
+        const urlWidth=columns===1?maxQr:tile-70,urlX=columns===1?qx:x+35;
+        surface(p,urlX-8,qy+q.size+18,urlWidth+16,linkHeight+16);
+        words(p,url,urlX,qy+q.size+22,urlWidth,24);
         p.items.push({label:c.label,x,y,width:tile,height,choiceId:c.id});
-      });y+=height+48;i+=columns;
+      });y+=height+spacing;i+=columns;
     }
   }
   finish();return plan;
@@ -152,11 +192,11 @@ export function authorizedResults(poll,result) {
     sum+=c.count;return {id:c.id,label:c.label,count:c.count,percentage:c.percentage};
   });ensure(sum===total,'Total différent de la somme des choix.');return {total,choices};
 }
-export function makeResultsPlan(poll,result,design,{style='summary',baseUrl,exportDate=new Date(),measure=(t,s)=>[...t].length*s*.6,usePosterMedia=false}={}) {
+export function makeResultsPlan(poll,result,design,{style='summary',baseUrl,exportDate=new Date(),measure=(t,s)=>[...t].length*s*.6,usePosterMedia=false,mediaSizes={}}={}) {
   const projection=authorizedResults(poll,result);
   ensure(['summary','report'].includes(style),'Style de résultats inconnu.');
   const normalized=validateDesign(design);normalized.layout='cards';normalized.background.assetId=null;
-  const {plan,content,words,surface,image,qr,page,header}=basePlan(poll,normalized,measure);
+  const {plan,content,words,surface,image,qr,page,header}=basePlan(poll,normalized,measure,mediaSizes);
   plan.kind='results';plan.style=style;plan.total=projection.total;
   ensure(exportDate instanceof Date&&!Number.isNaN(exportDate.getTime()),'Date d’export invalide.');
   plan.exportLabel=exportDate.toLocaleString('fr-FR');
@@ -182,7 +222,7 @@ export function makeResultsPlan(poll,result,design,{style='summary',baseUrl,expo
     const labelWidth=plan.width-PAD*2-110-(ref?400:0),lines=wrapPrintText(label,labelWidth,t=>measure(t,44,700,plan.family));
     const height=Math.max(style==='report'?270:225,lines.length*57+160,ref?375:0);
     room(height);surface(p,PAD,y,plan.width-PAD*2,height);
-    if(ref)image(p,ref,PAD+30,y+25,330,height-50);
+    if(ref)image(p,ref,PAD+30,y+25,330,height-50,'cover','center',c.id);
     const x=PAD+(ref?400:35),width=labelWidth;
     words(p,label,x,y+28,width,44,700);
     const chartY=y+lines.length*57+46;

@@ -158,11 +158,14 @@ de choix, de résultats, exports PNG/SVG et deux affiches PDF A4. Les QR publics
 restent identiques après fermeture ; après suppression, le sondage est introuvable.
 
 « Créer une affiche » ouvre le Studio local : type, disposition, palette,
-typographie et aperçu ; images/couleurs avancées repliées. Aucune image du
+typographie et aperçu. Depuis v0.4C : trois gros accès de partage, typographies
+titre/corps prévisualisées, couleurs personnalisées explicites et sections
+images/cadrage/surfaces accessibles, hors petit panneau technique replié. Aucune image du
 Studio ne modifie le sondage public. La vue Résultats offre un PDF détaillé
 Synthèse/Rapport uniquement lorsque les résultats sont autorisés.
 
 Le transfert d'administration est une zone séparée SECRET, cachée par défaut.
+Depuis v0.4C, l’avertissement est renforcé visuellement, sans changement des droits.
 Le destinataire reçoit un fragment contenant la même clé que le fichier admin.
 Le fragment est retiré immédiatement de l'URL/historique, avant toute requête.
 L'écran « Clé d’administration détectée » offre Annuler et une importation
@@ -229,6 +232,11 @@ Prévoir dès le prototype :
 - possibilité future de lecture vocale.
 
 ## 12. Test UX initial
+
+Depuis v0.4C, accueil et gestion distinguent état (Brouillon/Ouvert/Fermé) et
+contexte (Local/En ligne/Publication en attente). Après suppression via Voti,
+la copie conservée indique explicitement que l’ancien lien a été supprimé.
+Le repère est local, distinct du modèle métier et de ses sauvegardes.
 
 Faire tester le prototype sans expliquer.
 
