@@ -16,6 +16,11 @@ Son audit est validé ; la recette physique reste à confirmer étape par étape
 après publication. Voir [QR et affiches](docs/QR_AND_POSTER_V0.md).
 Les indications v0.3C suivantes décrivent le socle local historique.
 
+v0.4B est préparé **localement, non publié** : QR par choix vers confirmation
+directe sans vote automatique, Studio d’affiches et PDF des résultats autorisés.
+Voir [Studio](docs/POSTER_STUDIO_V0.md) et [résultats PDF](docs/RESULTS_PDF_V0.md).
+Les médias d’affiche restent sur l’appareil et hors backup général ; pas de R2.
+
 Prototype de sondages locaux pour choisir ensemble. Création guidée, 2 à 6 choix,
 vote confirmé, verrouillage au premier bulletin accepté et résultats conditionnels.
 
@@ -66,6 +71,7 @@ npm run test:relay     # tests HTTP/D1/R2 locaux, avec redémarrage
 npm run test:integration # même suite + deux contextes navigateur
 npm run test:free-pilot # HTTP/D1 SANS R2 + deux contextes Chromium, local seulement
 npm run test:poster # après test:browser : Poppler à 300 dpi + décodage des QR PDF
+npm run test:poster-studio # vrais PDF Studio/résultats, Poppler et QR redécodés
 npm run worker:cleanup # scheduled explicite du Worker local
 npm run audit:bundle # ZIP léger, uniquement fichiers Git admissibles, après tests/rapport
 ```

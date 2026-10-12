@@ -137,23 +137,30 @@ Après scan :
 ```text
 QUESTION
 
-Tu as scanné :
+Tu choisis :
 [ CHOIX B ]
 
-[ choix présélectionné, modifiable ]
-[ Continuer ]
+[ Oui, je confirme ]
+[ Autre choix ]
 ```
 
-Le choix doit rester modifiable avant confirmation si le sondage l’autorise.
-Puis l'écran « Tu choisis » exige « Oui, je confirme ». Le scan, la navigation,
-le refresh et Continuer n'enregistrent aucun bulletin. Un choix QR absent
+Depuis v0.4B, le choix valide ouvre directement cette confirmation.
+« Autre choix » normalise la route publique et ouvre les réponses sans choix
+imposé ; un refresh/rerender ne réapplique pas le QR abandonné.
+Le scan, la navigation, le refresh et Continuer n'enregistrent aucun bulletin. Un choix QR absent
 laisse tous les choix décochés et explique brièvement le problème.
 
 ### Partage créateur et transfert secret v0.4A
 
-La gestion propose « Partager le sondage » vers une vue dédiée : QR d'accès,
+Depuis v0.4B, la gestion propose « QR & partager le sondage » (icône décorative)
+vers une vue dédiée : QR d'accès,
 de choix, de résultats, exports PNG/SVG et deux affiches PDF A4. Les QR publics
 restent identiques après fermeture ; après suppression, le sondage est introuvable.
+
+« Créer une affiche » ouvre le Studio local : type, disposition, palette,
+typographie et aperçu ; images/couleurs avancées repliées. Aucune image du
+Studio ne modifie le sondage public. La vue Résultats offre un PDF détaillé
+Synthèse/Rapport uniquement lorsque les résultats sont autorisés.
 
 Le transfert d'administration est une zone séparée SECRET, cachée par défaut.
 Le destinataire reçoit un fragment contenant la même clé que le fichier admin.

@@ -1,4 +1,4 @@
-# QR et affiches Voti — contrat v0.4A
+# QR et affiches Voti — contrat v0.4A, parcours étendu v0.4B
 
 ## Routes et portée
 
@@ -11,9 +11,15 @@ public et des choix sont validés ; aucun secret dans une URL publique.
 - Choix : `#/p/<pollId>/choice/<choiceId>`.
 - Transfert secret : `#/admin/import/<payload-base64url>`.
 
-La route choix présélectionne seulement le radio et explique la présélection.
-Le choix reste modifiable. Continuer montre le récapitulatif ; seul « Oui, je
-confirme » appelle castVote. Aucun vote au chargement, scan, refresh ou retour.
+Depuis v0.4B, la route choix ouvre directement « Tu choisis » avec le choix
+du QR et « Oui, je confirme ». Aucun vote au chargement, scan, refresh ou retour.
+« Autre choix » abandonne le QR et remplace la route par `#/p/<pollId>` ;
+une navigation/rerender ne réapplique pas le choix proposé par le QR abandonné. Le parcours classique
+conserve Continuer puis confirmation explicite. Seul « Oui, je confirme »
+appelle castVote. Le parcours radio présélectionné puis Continuer décrit v0.4A historique.
+Consigne actuelle dans le partage et les nouveaux PDF : « Ce QR ouvre directement
+la confirmation de ce choix. Le vote n’est envoyé qu’après validation. »
+L’écran affiche « Choix proposé par le QR : <choix>. Confirme-le ou choisis une autre réponse. »
 Un choiceId absent/invalide n'en sélectionne aucun autre. Les segments publics
 superflus sont refusés. Fermeture : URLs inchangées, aucun vote possible,
 résultats soumis aux règles habituelles. Suppression : les trois routes
@@ -88,6 +94,12 @@ l'observer. Voti ne garantit pas l'effacement chez ces tiers ni un anonymat
 réseau. Ne pas partager une capture du QR, ni coller une clé dans un rapport.
 
 ## Affiches A4
+
+Depuis v0.4B, l’UI ouvre un Studio avec quatre compositions, huit palettes,
+typographies locales, aperçu et images affiche-only : voir `POSTER_STUDIO_V0.md`.
+Le PDF des résultats autorisés est distinct : voir `RESULTS_PDF_V0.md`.
+La section technique suivante décrit les exports initiaux v0.4A, conservés
+comme contrat historique/test de compatibilité, pas l’éditeur actuel.
 
 `web/poster.js` produit un plan public borné puis dessine sur une seule surface
 2480×3508 pixels (environ 300 dpi, environ 35 Mo RGBA) à la fois. Texte system-ui

@@ -324,7 +324,9 @@ test('adaptateur localStorage isolé, réouverture, quota et corruption sans rem
   assert.equal(values.get('voti.local.v1'), 'local intact');
   const before = values.get(REMOTE_STORAGE_KEY);
   const failing = new LocalStorageRemoteConnectionAdapter({ ...storage, setItem: () => { throw new Error('quota'); } }, locks);
-  await rejects(failing.put(record), 'RELAY_UNAVAILABLE'); assert.equal(values.get(REMOTE_STORAGE_KEY), before);
+  // Cache identique = aucune écriture, donc aucune cascade storage ni erreur quota.
+  await failing.put(record); assert.equal(values.get(REMOTE_STORAGE_KEY), before);
+  await rejects(failing.put({ ...record, remoteRevision: record.remoteRevision + 1 }), 'RELAY_UNAVAILABLE'); assert.equal(values.get(REMOTE_STORAGE_KEY), before);
   await rejects(new LocalStorageRemoteConnectionAdapter(storage, null).put(record), 'RELAY_UNAVAILABLE');
   values.set(REMOTE_STORAGE_KEY, 'corrompu');
   await rejects(adapter.put(record), 'RELAY_UNAVAILABLE'); assert.equal(values.get(REMOTE_STORAGE_KEY), 'corrompu');

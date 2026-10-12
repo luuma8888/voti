@@ -20,6 +20,7 @@
     "test:integration": "node scripts/relay-integration.mjs --browser",
     "test:free-pilot": "node scripts/free-pilot-integration.mjs --browser",
     "test:poster": "node scripts/test-posters.mjs",
+    "test:poster-studio": "node scripts/test-posters.mjs --studio",
     "audit:bundle": "node scripts/audit-bundle.mjs"
   },
   "devDependencies": {

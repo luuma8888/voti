@@ -86,16 +86,31 @@ export async function qrChoiceStage(id, choiceId, stage) {
   const wait=async predicate=>{const end=performance.now()+10000;while(!predicate()){if(performance.now()>end)throw new Error('Route QR choix non prête');await new Promise(requestAnimationFrame);}};
   const click=label=>{const n=[...document.querySelectorAll('#app button')].find(n=>n.textContent===label);if(!n)throw new Error('Action QR absente');n.click();return n;};
   if(stage==='preset') {
-    await wait(()=>document.querySelector('.vote-choices'));
-    const selected=document.querySelector('.vote-choices input:checked');
-    if(selected?.value!==choiceId || !document.querySelector('.qr-preselection')?.textContent.includes('présélectionné'))throw new Error('QR choix non présélectionné');
+    await wait(()=>document.querySelector('.confirmation') && [...document.querySelectorAll('#app button')].some(b=>b.textContent==='Oui, je confirme'));
+    const info=document.querySelector('.qr-preselection');
+    if(document.querySelector('.vote-choices') || document.querySelector('.confirmation')?.dataset.choiceId!==choiceId || !info?.textContent.startsWith('Choix proposé par le QR : ') || !info.textContent.endsWith('Confirme-le ou choisis une autre réponse.') || ![...document.querySelectorAll('#app button')].some(b=>b.textContent==='Autre choix'))throw new Error('QR choix sans confirmation directe');
     if(JSON.parse(localStorage.getItem('voti.local.v1')||'{"ballots":[]}').ballots.length)throw new Error('Bulletin local depuis QR');return 3;
   }
   if(stage==='invalid') {
     await wait(()=>document.querySelector('.vote-choices'));
     if(document.querySelector('.vote-choices input:checked') || !document.querySelector('.qr-preselection')?.textContent.includes('plus disponible'))throw new Error('Choix invalide remplacé automatiquement');return 2;
   }
-  if(stage==='continue') {click('Continuer');await wait(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='Oui, je confirme'));return 1;}
-  if(stage==='confirm') {const b=click('Oui, je confirme');b.click();await wait(()=>document.getElementById('app').textContent.includes('Ton vote a bien été enregistré.'));return 1;}
+  if(stage==='continue') {await wait(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='Oui, je confirme'));return 1;}
+  if(stage==='other') {
+    click('Autre choix');await wait(()=>document.querySelector('.vote-choices')&&document.getElementById('app').getAttribute('aria-busy')==='false');
+    if(location.hash!==`#/p/${id}`||document.querySelector('.vote-choices input:checked'))throw new Error('Autre choix réapplique le QR');
+    window.dispatchEvent(new StorageEvent('storage',{key:'voti.remote.v1'}));
+    await wait(()=>document.querySelector('.vote-choices')&&document.getElementById('app').getAttribute('aria-busy')==='false');
+    if(document.querySelector('.confirmation')||document.querySelector('.vote-choices input:checked'))throw new Error('Rerender réapplique QR');return 3;
+  }
+  if(stage==='normal') {await wait(()=>document.querySelector('.vote-choices'));if(location.hash!==`#/p/${id}`||document.querySelector('.vote-choices input:checked'))throw new Error('Refresh Autre choix réapplique le QR');return 2;}
+  if(stage==='alternative') {
+    const radio=[...document.querySelectorAll('.vote-choices input')].find(n=>n.value!==choiceId);if(!radio)throw new Error('Alternative absente');
+    const chosen=radio.value;radio.click();click('Continuer');await wait(()=>document.querySelector('.confirmation'));
+    if(document.querySelector('.confirmation').dataset.choiceId!==chosen)throw new Error('Mauvais choix alternatif');return 2;
+  }
+  if(stage==='confirm') {const b=click('Oui, je confirme');b.click();await wait(()=>document.getElementById('app').textContent.includes('Ton vote a bien été enregistré.'));
+    window.dispatchEvent(new StorageEvent('storage',{key:'voti.remote.v1'}));await wait(()=>document.getElementById('app').getAttribute('aria-busy')==='false');
+    if(!document.querySelector('.vote-success')||document.querySelector('.confirmation'))throw new Error('Succès perdu au rerender');return 2;}
   if(stage==='closed') {await wait(()=>document.getElementById('app').textContent.includes('Ce sondage est fermé.'));if(document.querySelector('.vote-choices') || document.querySelector('#app button'))throw new Error('QR choix permet vote fermé');return 2;}
 }

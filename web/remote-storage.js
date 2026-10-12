@@ -30,7 +30,8 @@ export class LocalStorageRemoteConnectionAdapter extends RemoteConnectionAdapter
     return this.locks.request(REMOTE_STORAGE_KEY, () => {
       const data = this.read(); operation(data);
       const raw = JSON.stringify(data); relayEnsure(raw.length <= 1_000_000, 'PAYLOAD_TOO_LARGE');
-      try { this.storage.setItem(REMOTE_STORAGE_KEY, raw); }
+      // Une simple relecture identique ne déclenche pas une cascade inter-onglets.
+      try { if(this.storage.getItem(REMOTE_STORAGE_KEY)!==raw) this.storage.setItem(REMOTE_STORAGE_KEY, raw); }
       catch { throw new RelayError('RELAY_UNAVAILABLE', 'Impossible de conserver la capacité locale : stockage plein ou indisponible.'); }
     });
   }

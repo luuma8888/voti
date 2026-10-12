@@ -1,10 +1,9 @@
 import { buildPollUrl, buildChoiceUrl, buildResultsUrl, buildAdminTransferUrl } from '../shared/qr-links.js';
 import { createQrMatrix, renderQrSvg, qrPng, downloadBlob } from './qr.js';
-import { generatePoster } from './poster.js';
 
 const node = (tag, text, className) => { const n = document.createElement(tag); if (text) n.textContent = text; if (className) n.className = className; return n; };
 const control = (label, operation) => { const n = node('button', label); n.type = 'button'; n.addEventListener('click', operation); return n; };
-export function sharingPanel(poll, { baseUrl, getAdminKey, error, notify }) {
+export function sharingPanel(poll, { baseUrl, getAdminKey, error, notify, openStudio = () => {} }) {
   const panel = node('section', null, 'sharing-panel card'); panel.dataset.accent = poll.style.themeId;
   const id = poll.remoteRef.pollId;
   const qrCard = (title, url, name) => {
@@ -22,23 +21,10 @@ export function sharingPanel(poll, { baseUrl, getAdminKey, error, notify }) {
   section('Lien et QR de vote', true).append(qrCard('Accéder au vote', buildPollUrl(id, baseUrl), `vote-${id}`));
   const choices = node('div', null, 'qr-grid');
   for (const choice of poll.definition.choices) choices.append(qrCard(choice.label, buildChoiceUrl(id, choice.id, baseUrl), `choix-${id}-${choice.id}`));
-  section('QR par choix').append(node('p', 'Le QR présélectionne un choix. Le vote doit ensuite être confirmé.'), choices);
+  section('QR par choix').append(node('p', 'Ce QR ouvre directement la confirmation de ce choix. Le vote n’est envoyé qu’après validation.'), choices);
   section('QR des résultats').append(qrCard('Voir les résultats', buildResultsUrl(id, baseUrl), `resultats-${id}`));
   const posters = section('Affiche PDF'); posters.append(node('p', 'A4, haute résolution. Imprimez à 100 %, sans rogner les marges des QR. Les textes longs peuvent demander plusieurs pages.'));
-  for (const [mode, label] of [['access', 'Affiche : accès unique'], ['choices', 'Affiche : QR par choix']]) {
-    const b = control(label, async () => {
-      if (b.disabled) return; b.disabled = true;
-      try {
-        const palette = getComputedStyle(panel), theme = document.documentElement.dataset.theme;
-        const result = await generatePoster(poll, mode, { baseUrl, logo: document.querySelector('.brand-icon'),
-          // Papier toujours clair : accent pastel pour Nuit, texte structurel foncé.
-          accent: theme === 'dark' ? {mint:'#176e65',lavender:'#684397',peach:'#8f522f'}[poll.style.themeId] : palette.getPropertyValue('--accent').trim(),
-          soft: theme === 'dark' ? {mint:'#e2f1ed',lavender:'#eee7f7',peach:'#fae9df'}[poll.style.themeId] : palette.getPropertyValue('--soft').trim() });
-        if (b.isConnected) { downloadBlob(new Blob([result.bytes], { type: 'application/pdf' }), `voti-affiche-${id}-${mode}.pdf`); notify(`Affiche prête : ${result.plan.pages.length} page(s).`); }
-      } catch (e) { if (b.isConnected) error(e); }
-      finally { b.disabled = false; }
-    }); posters.append(b);
-  }
+  const studio=control('Créer une affiche',openStudio);studio.className='primary';posters.append(studio);
   const secret = section('Transférer l’administration — SECRET'); secret.classList.add('secret-transfer');
   secret.append(node('p', 'Cette clé permet d’administrer ce sondage. Toute personne qui la possède peut le modifier ou le supprimer. Ne l’affichez pas publiquement.'));
   const display = node('div', null, 'secret-qr'); display.hidden = true;

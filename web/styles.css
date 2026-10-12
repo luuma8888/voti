@@ -304,3 +304,17 @@ body:has(.confirmation-dialog[open]) { overflow:hidden; }
 .sharing-section>button { margin:6px 8px 0 0; }
 .qr-preselection { background:var(--soft); padding:12px; border-radius:10px; }
 @media print { .secret-transfer { display:none!important; } }
+.qr-icon { width:24px; height:24px; flex:0 0 24px; }
+.studio-grid { display:grid; grid-template-columns:minmax(0,340px) minmax(0,1fr); gap:24px; }
+.studio-grid>* { min-width:0; }
+.studio-preview { padding:14px; background:var(--soft); border-radius:14px; }
+.studio-preview h2 { margin-top:0; }
+.studio-sheets { display:grid; gap:16px; }
+.studio-sheets canvas { display:block; width:100%; height:auto; border:1px solid var(--line); box-shadow:var(--shadow); }
+.poster-studio input[type=checkbox],.results-pdf input[type=checkbox] { width:44px; height:44px; accent-color:var(--accent); }
+.poster-studio input[type=color] { min-width:44px; }
+.poster-studio .advanced { margin:16px 0; }
+.poster-studio .image-picker h3 { font-size:16px; }
+.results-pdf { padding-bottom:14px; }
+@media(max-width:768px) { .studio-grid { grid-template-columns:minmax(0,1fr); } }
+@media print { .studio-controls,.results-pdf { display:none!important; } }

@@ -12,6 +12,7 @@ import { browserKeyExport, browserKeyImport, browserDelete } from './browser-har
 import { browserDialogScenario, keyboardDialogChecks } from './browser-dialogs.mjs';
 import { browserQrScenario, browserPosterScenario, qrChoiceStage } from './browser-qr.mjs';
 import { adminQrScenario } from './browser-admin-qr.mjs';
+import { browserStudioScenario, browserStudioPdfScenario } from './browser-studio.mjs';
 import { wrangler } from './relay-local.mjs';
 
 await build();
@@ -514,6 +515,10 @@ try {
   if (requests.some(item => /^https?:/.test(item))) throw new Error('Requête HTTP inattendue pendant les tests file://.');
   const fileAssetChecks = await evaluate(sessionId, `(${browserAssetScenario.toString()})()`);
   const qrChecks = {checks:await evaluate(sessionId, `(${browserQrScenario.toString()})()`)};
+  for(const width of [320,360,1200]) {
+    await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<500},sessionId);
+    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioScenario.toString()})()`);
+  }
   await mkdir(resolve(ROOT,'.browser-tests/pdfs'),{recursive:true});
   const posterFiles=[];
   // La recette PDF coûteuse appartient à test:browser/test:poster ; pas trois
@@ -527,6 +532,18 @@ try {
     const {base64,...metadata}=file;posterFiles.push(metadata);
   }
   if(posterFiles.length) await writeFile(resolve(ROOT,'.browser-tests/pdfs/plans.json'),JSON.stringify(posterFiles));
+  if(posterFiles.length) {
+    const files=[];await mkdir(resolve(ROOT,'.browser-tests/studio-pdfs'),{recursive:true});
+    for(const [index,layout] of ['essential','cards','magazine','mosaic'].entries())for(const mode of ['access','choices']){
+      const file=await evaluate(sessionId,`(${browserStudioPdfScenario.toString()})(${JSON.stringify(layout)},${JSON.stringify(mode)},${[2,3,6,6][index]})`);
+      const {base64,...metadata}=file;files.push(metadata);await writeFile(resolve(ROOT,'.browser-tests/studio-pdfs',file.name),Buffer.from(base64,'base64'));
+    }
+    for(const [style,n,long] of [['summary',2,false],['report',3,false],['summary',3,false],['summary',6,false],['report',6,true]]){
+      const file=await evaluate(sessionId,`(${browserStudioPdfScenario.toString()})('cards',${JSON.stringify(style)},${n},'results',${long})`);
+      const {base64,...metadata}=file;files.push(metadata);await writeFile(resolve(ROOT,'.browser-tests/studio-pdfs',file.name),Buffer.from(base64,'base64'));
+    }
+    await writeFile(resolve(ROOT,'.browser-tests/studio-pdfs/plans.json'),JSON.stringify(files));
+  }
   await navigateReady(sessionId, offlineUrl);
   await evaluate(sessionId, `(async () => {
     const deadline = performance.now()+5000;
@@ -614,6 +631,19 @@ try {
       await navigateReady(sessionId, servedUrl + '?free=' + crypto.randomUUID() + '#poll/' + id);
     }
     relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('publish',${JSON.stringify(id)})`);
+    // Parcours applicatif réel, pas seulement un composant monté en fixture.
+    await navigateReady(sessionId,servedUrl+'?studio-route='+crypto.randomUUID()+'#poll/'+id);
+    relayChecks+=await evaluate(sessionId,`(async()=>{
+      const wait=async f=>{const end=performance.now()+15000;while(!f()){if(performance.now()>end)throw new Error('Route Studio non prête');await new Promise(requestAnimationFrame);}};
+      const link=document.querySelector('#app a[href="#share/${id}"]');
+      if(!link?.textContent.includes('QR & partager')||!link.querySelector('svg[aria-hidden="true"]')||link.getBoundingClientRect().height<44)throw new Error('Action QR peu explicite');link.click();
+      await wait(()=>document.querySelector('.sharing-panel')&&document.getElementById('app').getAttribute('aria-busy')==='false');
+      const button=[...document.querySelectorAll('#app button')].find(b=>b.textContent==='Créer une affiche');button.closest('details').open=true;button.click();
+      await wait(()=>document.querySelector('.poster-studio')?.dataset.previewVersion);
+      if(location.hash!=='#poster/${id}'||!document.querySelector('.studio-preview canvas')||document.querySelector('.human-verification'))throw new Error('Studio réel incorrect');return 4;
+    })()`);
+    if(await localBallotCount(id)!==0)throw new Error('Ouvrir le Studio crée un bulletin');relayChecks++;
+    await navigateReady(sessionId,servedUrl+'?studio-back='+crypto.randomUUID()+'#poll/'+id);
     const context = await command('Target.createBrowserContext', { disposeOnDetach:true });
     const target = await command('Target.createTarget', { url:'about:blank', browserContextId:context.browserContextId });
     const voter = await command('Target.attachToTarget', { targetId:target.targetId, flatten:true });
@@ -629,6 +659,14 @@ try {
         await navigateReady(voter.sessionId,choiceUrl);
         relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'preset')`);
         if(await localBallotCount(id)!==0 || voteRequests()!==before)throw new Error('QR au chargement crée un vote');relayChecks++;
+        for(const width of [320,360,1200]){
+          await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<500},voter.sessionId);
+          await evaluate(voter.sessionId,"document.querySelector('#app .primary').focus()");
+          await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9},voter.sessionId);
+          await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9},voter.sessionId);
+          if(!await evaluate(voter.sessionId,"document.activeElement.textContent==='Autre choix' && getComputedStyle(document.activeElement).outlineStyle!=='none' && document.documentElement.scrollWidth<=innerWidth && [...document.querySelectorAll('#app button')].every(n=>n.getBoundingClientRect().height>=44)"))throw new Error('Confirmation QR non accessible '+width);relayChecks++;
+        }
+        if(await localBallotCount(id)!==0||voteRequests()!==before)throw new Error('Clavier/resize QR crée un vote');relayChecks++;
         await navigateReady(voter.sessionId,choiceUrl.replace('?qr=','?refresh='));
         relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'preset')`);
         if(await localBallotCount(id)!==0 || voteRequests()!==before)throw new Error('Refresh QR crée un vote');relayChecks++;
@@ -640,6 +678,18 @@ try {
         if(await localBallotCount(id)!==0 || voteRequests()!==before)throw new Error('Continuer QR crée un vote');relayChecks++;
         relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'confirm')`);
         if(await localBallotCount(id)!==1 || voteRequests()!==before+1)throw new Error('Confirmation QR pas exactement un vote');relayChecks++;
+      } else if(n===1) {
+        const poll=await (await fetch('http://127.0.0.1:8787/api/v1/polls/'+id)).json(),choiceId=poll.definition.choices[1].id;
+        const before=relayRequests.filter(r=>r.sessionId===voter.sessionId&&r.method==='POST'&&r.url.endsWith(`/polls/${id}/votes`)).length;
+        await navigateReady(voter.sessionId,servedUrl+'?alternative='+crypto.randomUUID()+'#/p/'+id+'/choice/'+choiceId);
+        relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'other')`);
+        if(await localBallotCount(id)!==1)throw new Error('Autre choix crée un vote');relayChecks++;
+        await navigateReady(voter.sessionId,servedUrl+'?normal='+crypto.randomUUID()+'#/p/'+id);
+        relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'normal')`);
+        relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'alternative')`);
+        if(await localBallotCount(id)!==1||relayRequests.filter(r=>r.sessionId===voter.sessionId&&r.method==='POST'&&r.url.endsWith(`/polls/${id}/votes`)).length!==before)throw new Error('Choix alternatif crée un vote avant confirmation');relayChecks++;
+        relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'confirm')`);
+        if(await localBallotCount(id)!==2)throw new Error('Alternative confirmée ne crée pas exactement un vote');relayChecks++;
       } else {
         await navigateReady(voter.sessionId, servedUrl + '?visit=' + crypto.randomUUID() + '#/p/' + id);
         relayChecks += await evaluate(voter.sessionId, `(${remoteBrowserAction.toString()})('vote',${JSON.stringify(id)},${process.env.VOTI_TEST_FREE_PILOT !== '1'})`);

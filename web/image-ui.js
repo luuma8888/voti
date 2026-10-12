@@ -32,7 +32,7 @@ export class ImageViews {
   }
 }
 
-export function imagePicker({ label, kind, getId, staged, views, change, busy, active, error }) {
+export function imagePicker({ label, kind, getId, staged, views, change, busy, active, error, prepareImage = processImage, statusReady = 'Image prête. Elle sera enregistrée avec le sondage.' }) {
   const group = node('div', null, 'image-picker'); group.setAttribute('role', 'group'); group.setAttribute('aria-label', label);
   const preview = node('div', null, 'image-preview');
   const input = node('input'); input.type = 'file'; input.accept = 'image/jpeg,image/png,image/webp'; input.hidden = true; input.setAttribute('aria-label', label);
@@ -50,8 +50,8 @@ export function imagePicker({ label, kind, getId, staged, views, change, busy, a
     const file = input.files[0]; if (!file) return;
     choose.disabled = true; remove.disabled = true; input.disabled = true; busy(1); status.textContent = 'Préparation de l’image…';
     try {
-      const asset = await processImage(file, kind);
-      if (active()) { change(asset); refresh(); status.textContent = 'Image prête. Elle sera enregistrée avec le sondage.'; }
+      const asset = await prepareImage(file, kind);
+      if (active()) { change(asset); refresh(); status.textContent = statusReady; }
     } catch (failure) { if (active()) { status.textContent = ''; error(failure); } }
     finally { busy(-1); choose.disabled = false; remove.disabled = false; input.disabled = false; input.value = ''; }
   });

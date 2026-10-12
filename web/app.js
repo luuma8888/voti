@@ -5,7 +5,7 @@ import { exportBackup, restoreBackup, MAX_BACKUP_BYTES } from '../shared/backup.
 import { LocalStorageAdapter, Repository, STORAGE_KEY } from './storage.js';
 import { summarizePolls, queryPolls, STATUS_LABELS, FILTERS, SORTS } from './poll-library.js';
 import { THEME_OPTIONS, THEME_KEY, normalizeTheme } from './themes.js';
-import { IndexedDBAssetAdapter } from './asset-storage.js';
+import { IndexedDBAssetAdapter, assetDatabaseName } from './asset-storage.js';
 import { verifyDecodedAsset } from './image-processing.js';
 import { ImageViews, imagePicker } from './image-ui.js';
 import { HttpRelayAdapter } from './http-relay.js';
@@ -20,6 +20,8 @@ import { consumeAdminFragment } from './admin-transfer.js';
 import { decodeAdminPayload, buildPollUrl, buildChoiceUrl } from '../shared/qr-links.js';
 import { sharingPanel } from './sharing.js';
 import { publicPollRoute } from '../shared/relay.js';
+import { PosterRepository } from './poster-storage.js';
+import { posterStudio, resultsPdfPanel } from './poster-studio.js';
 
 // Avant stockage, rendu, appel du relais ou traitement asynchrone.
 let pendingAdminPayload = consumeAdminFragment(location, history);
@@ -98,11 +100,15 @@ const message = document.getElementById('message');
 const notice = document.getElementById('notice');
 const libraryView = { search: '', filter: 'all', sort: 'recent' };
 const assets = new IndexedDBAssetAdapter();
+const posterAssets = new IndexedDBAssetAdapter(indexedDB, assetDatabaseName() + ':poster');
+const posters = new PosterRepository(localStorage, posterAssets, navigator.locks);
 const images = new ImageViews(assets);
 let repository;
 let state;
 let editor = null;
 let voteSession = null;
+let voteOutcome = null;
+let disposeView = null;
 let route = '';
 let focusOrigin = 'programmatic';
 document.addEventListener('pointerdown', () => { focusOrigin = 'pointer'; }, true);
@@ -128,6 +134,15 @@ function button(label, onClick, className = '') {
   return node;
 }
 function link(label, hash, className = '') { return el('a', label, { href: hash, class: `button ${className}` }); }
+function qrSharingLink(id) {
+  const control = link('QR & partager le sondage', `#share/${id}`);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false'); svg.classList.add('qr-icon');
+  for (const [x,y,w] of [[2,2,7],[15,2,7],[2,15,7],[13,13,3],[18,17,4],[12,20,2]]) {
+    const rect=document.createElementNS(svg.namespaceURI,'rect');rect.setAttribute('x',x);rect.setAttribute('y',y);rect.setAttribute('width',w);rect.setAttribute('height',w);rect.setAttribute('fill','currentColor');svg.append(rect);
+  }
+  control.prepend(svg); return control;
+}
 function actions(...children) { return append(el('div', null, { class: 'actions' }), ...children); }
 function showError(error) {
   const french = { HUMAN_VERIFICATION_REQUIRED: 'Une vérification est nécessaire pour démarrer la publication en ligne.',
@@ -243,9 +258,15 @@ function share(id) {
   if (!bindings.get(id)?.adminCapability || !poll.remoteRef || poll.remoteRef.revision <= 0) {
     app.append(el('p', 'Publie d’abord ce sondage en ligne pour créer ses QR de partage.'), actions(link('Retour à la gestion', `#poll/${id}`))); return;
   }
-  app.append(el('p', poll.definition.question), sharingPanel(poll, { error: showError, notify,
+  app.append(el('p', poll.definition.question), sharingPanel(poll, { error: showError, notify, openStudio: () => navigate(`#poster/${id}`),
     getAdminKey: async () => JSON.parse(await exportAdminKey(connections, RELAY_CONFIG.relayId, id)) }),
   actions(link('Retour à la gestion', `#poll/${id}`)));
+}
+function studio(id) {
+  const poll=getPoll(state,id); heading('Studio d’affiche');
+  if(!poll.remoteRef || !bindings.get(id)?.adminCapability) throw new Error('Publie d’abord ce sondage en ligne pour créer ses QR de partage.');
+  const view=posterStudio(poll,{repository:posters,pollAssets:assets,error:showError,notify,refreshPoll:()=>relay.getPoll(id),onReset:render});
+  disposeView=view.dispose; app.append(view.element,actions(link('Retour aux QR',`#share/${id}`)));
 }
 async function transact(node, operation, after = () => render(), staged = []) {
   if (node.disabled) return;
@@ -412,7 +433,7 @@ function management(id) {
   if (bindings.has(id)) {
     const url = buildPollUrl(id);
     const copy = button('Copier le lien', async () => { try { await navigator.clipboard.writeText(url); notify('Lien copié.'); } catch { notify(`Lien public : ${url}`); } });
-    card.append(el('p', 'En ligne · Le relais fait autorité.'), actions(link('Ouvrir le lien public', publicLink(id), 'primary'), copy, link('Résultats', publicLink(id, true)), link('Partager le sondage', `#share/${id}`)));
+    card.append(el('p', 'En ligne · Le relais fait autorité.'), actions(link('Ouvrir le lien public', publicLink(id), 'primary'), copy, link('Résultats', publicLink(id, true)), qrSharingLink(id)));
     const keyExport = button('Exporter la clé d’administration', async () => {
       try { download(await exportAdminKey(connections, RELAY_CONFIG.relayId, id), `voti-admin-${id}.json`); notify('Clé secrète exportée. Vérifiez son enregistrement et conservez-la en lieu sûr.'); }
       catch (error) { showError(error); }
@@ -435,7 +456,14 @@ function management(id) {
     }
   }
   app.append(card);
-  if (!bindings.has(id)) app.append(el('p', 'Publie d’abord ce sondage en ligne pour créer ses QR de partage.', { class: 'help' }));
+  if (!bindings.has(id)) {
+    app.append(el('p', 'Publie d’abord ce sondage en ligne pour créer ses QR de partage.', { class: 'help' }));
+    let hasDesign=false;try{hasDesign=Boolean(posters.read().designs[id]);}catch{app.append(el('p','Réglages d’affiche locaux illisibles. Le sondage reste utilisable.',{class:'help'}));}
+    if(hasDesign) {
+      const removeDesign=button('Retirer le design d’affiche local',async()=>{if(removeDesign.disabled)return;removeDesign.disabled=true;try{await posters.remove(id);await render();notify('Design local retiré. Le sondage et les images métier sont conservés.');}catch(error){showError(error);removeDesign.disabled=false;}});
+      app.append(actions(removeDesign));
+    }
+  }
   app.append(el('p', bindings.has(id) ? 'Aucun nom demandé. Le relais peut voir les connexions réseau. Une personne peut voter plusieurs fois.' : 'Les autres appareils n’ont pas accès aux données de ce navigateur tant que le sondage n’est pas publié en ligne.', { class: 'help' }));
 }
 
@@ -554,6 +582,7 @@ function vote(id, qrChoiceId) {
   const poll = getPoll(state, id);
   const distant = remoteViews.has(id);
   const resultsLink = distant ? publicLink(id, true) : `#results/${id}`;
+  if(voteOutcome?.pollId===id) { showVoteSuccess(id,resultsLink); return; }
   heading(poll.definition.question);
   if (poll.status !== 'published') {
     app.append(el('p', poll.status === 'draft' ? 'Le vote n’est pas encore ouvert.' : 'Ce sondage est fermé.'),
@@ -563,11 +592,12 @@ function vote(id, qrChoiceId) {
   const card = el('section', null, { class: 'card', 'data-accent': poll.style.themeId });
   card.append(questionBlock(poll));
   const preset = qrChoiceId !== undefined && poll.definition.choices.find(choice => choice.id === qrChoiceId);
-  if (qrChoiceId !== undefined) card.append(el('p', preset ? `Choix présélectionné par le QR : ${preset.label}. Tu peux le changer. Ton vote doit encore être confirmé.` : 'Le choix du QR n’est plus disponible. Choisis une réponse.', { class: 'qr-preselection', role: 'status' }));
+  if(preset && !voteSession) voteSession={id:crypto.randomUUID(),pollId:id,choiceId:preset.id,fromQr:true};
+  if (qrChoiceId !== undefined) card.append(el('p', preset ? `Choix proposé par le QR : ${preset.label}. Confirme-le ou choisis une autre réponse.` : 'Ce choix n’est plus disponible. Choisis une autre réponse.', { class: 'qr-preselection', role: 'status' }));
   if (voteSession?.pollId === id) {
     const choice = poll.definition.choices.find(item => item.id === voteSession.choiceId);
     if (!choice) { voteSession = null; vote(id); return; }
-    card.append(el('p', 'Tu choisis :'), el('p', choice.label, { class: 'confirmation' }));
+    card.append(el('p', 'Tu choisis :'), el('p', choice.label, { class: 'confirmation', 'data-choice-id':choice.id }));
     if (choice.imageRef) card.append(activeImages().show(choice.imageRef, { size: 'choice' }));
     const action = structuredClone(voteSession);
     let submitted = false;
@@ -575,17 +605,18 @@ function vote(id, qrChoiceId) {
       if (submitted) return;
       submitted = true;
       const success = () => {
-        voteSession = null;
-        app.replaceChildren(); heading('Merci !');
-        images.sweep();
-        app.append(append(el('section', null, { class: 'card vote-success' }), mascot(), el('span', '✓', { class: 'success-icon', 'aria-hidden': 'true' }),
-          el('p', 'Ton vote a bien été enregistré.'), actions(link('Revenir à mes sondages', '#home'), link('Résultats', resultsLink))));
+        voteSession = null; voteOutcome={pollId:id}; ++renderSequence;
+        showVoteSuccess(id,resultsLink);
       };
       if (remoteViews.has(id)) await remoteAction(confirm, () => relay.castVote(id, action.choiceId, action.id), success);
       else await transact(confirm, current => castVote(current, action), success);
       if (!confirm.disabled) submitted = false;
     }, 'primary');
-    const back = button('Retour aux choix', () => { voteSession = null; render(); });
+    const back = button(action.fromQr ? 'Autre choix' : 'Retour aux choix', () => {
+      voteSession = null;
+      if(action.fromQr) history.replaceState(null,'',publicLink(id));
+      render();
+    });
     card.append(actions(confirm, back));
   } else {
     const form = el('form');
@@ -610,6 +641,12 @@ function vote(id, qrChoiceId) {
   }
   app.append(card);
 }
+function showVoteSuccess(id,resultsLink) {
+  app.replaceChildren(); heading('Merci !'); images.sweep();
+  app.append(append(el('section',null,{class:'card vote-success'}),mascot(),el('span','✓',{class:'success-icon','aria-hidden':'true'}),
+    el('p','Ton vote a bien été enregistré.'),actions(link('Revenir à mes sondages','#home'),link('Résultats',resultsLink))));
+  app.setAttribute('aria-busy','false');
+}
 
 function results(id) {
   const poll = getPoll(state, id);
@@ -632,6 +669,11 @@ function results(id) {
     }
   }
   card.append(actions(...(bindings.get(id)?.adminCapability || !remoteViews.has(id) ? [link('Gérer le sondage', `#poll/${id}`)] : []), link('Mes sondages', '#home')));
+  try { card.append(resultsPdfPanel(poll,result,{repository:posters,pollAssets:assets,error:showError,notify,
+    refreshPoll:async()=>{
+      if(remoteViews.has(id)){const fresh=await relay.getPoll(id);return {poll:fresh,results:fresh.results};}
+      const fresh=await repository.load();return {poll:localPoll(fresh,id),results:getResults(fresh,id)};
+    }})); } catch { card.append(el('p','Export PDF indisponible : les réglages d’affiche locaux sont illisibles. Les résultats ci-dessus restent accessibles.',{class:'help'})); }
   app.append(card);
 }
 
@@ -684,12 +726,13 @@ async function render() {
   if (detected !== null) pendingAdminPayload = detected;
   if (!state) return;
   const sequence = ++renderSequence;
+  if(disposeView){const dispose=disposeView;disposeView=null;dispose();}
   app.setAttribute('aria-busy', 'true');
   app.replaceChildren();
   images.sweep();
   const nextRoute = location.hash || '#home';
   if (nextRoute !== '#admin-transfer') pendingAdminPayload = null;
-  if (nextRoute !== route) { editor = null; voteSession = null; clearError(); notify(''); route = nextRoute; }
+  if (nextRoute !== route) { editor = null; voteSession = null; voteOutcome = null; clearError(); notify(''); route = nextRoute; }
   try {
     const [view, id, extra, choiceId, ...tail] = nextRoute.replace(/^#\//, '#').slice(1).split('/');
     if (view === 'admin-transfer' && !id) {
@@ -704,7 +747,7 @@ async function render() {
     if (sequence !== renderSequence) return;
     remoteImages?.sweep(); remoteImages = null;
     const distant = view === 'p' || (id && bindings.has(id));
-    if (distant && ['poll', 'edit', 'style', 'share'].includes(view) && !bindings.get(id)?.adminCapability) throw new Error('La capacité créateur est nécessaire pour gérer ce sondage.');
+    if (distant && ['poll', 'edit', 'style', 'share', 'poster'].includes(view) && !bindings.get(id)?.adminCapability) throw new Error('La capacité créateur est nécessaire pour gérer ce sondage.');
     if (distant) {
       if (!relay || (bindings.has(id) && bindings.get(id).relayId !== RELAY_CONFIG.relayId)) throw new Error('Relais non configuré ou indisponible. Aucun vote local de secours.');
       try {
@@ -723,7 +766,7 @@ async function render() {
         throw error;
       }
     } else if (id) remoteViews.delete(id);
-    const locations = { home: 'Accueil', new: 'Nouveau sondage', backup: 'Sauvegarde', appearance: 'Apparence de Voti', poll: 'Sondage · Gestion', edit: 'Sondage · Modification', vote: 'Sondage · Vote', results: 'Sondage · Résultats', style: 'Sondage · Apparence', share: 'Sondage · Partage' };
+    const locations = { home: 'Accueil', new: 'Nouveau sondage', backup: 'Sauvegarde', appearance: 'Apparence de Voti', poll: 'Sondage · Gestion', edit: 'Sondage · Modification', vote: 'Sondage · Vote', results: 'Sondage · Résultats', style: 'Sondage · Apparence', share: 'Sondage · Partage', poster:'Studio d’affiche' };
     const pageMarker = document.getElementById('location');
     pageMarker.textContent = view === 'p' ? (extra === 'results' ? 'Sondage · Résultats en ligne' : 'Sondage · Vote en ligne') : locations[view] || 'Page locale';
     pageMarker.hidden = view === 'home' && !id;
@@ -744,6 +787,7 @@ async function render() {
     else if (view === 'results' && id) results(id);
     else if (view === 'style' && id) style(id);
     else if (view === 'share' && id) share(id);
+    else if (view === 'poster' && id) studio(id);
     else throw new Error('Ce lien local n’est pas reconnu.');
   } catch (error) { app.replaceChildren(); heading('Impossible d’ouvrir cette page'); app.append(el('p', error.code === 'NOT_FOUND' ? 'Ce sondage est introuvable. Il a peut-être été supprimé.' : error.message), actions(link('Accueil', '#home'))); }
   finally { if (sequence === renderSequence) app.setAttribute('aria-busy', 'false'); }
@@ -764,6 +808,7 @@ try {
   state = await repository.load();
   render();
   repository.recoverAssets().catch(error => notify(`Les sondages restent accessibles. ${error.message}`));
+  posters.recover().catch(error => notify(`Les affiches restent conservées. ${error.message}`));
 } catch (error) {
   app.replaceChildren(); heading('Données locales indisponibles');
   app.append(el('p', 'Aucune donnée n’a été remplacée. Vérifiez les permissions du navigateur ou conservez le fichier brut avant une réparation.'));

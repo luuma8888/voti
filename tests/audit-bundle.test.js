@@ -11,7 +11,7 @@ test('Bundle audit : fichiers Git admissibles sans aucune archive VOTI récursiv
   assert.equal(new Set(paths).size, paths.length);
 });
 test('Audit v0.4A : aucune clé exportée ni PDF de recette, même suivi par erreur', () => {
-  assert.equal(AUDIT_NAME, 'VOTI_AUDIT_V0_4A.zip');
+  assert.equal(AUDIT_NAME, 'VOTI_AUDIT_V0_4B.zip');
   for(const path of ['voti-admin-test.json','docs/voti-admin-test.json','.browser-tests/test.pdf','voti-affiche-test.pdf']) assert.ok(isPrivateOrTemporaryExport(path));
   assert.equal(isPrivateOrTemporaryExport('shared/admin-key.js'), false);
 });

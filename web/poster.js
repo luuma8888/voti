@@ -105,8 +105,8 @@ function paintPage(canvas, page, plan, { accent = '#684397', soft = '#eee7f7', l
     if (item.kind === 'choice') item.destinationLines.forEach((line, i) => text(line, item.x, item.y + item.size + 28 + i * 36, 28));
   }
   if (plan.mode === 'choices') {
-    text('Le QR présélectionne ce choix.', MARGIN, POSTER_HEIGHT - 620, 34);
-    text('Le vote doit ensuite être confirmé.', MARGIN, POSTER_HEIGHT - 570, 34);
+    text('Ce QR ouvre directement la confirmation de ce choix.', MARGIN, POSTER_HEIGHT - 620, 34);
+    text('Le vote n’est envoyé qu’après validation.', MARGIN, POSTER_HEIGHT - 570, 34);
   }
   text('Lien de vote : ' + plan.accessUrl, MARGIN, POSTER_HEIGHT - 230, 28);
   text(`A4 - imprimer à 100 % - ${pageIndex + 1}/${plan.pages.length}`, MARGIN, POSTER_HEIGHT - 170, 30);
