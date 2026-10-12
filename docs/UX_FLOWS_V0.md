@@ -160,7 +160,11 @@ restent identiques après fermeture ; après suppression, le sondage est introuv
 « Créer une affiche » ouvre le Studio local : type, disposition, palette,
 typographie et aperçu. Depuis v0.4C : trois gros accès de partage, typographies
 titre/corps prévisualisées, couleurs personnalisées explicites et sections
-images/cadrage/surfaces accessibles, hors petit panneau technique replié. Aucune image du
+images/cadrage/surfaces accessibles. La correction autorisée après retour humain
+supprime les deux colonnes : aperçu large accroché au-dessus de six catégories
+repliables avec explications. Sur le partage, le QR de vote reste visible au-dessus
+des boutons ; choix/résultats s’affichent dans un panneau autonome, pas un accordéon.
+Aucune image du
 Studio ne modifie le sondage public. La vue Résultats offre un PDF détaillé
 Synthèse/Rapport uniquement lorsque les résultats sont autorisés.
 

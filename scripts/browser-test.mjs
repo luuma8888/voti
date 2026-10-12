@@ -12,7 +12,7 @@ import { browserKeyExport, browserKeyImport, browserDelete } from './browser-har
 import { browserDialogScenario, keyboardDialogChecks } from './browser-dialogs.mjs';
 import { browserQrScenario, browserPosterScenario, qrChoiceStage } from './browser-qr.mjs';
 import { adminQrScenario } from './browser-admin-qr.mjs';
-import { browserStudioScenario, browserStudioPdfScenario } from './browser-studio.mjs';
+import { browserStudioScenario, browserStudioPdfScenario, browserStudioWorkspace } from './browser-studio.mjs';
 import { wrangler } from './relay-local.mjs';
 
 await build();
@@ -520,6 +520,22 @@ try {
     await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<500},sessionId);
     qrChecks.checks+=await evaluate(sessionId,`(${browserStudioScenario.toString()})()`);
   }
+  for(const [width,height] of [[1365,768],[360,740],[320,640]]) {
+    await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<500},sessionId);
+    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('mount')`);
+    try {qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('scroll')`);}
+    finally {const capture=await command('Page.captureScreenshot',{format:'png'},sessionId);
+      await writeFile(resolve(ROOT,`.browser-tests/studio-workspace-${width}.png`),Buffer.from(capture.data,'base64'));}
+    await command('Page.bringToFront',{},sessionId);
+    await command('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40},sessionId);
+    await command('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowDown',code:'ArrowDown',windowsVirtualKeyCode:40},sessionId);
+    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('keyboard-scroll')`);
+    await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'},sessionId);
+    await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},sessionId);
+    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('keyboard-open')`);
+    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('pages')`);
+    qrChecks.checks+=await evaluate(sessionId,`(${browserStudioWorkspace.toString()})('cleanup')`);
+  }
   await mkdir(resolve(ROOT,'.browser-tests/pdfs'),{recursive:true});
   const posterFiles=[];
   // La recette PDF coûteuse appartient à test:browser/test:poster ; pas trois
@@ -654,7 +670,7 @@ try {
       const link=document.querySelector('#app a[href="#share/${id}"]');
       if(!link?.textContent.includes('QR & partager')||!link.querySelector('svg[aria-hidden="true"]')||link.getBoundingClientRect().height<44)throw new Error('Action QR peu explicite');link.click();
       await wait(()=>document.querySelector('.sharing-panel')&&document.getElementById('app').getAttribute('aria-busy')==='false');
-      const button=[...document.querySelectorAll('#app button')].find(b=>b.textContent==='Créer une affiche');button.closest('details').open=true;button.click();
+      const button=document.querySelector('#app button[data-action="studio"]');button.click();
       await wait(()=>document.querySelector('.poster-studio')?.dataset.previewVersion);
       if(location.hash!=='#poster/${id}'||!document.querySelector('.studio-preview canvas')||document.querySelector('.human-verification'))throw new Error('Studio réel incorrect');return 4;
     })()`);

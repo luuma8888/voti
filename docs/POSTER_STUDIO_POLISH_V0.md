@@ -15,10 +15,26 @@ essentiels sont corrigés lorsque nécessaire. QR toujours noir/blanc.
 
 ## Contrôles et typographies
 
-Type de QR, disposition, palette, densité, choix par ligne, taille QR et en-tête
-sont directement accessibles. Sections distinctes : Couleurs personnalisées,
-Choisir des images, Cadrage, Surfaces et lisibilité. Deux colonnes quand la largeur
-le permet, une sur mobile ; pas de bloc « Options avancées » étroit.
+Après retour humain et autorisation explicite de Lu’uma, la disposition en deux
+colonnes est retirée. L’aperçu occupe la largeur utile au-dessus des réglages et
+reste accroché en haut pendant leur défilement. Sa zone de lecture défile au
+clavier/souris/tactile ; « Voir la page entière » / « Agrandir pour lire » alterne
+vision globale et lecture large. Une page à la fois, avec sélecteur si nécessaire.
+L’aperçu est borné à 900 pixels de large ; sur petit écran, le mode lecture
+affiche une largeur de 600 pixels avec défilement interne horizontal/vertical,
+pas de débordement de la page. La vue entière permet de revoir l’ensemble.
+Les cartes typographiques passent en une colonne sur mobile, pour ne pas
+découper les mots. Le PDF haute résolution est inchangé.
+Le téléchargement reste dans ce bandeau. La hauteur réelle du bandeau détermine
+la marge de défilement des contrôles, pour éviter leur masquage.
+
+Six accordéons natifs à titre, repère et explication : Composer l’affiche,
+Choisir les couleurs, Choisir les écritures, Choisir des images, Cadrer les images,
+Surfaces et lisibilité. Seule la composition est ouverte initialement. Une
+catégorie ouverte à la fois dans les navigateurs gérant le groupe natif de
+details ; ailleurs, plusieurs restent ouvrables sans perte de fonction. Les
+options typographiques gardent leurs cartes radios visuelles ; aucun réglage
+ou design sauvegardé n’est supprimé. Pas de nouveau format de stockage.
 
 Six styles de titre : Moderne, Douce, Éditoriale, Affiche, Manuscrite douce,
 Fantaisie sobre. Quatre styles de corps : Moderne, Douce, Éditoriale, Compacte.
@@ -87,9 +103,12 @@ saura lire les champs v0.4C. Aucun changement de schéma métier/empreinte.
 
 ## Partage, contexte et secret
 
-Trois entrées visuelles : Un QR pour chaque choix, QR des résultats, Créer une
-affiche PDF. Elles ouvrent les sections utiles avec focus ou le Studio. Les QR
-de vote, liens, PNG/SVG et transfert admin sont conservés.
+Le Lien et QR de vote est affiché en permanence, au-dessus des trois entrées
+visuelles validées : Un QR pour chaque choix, QR des résultats, Créer une
+affiche PDF. Les deux premières affichent un panneau autonome exclusif, avec
+titre focalisé et bouton marqué ouvert ; pas d’accordéon public. La troisième
+ouvre directement le Studio. Les destinations textuelles et PNG/SVG restent
+disponibles ; seul le transfert SECRET conserve sa section repliable distincte.
 
 État métier Brouillon/Ouvert/Fermé et contexte Local/En ligne sont séparés.
 Après suppression par cette interface, un repère UX dans voti.ui.context.v1

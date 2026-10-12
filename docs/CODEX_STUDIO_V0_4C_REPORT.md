@@ -254,3 +254,180 @@ Recette humaine ciblée A à L à effectuer après propagation, une manipulation
 à la fois. Aucune confirmation physique v0.4C revendiquée à ce stade ; retours
 et réserves seront consignés sans correctif silencieux. Le ZIP final sera recréé
 après cette recette et la documentation finale, sans être ajouté à Git.
+
+### Publication et contrôle Pages
+
+Commit `a1ffca6`, poussé sur main sur accord explicite de Lu’uma. 28 fichiers
+v0.4C inclus ; rapports locaux antérieurs laissés hors du commit, aucun ZIP suivi.
+Préflight du commit et des 40 modules HTML : aucun fichier backend ni littéral
+secret identifié. Aucun changement Cloudflare Worker/D1/Turnstile/binding ou R2.
+
+GitHub Pages a d’abord servi v0.4B, puis la lecture de
+`https://luuma8888.github.io/voti/` a renvoyé HTTP 200 et les mêmes 1 216 244
+octets que le build local. Comparaison binaire réussie ; SHA-256 commun :
+`ca2e6929f6c9d265cd6866f1fe3e271d771f5f04ba9812374631d704c7e46397`.
+
+Recette humaine A à L commencée : retours exacts de Lu’uma ci-dessous,
+distincts des contrôles automatisés. Le suivi documentaire reste local jusqu’à la clôture.
+Le ZIP existant correspond à l’audit pré-publication ; pas de régénération avant
+la recette finale. Aucun nouveau commit/push de ce suivi à ce stade.
+
+### Premiers retours physiques — recette non validée
+
+A — Lu’uma valide l’apparence des trois boutons (« super »), pas leur fonctionnement.
+Ils ne font qu’ouvrir les accordéons, toujours perçus comme techniques. Attente :
+chaque bouton ouvre un panneau autonome clairement identifié, par exemple des
+onglets ; Lien et QR de vote toujours visible sans plier/déplier, au-dessus des
+trois boutons. Lu’uma demande explicitement de corriger à la fin des tests dans
+v0.4C, pas au prochain lot. Aucune correction applicative effectuée à ce stade.
+
+Entrée dans B — Retour négatif majeur avant jugement des couleurs :
+« C’est horrible, terrible ! ça va pas du tout, c’est pire ! »
+Le formulaire prend trop de largeur, l’aperçu est trop petit et illisible,
+les réglages imposent beaucoup de défilement et l’aperçu ne reste pas visible.
+Lu’uma indique qu’il y a beaucoup à changer. Les couleurs Lagon/Jardin/custom
+ne sont donc PAS validées humainement, ni déclarées défectueuses sur ce seul retour.
+
+Inspection en lecture seule : la règle CSS finale donne 1.15fr aux contrôles
+contre .85fr à l’aperçu (57,5 % / 42,5 % hors espacement), dans un contenu plafonné
+à 1080 px. Les nombreux contrôles sont affichés ensemble ; aucun sticky ou
+défilement indépendant ne garde l’aperçu visible. À <=1000 px, l’aperçu est placé
+après tout le formulaire. Ces choix expliquent la régression d’ergonomie signalée,
+sans prétendre connaître la résolution exacte de son Chromebook.
+
+La recette Studio est interrompue pour clarifier une correction de disposition.
+Proposition à faire valider : réglages plus étroits et organisés par catégories,
+aperçu dominant restant visible, zoom/agrandissement, navigation mobile adaptée.
+L’autorisation différée pour la page de partage ne vaut pas autorisation implicite
+de cette réorganisation du Studio. Aucun changement de code, commit/push ou
+ZIP supplémentaire ; aucune mutation Cloudflare.
+
+### Correction ergonomique autorisée après ces retours
+
+Lu’uma rejette explicitement la disposition en deux colonnes et autorise la
+correction du Studio ET du partage : « Oui, tu peux corriger cela incluant la
+correction du partage. » Il demande des catégories repliables compréhensibles
+et un aperçu restant visible avec une largeur suffisante. Cette instruction
+remplace la proposition précédente de panneau latéral et la recommandation
+initiale de deux colonnes dans la spécification. L’autorité historique n’est
+pas réécrite. Cette autorisation porte sur les corrections, pas sur un nouveau
+commit/push : elles restent locales, en attente d’accord de publication.
+
+#### Studio corrigé
+
+- Une seule colonne : aperçu au-dessus, réglages en dessous. Plus de partage
+  horizontal de la largeur entre formulaire et aperçu.
+- Aperçu sticky pendant le défilement des réglages, utilisant la largeur utile.
+  Zone de lecture à défilement interne, accessible au clavier/souris/tactile ;
+  bouton Voir la page entière / Agrandir pour lire pour alterner les deux usages.
+  Sur mobile, lecture à 600 pixels avec défilement interne, sans overflow de la
+  page. La vue entière permet de vérifier la composition globale.
+- Six catégories natives details/summary : Composer l’affiche, Choisir les
+  couleurs, Choisir les écritures, Choisir des images, Cadrer les images,
+  Surfaces et lisibilité. Repère décoratif, titre simple, explication et signe
+  d’ouverture. Composition seule ouverte au départ ; groupe natif exclusif
+  lorsque le navigateur le supporte, repli fonctionnel sinon.
+- Téléchargement placé dans le bandeau de l’aperçu, toujours accessible pendant
+  les réglages. Sélection de page explicite pour les affiches multipages.
+- Un seul canvas d’aperçu de 900 pixels de large, y compris pour une affiche
+  longue : les autres pages sont rendues à la demande. Les surfaces précédentes
+  sont libérées ; pas de multiplication de la mémoire par le nombre de pages.
+- Hauteur réelle suivie par ResizeObserver ; marge de défilement et correction
+  de focus empêchent les contrôles de passer derrière l’aperçu. Observer libéré
+  à la sortie. Cartes typographiques en une colonne sur mobile pour garder les
+  noms lisibles. Pas de nouvelle animation ou dépendance.
+
+Les valeurs, couleurs, typographies et médias persistés sont conservés. Aucun
+nouveau champ PosterDesign, migration, changement d’AssetAdapter ou de backup.
+Le plan et le rendu du PDF final ne changent pas : seul l’aperçu est agrandi
+et sa navigation est revue. Aucune génération PDF pendant le réglage/zoom.
+
+#### Partage corrigé
+
+Lien et QR de vote visible en permanence, au-dessus des trois cartes dont
+l’apparence a été validée par Lu’uma. Les deux premières affichent un panneau
+autonome exclusif choix/résultats, avec titre focalisé, région nommée, aria-controls
+et état aria-expanded sur le bouton. Ce sont des boutons de sélection de panneau,
+pas un faux tablist ARIA. La troisième ouvre directement le Studio. Le transfert
+SECRET reste séparé et repliable, QR caché par défaut. Liens, PNG/SVG, destinations
+textuelles, routes et protocole secret inchangés.
+
+#### Fichiers de cette correction
+
+web/poster-studio.js, web/sharing.js, web/styles.css ; scripts/browser-studio.mjs,
+scripts/browser-qr.mjs, scripts/browser-test.mjs ; index.html régénéré ; ce
+rapport, POSTER_STUDIO_POLISH_V0.md, POSTER_STUDIO_V0.md, QR_AND_POSTER_V0.md
+et UX_FLOWS_V0.md. Aucun fichier créé, aucune dépendance ajoutée.
+Les modifications antérieures des rapports v0.4A/v0.4B/v0.3E et la spécification
+v0.3E non suivie sont préservées, hors de cette correction.
+
+#### Vérifications et limites
+
+Les tests ajoutés couvrent l’ordre aperçu/réglages, largeur, maintien visible
+pendant le défilement, focus non masqué, groupe repliable au clavier, vue entière
+et lecture, sélection de page avec un seul canvas, boutons/panneaux de partage,
+QR de vote permanent et cibles tactiles. Les scénarios couleurs, images,
+typographies, secret et absence de mutation métier restent testés.
+Captures inspectées à 1365×768, 360×740 et 320×640 dans la largeur réelle de main,
+ainsi que la page de partage du parcours HTTP local. Les captures restent ignorées.
+
+Deux incidents de mise au point : le premier contrôle mobile a révélé un bandeau
+trop haut masquant le titre d’une catégorie (corrigé par grille compacte et marge
+calculée). Le test de touches nécessite de remettre l’onglet CDP au premier plan
+avec Page.bringToFront ; les touches natives sont ensuite vérifiées réellement.
+L’inspection visuelle a également fait corriger les noms typographiques découpés
+sur mobile. Aucun test échoué n’est présenté comme un succès final.
+
+Résultats des commandes exécutées pendant cette correction (toutes sorties
+finales avec code 0) :
+
+| Commande | Résultat |
+| --- | --- |
+| npm test | 340 tests Node, aucun échec |
+| npm run check | 85 fichiers JavaScript, syntaxe valide |
+| npm run build | 1 223 704 octets, HTML autonome |
+| npm run build:production | 1 223 952 octets, profil gratuit sans images distantes |
+| npm run test:browser | Dernière exécution : 2 778 contrôles Chromium réussis |
+| npm run test:integration | 73 contrôles HTTP locaux + 2 932 contrôles Chromium |
+| npm run test:free-pilot | 21 contrôles HTTP/D1 sans R2 + 2 934 contrôles Chromium |
+| git diff --check | Aucune erreur |
+
+Les intégrations ont précédé la dernière optimisation consistant à ne rendre
+qu’un canvas d’aperçu. Cette optimisation, sans changement HTTP, est couverte
+par la dernière exécution complète test:browser (lecture/sélection de pages,
+clavier, exports, offline et serveur /voti/). Les constructions sont exécutées
+séquentiellement, et le build de production est régénéré en dernier.
+
+SHA-256 du build production prêt, non publié :
+`b159b0ce4ddf88d5d5741c945f9969d6ebf7628c77a6376fb4e6878cbe77f828`.
+
+Pas de relance séparée des trois suites de rasterisation Poppler : le générateur
+PDF, les plans et agrégats n’ont pas été modifiés. Le CSS d’impression de l’éditeur
+masque son bandeau et rend l’aperçu non sticky ; l’impression navigateur montre
+la page consultée, le téléchargement PDF produit toujours toutes les pages. Les suites
+Node et Chromium gardent les tests et générations PDF existants. Pas de relance
+HTTP seule supplémentaire : test:integration couvre déjà son scénario complet.
+Tests locaux uniquement, avec bindings remote:false ; aucun accès au relais réel.
+
+Il reste à faire juger l’ergonomie par Lu’uma sur son Chromebook : lisibilité,
+défilement de l’aperçu, organisation des catégories, logique des couleurs puis
+suite de la recette A à L. Aucune validation humaine de cette correction ou
+impression papier revendiquée. La largeur physique d’un téléphone implique un
+choix entre vue globale réduite et lecture avec défilement ; ce compromis est
+explicite dans l’interface. Le comportement du groupe exclusif dépend du support
+du name natif des details, sans perte de réglage sur un navigateur plus ancien.
+
+Aucun commit/push, aucune publication Pages, aucune modification du Worker,
+de D1, Turnstile, bindings ou du profil sans R2. Le ZIP final n’est pas recréé
+avant la reprise et la validation de la recette humaine.
+
+### Autorisation de publication de la correction
+
+Après remise du correctif et de ses résultats, Lu’uma répond « oui » à la demande
+explicite de commit/push pour tester le nouveau rendu en ligne. Publication
+autorisée uniquement pour les douze fichiers de cette correction et son suivi
+v0.4C ; les autres rapports locaux et la spécification v0.3E restent hors commit.
+Le build production attendu est celui de 1 223 952 octets et du SHA-256 indiqué
+ci-dessus. Vérification Pages à effectuer après push, puis reprise de la recette
+humaine, sans en revendiquer la validation. Aucun ZIP final ni déploiement
+Cloudflare dans cette publication.

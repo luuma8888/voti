@@ -25,7 +25,14 @@ export async function browserQrScenario() {
       document.body.append(panel);
       assert(panel.querySelectorAll('.qr-grid .qr-card').length===n,'Cartes de choix '+n);
       const entries=panel.querySelectorAll('.share-shortcut');assert(entries.length===3&&entries[0].textContent.includes('Un QR pour chaque choix')&&entries[1].textContent.includes('QR des résultats')&&entries[2].textContent.includes('Créer une affiche PDF'),'Trois accès visuels');
-      entries[0].click();assert(document.activeElement.textContent==='QR par choix','Accès choix avec focus');entries[1].click();assert(document.activeElement.textContent==='QR des résultats','Accès résultats avec focus');entries[2].click();assert(studioOpened===1,'Accès Studio unique');
+      const vote=panel.querySelector('.share-vote'),panels=panel.querySelectorAll('.share-content');
+      assert(!vote.closest('details')&&vote.nextElementSibling===entries[0].parentElement&&vote.getBoundingClientRect().height>0,'QR vote permanent au-dessus des boutons');
+      assert([...panels].every(p=>p.hidden),'Panneaux publics masqués avant sélection');
+      entries[0].click();assert(document.activeElement.textContent==='Un QR pour chaque choix'&&!panels[0].hidden&&panels[1].hidden&&entries[0].getAttribute('aria-expanded')==='true','Panneau choix autonome avec focus');
+      assert([...panels[0].querySelectorAll('button,.qr-destination')].every(b=>b.getBoundingClientRect().height>=44),'Cibles choix 44 px');
+      entries[1].click();assert(document.activeElement.textContent==='QR des résultats'&&panels[0].hidden&&!panels[1].hidden&&entries[0].getAttribute('aria-expanded')==='false','Panneau résultats remplace choix');
+      assert(vote.getBoundingClientRect().height>0&&!panel.querySelector('.share-content details'),'Vote toujours affiché, pas d’accordéon public');
+      entries[2].click();assert(studioOpened===1,'Accès Studio unique');
       for(const detail of panel.querySelectorAll('details')) detail.open=true;
       const warning=panel.querySelector('.secret-warning'),style=getComputedStyle(warning),hex=v=>'#'+v.match(/\d+/g).slice(0,3).map(n=>Number(n).toString(16).padStart(2,'0')).join('');
       assert(contrast(hex(style.color),hex(style.backgroundColor))>=4.5,'Contraste avertissement '+theme);
@@ -34,7 +41,7 @@ export async function browserQrScenario() {
       assert(panel.querySelectorAll('.qr-card .qr-destination').length===n+2,'Destination textuelle de tous les QR publics');
       assert([...panel.querySelectorAll('.qr-card img')].every(img=>img.alt && img.src.startsWith('data:')),'QR locaux avec texte alternatif');
       assert(document.documentElement.scrollWidth<=innerWidth,'Partage sans débordement '+theme+'/'+n+'/'+innerWidth);
-      assert([...panel.querySelectorAll('button,.qr-destination')].every(b=>b.getBoundingClientRect().height>=44),'Cibles partage 44 px');
+      assert([...panel.querySelectorAll('button,.qr-destination')].filter(b=>b.getBoundingClientRect().height).every(b=>b.getBoundingClientRect().height>=44),'Cibles partage visibles 44 px');
       const reveal=[...panel.querySelectorAll('button')].find(b=>b.textContent==='Afficher le QR secret'); reveal.click();
       const deadline=performance.now()+3000;while(!panel.querySelector('.secret-qr img')){if(performance.now()>deadline)throw new Error('QR secret absent');await new Promise(requestAnimationFrame);}
       assert(!panel.querySelector('.secret-qr').hidden && reveal.textContent==='Masquer','Affichage volontaire du secret');

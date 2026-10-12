@@ -27,8 +27,20 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
   };
   const status=node('p','Préparation de l’aperçu…','help');status.setAttribute('role','status');
   box.append(node('p','Personnalise ton affiche, sans changer le sondage ni les images vues par les votants.','help'));
-  const layout=node('div',null,'studio-grid');layout.append(controls,preview);box.append(layout);
-  preview.append(node('h2','Aperçu'),status);const sheets=node('div',null,'studio-sheets');preview.append(sheets);
+  const layout=node('div',null,'studio-grid');layout.append(preview,controls);box.append(layout);
+  const toolbar=node('div',null,'studio-preview-toolbar');toolbar.append(node('h2','Ton affiche'));
+  const sheets=node('div',null,'studio-sheets');sheets.tabIndex=0;sheets.setAttribute('role','region');sheets.setAttribute('aria-label','Aperçu de l’affiche, défilement pour lire la page');
+  const page=node('select');page.setAttribute('aria-label','Page de l’aperçu');let pageIndex=0;
+  page.addEventListener('change',()=>{pageIndex=Number(page.value);schedule();sheets.scrollTo(0,0);});
+  const zoom=button('Voir la page entière',()=>{const full=preview.classList.toggle('studio-fit-page');zoom.textContent=full?'Agrandir pour lire':'Voir la page entière';zoom.setAttribute('aria-pressed',String(full));sheets.scrollTo(0,0);});zoom.setAttribute('aria-pressed','false');
+  toolbar.append(page,zoom);preview.append(toolbar,status,sheets);
+  // Le repère de défilement suit la hauteur réelle du bandeau (mobile, erreurs,
+  // retour à la ligne), pour qu'un contrôle focalisé ne passe pas derrière lui.
+  const previewSize=new ResizeObserver(()=>box.style.setProperty('--studio-preview-clearance',`${Math.ceil(preview.getBoundingClientRect().height)+24}px`));previewSize.observe(preview);
+  controls.addEventListener('focusin',event=>{const target=event.target;requestAnimationFrame(()=>{
+    if(disposed||!target.isConnected)return;const rect=target.getBoundingClientRect();
+    if(rect.height&&(rect.top<preview.getBoundingClientRect().bottom+12||rect.bottom>innerHeight-(innerWidth<=680?74:12)))target.scrollIntoView({block:'start'});
+  });});
   function freeCanvas(){for(const canvas of canvases)canvas.width=canvas.height=1;canvases.length=0;sheets.replaceChildren();}
   async function draw(){
     const current=++version,snapshot=structuredClone(design),measure=printMeasure();let media;
@@ -38,12 +50,18 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
       const plan=makeStudioPlan(poll,snapshot,{measure:measure.measure,mediaSizes});
       media=await loadPrintMedia(plan,source,pollAssets);if(disposed||current!==version)return;
       freeCanvas();
-      for(let index=0;index<plan.pages.length;index++){
-        const canvas=node('canvas');canvas.width=620;canvas.height=Math.round(620*plan.height/plan.width);
+      pageIndex=Math.min(pageIndex,plan.pages.length-1);
+      // Un seul canvas, même pour une affiche longue : les autres pages sont
+      // rendues à la demande, sans multiplier la mémoire de l'aperçu.
+      {
+        const index=pageIndex;
+        const canvas=node('canvas');canvas.width=900;canvas.height=Math.round(900*plan.height/plan.width);
         canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`Aperçu ${LAYOUTS.find(l=>l[0]===snapshot.layout)[1]}, page ${index+1} sur ${plan.pages.length}`);
         paintPrintPage(canvas,plan,index,{media,logo:document.querySelector('.brand-icon')});canvases.push(canvas);sheets.append(canvas);
       }
-      status.textContent=`${plan.pages.length} page(s) A4 · aperçu réduit, PDF haute résolution au téléchargement. ${plan.warnings.join(' ')}`;
+      page.replaceChildren(...plan.pages.map((_,index)=>{const option=node('option',`Page ${index+1} / ${plan.pages.length}`);option.value=String(index);return option;}));
+      page.disabled=plan.pages.length===1;page.value=String(pageIndex);
+      status.textContent=`${plan.pages.length} page(s) A4 · Fais défiler l’aperçu pour lire les détails. ${plan.warnings.join(' ')}`;
       box.dataset.previewVersion=String(current);
     } catch(e){if(!disposed&&current===version){status.textContent='Aperçu indisponible.';error(e);}}
     finally{measure.release();if(media)releasePrintMedia(media);}
@@ -62,24 +80,31 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
   const paletteField=select('Palette',[...PALETTES.map(p=>[p[0],p[1]]),['custom','Personnalisé']],design.customColors.enabled?'custom':design.palette,v=>{if(v==='custom'){syncColors();return;}design=choosePalette(design,v);syncColors();save();});
   const paletteSelect=paletteField.querySelector('select');
   paletteSelect.querySelector('option[value=custom]').disabled=true;
-  controls.append(select('Type d’affiche',[['access','QR d’accès'],['choices','QR par choix']],design.mode,v=>set('mode',v)),
-    select('Disposition',LAYOUTS,design.layout,v=>set('layout',v)),paletteField,colorMode,
+  const sections=node('div',null,'studio-sections');controls.append(sections);
+  const accordionName='studio-'+crypto.randomUUID();
+  function section(title,description,mark,open=false){const details=node('details',null,'studio-section');details.setAttribute('name',accordionName);details.open=open;const summary=node('summary');summary.append(node('span',mark,'studio-section-mark'),node('strong',title),node('span',description,'studio-section-description'));summary.querySelector('.studio-section-mark').setAttribute('aria-hidden','true');details.append(summary);const content=node('div',null,'studio-section-content');details.append(content);sections.append(details);return content;}
+  const composition=section('Composer l’affiche','Type de QR, disposition et espace entre les choix.','01',true);
+  composition.append(node('p','QR d’accès : un grand QR pour tout le sondage. QR par choix : un QR associé à chaque réponse, toujours suivi d’une confirmation.','help'));
+  composition.append(select('Type d’affiche',[['access','QR d’accès'],['choices','QR par choix']],design.mode,v=>set('mode',v)),
+    select('Disposition',LAYOUTS,design.layout,v=>set('layout',v)),
     select('Densité',[['compact','Compact'],['balanced','Équilibré'],['airy','Aéré']],design.densityPreset,v=>set('densityPreset',v)),
     select('Choix par ligne',[['auto','Auto'],['1','1'],['2','2'],['3','3']],design.choicesPerRow,v=>set('choicesPerRow',v)),
     select('Taille des QR',[['small','Petit'],['medium','Moyen'],['large','Grand']],design.qrSize,v=>set('qrSize',v)),
-    select('En-tête Voti',[['normal','Normal'],['discreet','Discret'],['hidden','Masqué']],design.headerMode,v=>set('headerMode',v)),
+    select('En-tête Voti',[['normal','Normal'],['discreet','Discret'],['hidden','Masqué']],design.headerMode,v=>set('headerMode',v)));
+  const colors=section('Choisir les couleurs','Une palette harmonieuse ou tes propres couleurs.','02');
+  colors.append(paletteField,colorMode);
+  const typography=section('Choisir les écritures','Un style pour le titre, un autre pour les textes.','03');
+  typography.append(
     typographyChoices('Typographie du titre','title',design.titleTypography,v=>set('titleTypography',v)),
     typographyChoices('Typographie du texte','body',design.bodyTypography,v=>set('bodyTypography',v)));
-  const sections=node('div',null,'studio-sections');controls.append(sections);
-  function section(title){const s=node('section',null,'studio-section');s.append(node('h2',title));sections.append(s);return s;}
-  const colors=section('Couleurs personnalisées');
+  colors.append(node('h3','Couleurs personnalisées'));
   colors.append(node('p','Principale : en-tête et accents. Secondaire : repères des choix. Fond : toute la page.','help'));
   for(const [key,label] of [['primary','Principale'],['secondary','Secondaire'],['bg','Fond']]){
     const input=node('input');input.type='color';input.value=design.customColors[key];const value=node('output',input.value);
     input.addEventListener('input',()=>{design=customizeColor(design,key,input.value);syncColors();save();});const group=field(label,input);group.append(value);colors.append(group);colorFields.set(key,{input,value});
   }
   colors.append(button('Revenir à la palette',()=>{design=resetPalette(design);syncColors();save();}));syncColors();
-  const mediaBox=section('Choisir des images'),cropBox=section('Cadrage'),surfaces=section('Surfaces et lisibilité');
+  const mediaBox=section('Choisir des images','Un fond, une image principale ou une image par réponse.','04'),cropBox=section('Cadrer les images','Choisis la forme et la partie de la photo à garder.','05'),surfaces=section('Surfaces et lisibilité','Laisse voir ta photo sans perdre la lisibilité.','06');
   let bgFitField,bgPositionField;
   function syncBackground(){const s=settingsFor(design,'background');if(bgFitField)bgFitField.querySelector('select').value=s.fit;if(bgPositionField)bgPositionField.querySelector('select').value=s.focalX===.5&&[0,.5,1].includes(s.focalY)?(s.focalY===0?'top':s.focalY===1?'bottom':'center'):'manual';}
   cropBox.append(node('p','Ajoute une image pour régler sa forme et la partie visible. Chaque image a son propre cadrage.','help'));
@@ -120,10 +145,10 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
       const result=await exportPrintPdf(plan,{media,logo:document.querySelector('.brand-icon')});
       if(!disposed){downloadBlob(new Blob([result.bytes],{type:'application/pdf'}),`voti-affiche-${poll.remoteRef.pollId}-${design.mode}.pdf`);notify(`Affiche prête : ${plan.pages.length} page(s).`);}
     }catch(e){if(!disposed)error(e);}finally{if(media)releasePrintMedia(media);measure.release();download.disabled=busy>0;}
-  });download.className='primary';controls.append(download,node('p','Design et médias d’affiche locaux, exclus de la sauvegarde générale. Le stockage du navigateur peut être effacé.','help'));
+  });download.className='primary';toolbar.append(download);controls.append(node('p','Design et médias d’affiche locaux, exclus de la sauvegarde générale. Le stockage du navigateur peut être effacé.','help'));
   const reset=button('Réinitialiser le design et retirer ses images',async()=>{if(reset.disabled)return;reset.disabled=true;try{await queue;await repository.remove(poll.remoteRef.pollId);onReset();notify('Design réinitialisé. Images affiche-only retirées si elles ne sont plus partagées.');}catch(e){error(e);}finally{reset.disabled=false;}});
   controls.append(reset);if(JSON.stringify(design)!==JSON.stringify(saved))save();else schedule();
-  return {element:box,dispose:()=>{disposed=true;version++;freeCanvas();for(const crop of crops)crop.dispose();for(const v of [views,focalViews]){for(const url of v.urls.values())URL.revokeObjectURL(url);v.urls.clear();}staged.clear();}};
+  return {element:box,dispose:()=>{disposed=true;version++;previewSize.disconnect();freeCanvas();for(const crop of crops)crop.dispose();for(const v of [views,focalViews]){for(const url of v.urls.values())URL.revokeObjectURL(url);v.urls.clear();}staged.clear();}};
 }
 
 /** Disponible sur la vue résultats, jamais alimenté par des bulletins. */

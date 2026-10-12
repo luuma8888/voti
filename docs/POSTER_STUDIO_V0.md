@@ -2,7 +2,8 @@
 
 Cette page décrit la fondation v0.4B. Depuis v0.4C, voir
 `POSTER_STUDIO_POLISH_V0.md` pour les couleurs synchronisées, typographies
-titre/corps, sections visibles, densité, surfaces et cadrage focal. Le contrat
+titre/corps, catégories repliables et aperçu large restant visible, densité,
+surfaces et cadrage focal. Le contrat
 de stockage v1 demeure rétrocompatible ; le backup général reste inchangé.
 
 ## Parcours

@@ -15,7 +15,14 @@ export async function browserStudioScenario() {
   const originalTheme=document.documentElement.dataset.theme;
   try {
     await wait(()=>view.element.dataset.previewVersion);
-    const change=async(label,value)=>{const l=[...view.element.querySelectorAll('label')].find(n=>n.textContent===label),input=document.getElementById(l.htmlFor),version=view.element.dataset.previewVersion;input.value=value;input.dispatchEvent(new Event(input.type==='color'?'input':'change',{bubbles:true}));await wait(()=>view.element.dataset.previewVersion!==version);
+    const openGroup=control=>{const section=control.closest('.studio-section');if(section)section.open=true;};
+    assert(view.element.querySelectorAll('.studio-section').length===6&&view.element.querySelectorAll('.studio-section[open]').length===1,'Six catégories, seule la composition ouverte');
+    assert(getComputedStyle(view.element.querySelector('.studio-grid')).flexDirection==='column','Studio sans deux colonnes');
+    assert(view.element.querySelector('.studio-preview').nextElementSibling.classList.contains('studio-controls'),'Aperçu au-dessus des réglages');
+    const previewBox=view.element.querySelector('.studio-preview'),sheet=view.element.querySelector('.studio-sheets');
+    assert(getComputedStyle(previewBox).position==='sticky'&&sheet.clientWidth>=view.element.clientWidth*.7,'Aperçu large et accroché');
+    const zoom=[...view.element.querySelectorAll('button')].find(b=>b.textContent==='Voir la page entière');zoom.click();assert(previewBox.classList.contains('studio-fit-page')&&zoom.textContent==='Agrandir pour lire','Vue page entière explicite');zoom.click();assert(!previewBox.classList.contains('studio-fit-page'),'Retour à la lecture large');
+    const change=async(label,value)=>{const l=[...view.element.querySelectorAll('label')].find(n=>n.textContent===label),input=document.getElementById(l.htmlFor),version=view.element.dataset.previewVersion;openGroup(input);input.value=value;input.dispatchEvent(new Event(input.type==='color'?'input':'change',{bubbles:true}));await wait(()=>view.element.dataset.previewVersion!==version);
       const key={'Disposition':'layout','Type d’affiche':'mode','Palette':'palette'}[label];
       if(key)await wait(()=>repo.get(poll.id)[key]===value);if(label==='Principale')await wait(()=>repo.get(poll.id).customColors.primary===value);
     };
@@ -29,21 +36,23 @@ export async function browserStudioScenario() {
     [...view.element.querySelectorAll('button')].find(b=>b.textContent==='Revenir à la palette').click();await wait(()=>!repo.get(poll.id).customColors.enabled);assert(colorInput('Secondaire').value===PALETTES.find(p=>p[0]==='lagoon')[5],'Retour palette synchronisé');
     for(const [kind,list] of [['title',TITLE_TYPOGRAPHIES],['body',BODY_TYPOGRAPHIES]]){
       const group=[...view.element.querySelectorAll('.typography-choices')].find(g=>g.querySelector('legend').textContent===(kind==='title'?'Typographie du titre':'Typographie du texte'));
+      openGroup(group);
       assert(group.querySelectorAll('input').length===list.length,'Variété typographique');
       for(const [id,,family] of list){const version=view.element.dataset.previewVersion,input=group.querySelector(`input[value="${id}"]`);if(!input.checked){input.click();await wait(()=>view.element.dataset.previewVersion!==version&&repo.get(poll.id)[kind+'Typography']===id);}assert(input.checked&&input.nextElementSibling.style.fontFamily.includes(family.split(',')[0].replaceAll('"','')),'Prévisualisation typo');}
     }
     for(const [label,value] of [['En-tête Voti','hidden'],['Surface QR','minimal'],['Fond des textes','0.65'],['Densité','compact'],['Choix par ligne','3'],['Taille des QR','small']])await change(label,value);
-    for(const layout of ['essential','cards','magazine','mosaic']){await change('Disposition',layout);assert(view.element.querySelector('canvas').width===620,'Aperçu réduit');assert(repo.get(poll.id).layout===layout,'Design conservé');}
+    for(const layout of ['essential','cards','magazine','mosaic']){await change('Disposition',layout);assert(view.element.querySelector('canvas').width===900,'Aperçu lisible à résolution bornée');assert(repo.get(poll.id).layout===layout,'Design conservé');}
     await change('Type d’affiche','choices');await change('Palette','night');
     view.element.querySelector('.typography-choices input[value=editorial]').click();
     await change('Principale','#ffff00');
     assert(repo.get(poll.id).customColors.primary==='#ffff00','Couleur custom persistée');
     const canvas=document.createElement('canvas');canvas.width=300;canvas.height=600;const context=canvas.getContext('2d');context.fillStyle='#6a4b95';context.fillRect(0,0,300,600);context.fillStyle='#f6ce8c';context.fillRect(25,80,250,380);
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));canvas.width=canvas.height=1;
-    async function image(label){const group=[...view.element.querySelectorAll('.image-picker')].find(n=>n.getAttribute('aria-label')===label),input=group.querySelector('input[type=file]'),transfer=new DataTransfer();transfer.items.add(new File([blob],'portrait.png',{type:'image/png'}));input.files=transfer.files;input.dispatchEvent(new Event('change'));await wait(()=>!input.disabled&&group.querySelector('img')?.naturalWidth);return group;}
+    async function image(label){const group=[...view.element.querySelectorAll('.image-picker')].find(n=>n.getAttribute('aria-label')===label),input=group.querySelector('input[type=file]'),transfer=new DataTransfer();openGroup(group);transfer.items.add(new File([blob],'portrait.png',{type:'image/png'}));input.files=transfer.files;input.dispatchEvent(new Event('change'));await wait(()=>!input.disabled&&group.querySelector('img')?.naturalWidth);return group;}
     const bg=await image('Image de fond d’affiche');await wait(()=>repo.get(poll.id).background.assetId);const imageId=repo.get(poll.id).background.assetId;
     await image('Image principale d’affiche');await image('Image d’affiche : Forêt et pêche');
     const crop=[...view.element.querySelectorAll('.focal-control')].find(g=>g.querySelector('legend').textContent==='Cadrage : Image principale d’affiche');
+    openGroup(crop);
     assert(crop&&!crop.hidden,'Cadrage visible');
     const rect=crop.querySelector('.focal-preview').getBoundingClientRect(),preview=crop.querySelector('.focal-preview');
     for(const type of ['pointerdown','pointermove','pointerup'])preview.dispatchEvent(new PointerEvent(type,{bubbles:true,pointerId:1,pointerType:'touch',button:0,clientX:rect.left+rect.width*.5,clientY:rect.top+rect.height*.8}));
@@ -58,7 +67,7 @@ export async function browserStudioScenario() {
     for(const theme of ['pop','nature','douceur','dark','minimal']){document.documentElement.dataset.theme=theme;
       assert(document.documentElement.scrollWidth<=innerWidth,'Studio sans overflow '+theme+'/'+innerWidth);
       assert([...view.element.querySelectorAll('button,select,input:not([hidden]),summary')].filter(n=>n.getBoundingClientRect().height).every(n=>n.getBoundingClientRect().height>=44),'Cibles Studio 44px');
-      const control=view.element.querySelector('select');control.focus();assert(document.activeElement===control&&getComputedStyle(control).outlineStyle!=='none','Focus Studio visible');}
+      const control=view.element.querySelector('.studio-controls select');openGroup(control);control.focus();assert(document.activeElement===control&&getComputedStyle(control).outlineStyle!=='none','Focus Studio visible');}
     const locked=resultsPdfPanel(poll,{available:false},{repository:repo,pollAssets:adapter,refreshPoll:async()=>{throw new Error('Ne doit pas consulter');},error:e=>errors.push(e.message),notify:()=>{}});document.body.append(locked);locked.open=true;
     assert(locked.querySelector('button').disabled&&locked.textContent.includes('Les résultats ne sont pas encore disponibles.'),'PDF résultats bloqué');locked.remove();
     if(innerWidth===360){
@@ -76,6 +85,45 @@ export async function browserStudioScenario() {
     assert(errors.length===0,'Pas d’erreur Studio : '+errors.join(' / '));
   }finally{view.element.remove();view.dispose();document.documentElement.dataset.theme=originalTheme;await repo.remove(poll.id);assert((await adapter.listMetadata()).length===0,'Médias nettoyés après retrait du design');}
   return checks;
+}
+
+/** Géométrie et captures dans la largeur réelle de main, avec un faux sondage. */
+export async function browserStudioWorkspace(stage='mount') {
+  const wait=async f=>{const end=performance.now()+15000;while(!f()){if(performance.now()>end)throw new Error('Espace Studio non prêt');await new Promise(requestAnimationFrame);}};
+  if(stage==='mount') {
+    const {posterStudio}=await import('voti/web/poster-studio.js');
+    const {PosterRepository}=await import('voti/web/poster-storage.js');
+    const {MemoryAssetAdapter}=await import('voti/shared/assets.js');
+    const {createPoll,publishPoll}=await import('voti/shared/poll-engine.js');
+    const {emptyState}=await import('voti/shared/model.js');
+    let state=createPoll(emptyState(),{question:'Quelle pizza partager ensemble ?',choices:['4 fromages','Margherita','Végétarienne']});state=publishPoll(state,state.polls[0].id);
+    const poll=state.polls[0];poll.remoteRef={relayId:'fixture',pollId:poll.id,revision:1};
+    const repo=new PosterRepository(localStorage,new MemoryAssetAdapter(),navigator.locks),errors=[];
+    const view=posterStudio(poll,{repository:repo,error:e=>errors.push(e.message),notify:()=>{},refreshPoll:async()=>poll});
+    const app=document.getElementById('app'),original=[...app.childNodes],title=document.createElement('h1');title.textContent='Studio d’affiche';app.replaceChildren(title,view.element);
+    window.__votiStudioWorkspaceTest={view,repo,poll,original,errors};window.scrollTo(0,0);await wait(()=>view.element.dataset.previewVersion);return 1;
+  }
+  const {view,repo,poll,original,errors}=window.__votiStudioWorkspaceTest;
+  if(stage==='cleanup'){view.dispose();document.getElementById('app').replaceChildren(...original);delete window.__votiStudioWorkspaceTest;await repo.remove(poll.id);window.scrollTo(0,0);return 1;}
+  const preview=view.element.querySelector('.studio-preview'),sheet=view.element.querySelector('.studio-sheets'),sections=view.element.querySelectorAll('.studio-section');
+  if(stage==='keyboard-scroll'){await wait(()=>sheet.scrollTop>0);const summary=sections[3].querySelector('summary');summary.focus();await new Promise(requestAnimationFrame);if(summary.getBoundingClientRect().top<preview.getBoundingClientRect().bottom)throw new Error('Focus clavier masqué par l’aperçu');return 2;}
+  if(stage==='keyboard-open'){await wait(()=>sections[3].open);if(sections[2].open||view.element.querySelectorAll('.studio-section[open]').length!==1)throw new Error('Accordéon clavier non exclusif');return 1;}
+  if(stage==='pages') {
+    for(const [label,value] of [['Type d’affiche','choices'],['Choix par ligne','1'],['Densité','airy'],['Taille des QR','large']]){const title=[...view.element.querySelectorAll('label')].find(n=>n.textContent===label),input=document.getElementById(title.htmlFor);input.value=value;input.dispatchEvent(new Event('change'));}
+    const page=view.element.querySelector('[aria-label="Page de l’aperçu"]');await wait(()=>page.options.length>1&&repo.get(poll.id).qrSize==='large');
+    page.value='1';page.dispatchEvent(new Event('change'));
+    await wait(()=>view.element.querySelector('.studio-sheets canvas')?.getAttribute('aria-label').includes('page 2 sur'));
+    if(view.element.querySelectorAll('.studio-sheets canvas').length!==1)throw new Error('L’aperçu conserve plusieurs canvases');
+    return 2;
+  }
+  sections[2].open=true;sections[2].querySelector('summary').scrollIntoView({block:'start'});await new Promise(requestAnimationFrame);
+  const rect=preview.getBoundingClientRect(),summary=sections[2].querySelector('summary').getBoundingClientRect();
+  if(rect.top<0||rect.top>10||rect.bottom>innerHeight-100||rect.width<view.element.clientWidth*.85||summary.top<rect.bottom)throw new Error('Aperçu masqué/petit ou réglage sous l’aperçu : '+JSON.stringify({width:innerWidth,preview:rect.toJSON(),summary:summary.toJSON()}));
+  if(document.documentElement.scrollWidth>innerWidth||sections[0].open||!sections[2].open)throw new Error('Accordéon ou largeur incorrect');
+  sheet.focus({preventScroll:true});if(document.activeElement!==sheet||getComputedStyle(sheet).outlineStyle==='none')throw new Error('Aperçu non accessible au clavier');
+  if(innerWidth<500&&(view.element.querySelector('.typography-choices label').getBoundingClientRect().width<180||sheet.querySelector('canvas:not([hidden])').getBoundingClientRect().width<500))throw new Error('Typographies ou lecture mobile trop étroites');
+  if(errors.length)throw new Error(errors.join(' / '));
+  return 5;
 }
 
 /** Une génération par appel CDP, avec vrais pixels/media locaux et PDF final. */

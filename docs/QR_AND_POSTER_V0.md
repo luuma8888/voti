@@ -64,12 +64,14 @@ Sources/API primaires : [encodeur QR](https://github.com/kazuhikoarase/qrcode-ge
 ## Partager sans surcharger la gestion
 
 Depuis v0.4C, trois accès visuels principaux ouvrent les QR de choix, les QR
-résultats et le Studio PDF. Les sections secondaires et tous les téléchargements
+résultats et le Studio PDF. Après la recette humaine v0.4C, le lien/QR de vote
+reste affiché au-dessus de ces accès ; choix et résultats utilisent des panneaux
+autonomes exclusifs, sans accordéon. Tous les téléchargements
 sont conservés. L’avertissement SECRET utilise une icône vectorielle et les
 couleurs de danger accessibles ; aucun changement des routes ou du protocole.
 
-Vue `#share/<pollId>` réservée au créateur. Sections repliables : accès,
-choix, résultats, affiches, transfert SECRET. Chaque QR public a un libellé,
+Vue `#share/<pollId>` réservée au créateur. Le transfert SECRET reste repliable
+et séparé des panneaux publics. Chaque QR public a un libellé,
 une destination cliquable textuelle et des actions Copier/PNG/SVG.
 Grille fluide, une colonne confortable à 320/360 px ; mêmes thèmes, accents,
 focus et cibles tactiles >=44 px. Le fichier admin existant reste disponible.
