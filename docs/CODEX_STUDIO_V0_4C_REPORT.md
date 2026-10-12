@@ -537,3 +537,241 @@ Le build attendu est celui de 1 227 539 octets et du SHA-256 indiqué ci-dessus.
 Vérification binaire de GitHub Pages après push, puis jugement humain du Studio.
 Cet accord de publication ne vaut pas validation visuelle du rendu.
 Aucune modification Cloudflare ou du profil sans R2 n’est autorisée ni nécessaire.
+
+### Disposition clarifiée publiée — contrôle Pages
+
+Commit `5af43ff`, poussé sur main à la demande explicite de Lu’uma. Huit fichiers
+de cette correction inclus ; autres rapports locaux et spécification v0.3E
+préservés hors commit. Aucun ZIP suivi, aucun changement Cloudflare.
+Le build reproduit avant commit correspond exactement au build testé :
+1 227 539 octets, 40 modules et SHA-256 indiqué plus haut. Le contrôle de
+littéraux sensibles dans le HTML et les modules n’a identifié aucun secret.
+
+Les trois premières lectures du site public servaient encore le build précédent.
+La quatrième lecture de `https://luuma8888.github.io/voti/` a renvoyé HTTP 200
+avec les mêmes 1 227 539 octets que le build local, comparaison binaire réussie :
+`5b9c6f6c8f05b3e8f69f3a2ee38031f7461cb3c4c84be5ad0caf3911353401f7`.
+
+Le nouveau Studio est désormais consultable en ligne ; sa validation physique
+reste attendue. Ce suivi de propagation reste local jusqu’au prochain suivi
+documentaire autorisé. Pas de second commit/push ni d’archive finale à ce stade.
+
+### Validation humaine de la disposition clarifiée
+
+Après publication de `5af43ff`, Lu’uma répond « Je valide, c’est mieux » à la
+vérification du formulaire à gauche et de l’aperçu haut à droite sur Chromebook.
+Cette disposition est donc validée humainement, en complément de la validation
+antérieure des accordéons et du panneau de QR par choix. Aucun changement de code.
+Cette réponse ne valide pas encore le scénario Lagon/Jardin/Personnalisé,
+ni les autres étapes de recette restant à effectuer.
+
+B — Couleurs, étape Lagon : Lu’uma confirme « oui » que les champs Principale /
+Secondaire / Fond correspondent visuellement aux couleurs de l’aperçu après
+sélection de Lagon. Jardin et le passage Personnalisé restent à vérifier.
+
+B — Passage Lagon → Jardin : Lu’uma confirme « oui » que les trois champs de
+couleur suivent Jardin et correspondent à l’aperçu. Synchronisation des deux
+palettes validée humainement ; personnalisation et retour à la palette à suivre.
+
+B — Modification de Secondaire : Lu’uma confirme « oui » le passage visible en
+Personnalisé et un effet perceptible sur les repères des choix dans l’affiche.
+Le comportement qui avait été jugé non validé en v0.4B est confirmé pour cette
+étape ; conservation des couleurs lors d’un changement de palette et retour
+explicite à vérifier séparément.
+
+B — Changement de palette après personnalisation : Lu’uma confirme « oui »
+que la couleur Secondaire personnalisée et le mode Personnalisé sont conservés,
+sans cliquer sur Revenir à la palette. Absence d’écrasement silencieux validée
+humainement ; retour explicite à la palette encore à vérifier.
+
+B — Revenir à la palette : Lu’uma confirme « oui » que les trois couleurs
+retrouvent celles de la palette choisie, que Personnalisé disparaît et que
+l’aperçu reste cohérent. Le scénario humain demandé Lagon → Jardin → modification
+de Secondaire → conservation après changement de palette → retour explicite
+est donc validé étape par étape, sans réserve signalée. Cela ne revendique pas
+un test physique individuel des huit palettes ; leur couverture complète reste
+automatisée. Aucune nouvelle modification applicative.
+
+C — Typographies du titre : Lu’uma confirme « oui » pour la comparaison Moderne,
+Éditoriale, Manuscrite douce et Fantaisie sobre. Styles reconnaissables dans les
+cartes et l’aperçu, corps de texte inchangé. Indépendance titre → corps confirmée
+humainement pour ce parcours ; comparaison des styles de corps à suivre.
+
+C — Typographies du corps : Lu’uma confirme « oui » pour Moderne et Éditoriale :
+corps lisible, différence visible entre les styles, titre inchangé. Combinaison
+indépendante titre/corps validée humainement dans ces essais. Aucun correctif
+ou réserve typographique supplémentaire demandé pendant cette recette.
+
+D — En-tête Voti : Lu’uma confirme « oui » après comparaison Normal / Discret /
+Masqué : Discret réduit le branding, Masqué libère de l’espace, sans impression
+de mise en page cassée. Ces trois modes sont validés humainement dans l’aperçu.
+
+E — Photo réelle : Lu’uma confirme « oui » que la photo ajoutée depuis son
+Chromebook comme image de fond d’affiche apparaît correctement dans l’aperçu.
+Les surfaces QR et les fonds de texte restent à juger sur cette photo.
+
+E — Surfaces QR : Lu’uma confirme « oui » après comparaison Large / Compacte /
+Minimal sur la photo réelle : la photo devient davantage visible, avec maintien
+d’un fond blanc opaque et propre autour du QR. Validation visuelle de l’aperçu,
+pas encore validation d’un scan physique du PDF v0.4C.
+
+E — Fonds de texte : Lu’uma confirme « oui » après comparaison Opaque / Doux /
+Transparent renforcé : différences visibles et agréables, texte restant bien
+lisible sur sa photo. Jugement visuel confirmé ; les garanties de contraste
+mesuré restent celles des tests automatisés, pas une mesure physique revendiquée.
+
+F — Préparation de la comparaison : Lu’uma répond « oui » à la consigne de
+passer le type d’affiche à QR par choix. Aucun nombre de pages précis n’a été
+fourni dans cette réponse ; ne pas en déduire une validation d’une page unique.
+
+F — Choix par ligne : après la consigne de comparer Auto / 2 / 3 et de garder 3,
+Lu’uma confirme « oui » que ses trois choix tiennent joliment sur une seule page,
+sans QR jugés trop petits ni contenu tassé. Une page unique validée humainement
+pour ce réglage 3 ; pas de nombre de pages distinct fourni pour Auto et 2.
+
+F — Densités : Lu’uma confirme « oui » après comparaison Compact / Équilibré /
+Aéré : différences perceptibles, trois rendus agréables et lisibles. Cette
+réponse ne précise pas un nombre de pages pour chaque densité. Cas physique
+à six choix à vérifier seulement si un sondage approprié est déjà disponible.
+
+F — Six choix : Lu’uma répond « non » à la disponibilité d’un sondage existant
+à six choix. Aucun nouveau sondage n’est demandé uniquement pour cette recette.
+Cas non vérifié physiquement en v0.4C ; couverture automatisée conservée,
+sans la présenter comme une validation humaine.
+
+G — Taille des QR : Lu’uma confirme « oui » après comparaison Petit / Moyen /
+Grand : différence visible, QR bien proportionnés aux cartes et jamais jugés
+minuscules. Validation visuelle uniquement à ce stade ; le scan physique sera
+effectué sur le PDF représentatif final (L), sans demander deux scans identiques.
+
+### Réserve humaine bloquante — tailles des images principale et choix
+
+À l’ajout de l’image principale, Lu’uma précise que le fond est parfait mais que
+les autres images restent dans des cadres petits et restreints ; les options
+lui semblent sans effet et ne permettent pas d’agrandir ou de positionner.
+Il fournit Screenshot 2026-10-12 20.46.53.png à la racine, puis précise que
+l’image principale pouvait auparavant prendre toute la largeur, avec une hauteur
+insuffisante, et qu’elle est désormais imposée, centrée et petite.
+
+Capture inspectée : grande photo de fond, petite image principale centrée et
+petites images dans les blocs de choix. Capture utilisateur non suivie par Git,
+à conserver pour le diagnostic puis retirer avant le ZIP final selon la demande
+de Lu’uma ; ne pas l’ajouter au commit ou à l’archive.
+
+Cause confirmée en lecture seule dans web/print-layout.js : les zones restent
+plafonnées à des hauteurs très faibles (principale 240 en mode choix, 150 en
+Mosaïque ; 270/340 en accès ; choix 140/180), avant le facteur de densité.
+La fonction image impose ensuite frameWidth=min(largeur disponible, hauteur×ratio),
+puis centre ce petit frame. Le respect du ratio réduit donc la largeur au lieu
+de réserver une hauteur cohérente avec une image occupant la zone.
+
+Reproduction pure Node, sans stockage ni mutation : A4 2480×3508, largeur utile
+2200, image 1600×900, mode QR par choix / Cartes / densité Équilibré.
+Principale Original ou 16:9 : 426,67×240 centrée, et non 2200 pixels de large.
+Principale 1:1 : 240×240 ; 3:4 : 180×240. Images de choix : 320×180.
+Les formats changent, mais toujours à l’intérieur des faibles plafonds :
+cela confirme la régression de taille, pas une mauvaise manipulation.
+
+Le point focal agit sur le recadrage INTERNE, pas sur la taille ou l’emplacement
+du bloc. En Original avec les vraies dimensions, le frame a le même aspect que
+la photo : les points extrêmes produisent le même crop sans décalage (0,0).
+En Ajuster, le centrage de la photo entière est également volontaire. Ces
+contrôles ne peuvent pas compenser la zone trop petite.
+
+La spécification prévoit des hauteurs de zones et un espace visuel principal
+réglables ; la seule densité générale ne satisfait pas le besoin observé.
+Proposition à faire autoriser : rétablir une image principale pouvant occuper
+la largeur utile avec une vraie hauteur réglable, donner aux images de choix
+des zones proportionnées et réglables, distinguer taille de zone et recadrage,
+conserver absence d’étirement et minimum QR/pagination sûre.
+Aucune correction applicative effectuée pendant ce diagnostic. Les étapes
+H/I/L images/cadrage/PDF ne sont PAS validées ; recette suspendue sur ce défaut.
+
+### Correction des zones d’images autorisée pendant la recette
+
+Lu’uma répond « oui » à la correction proposée, puis autorise explicitement :
+« quand c’est fait, tu peux commit et push afin que je puisse verifier le rendu
+ensuite ». Cette correction fait donc partie de v0.4C à sa demande, et non d’un
+élargissement silencieux. Le rendu corrigé reste à vérifier par lui après Pages.
+
+Le plan commun aperçu/PDF réserve désormais une vraie hauteur aux images.
+Principale : presets maxima Petite 400, Moyenne 800, Grande 1600 pixels du plan
+A4 ; choix : 220 / 440 / 900. Auto principale utilise l’espace de la page en
+réservant une première rangée, tandis que Compact limite à 480 ; choix Auto
+240 / 600 / 760 selon densité. La largeur disponible, le ratio et la page restent
+des limites : une image paysage Grande peut occuper les 2200 pixels utiles de
+l’A4 portrait ; une image portrait n’est jamais étirée pour remplir cette largeur.
+Les images de choix du mode accès passent au-dessus du texte, y compris en
+une colonne, au lieu d’une petite vignette latérale.
+
+Hauteur de la zone et Alignement du cadre sont ajoutés dans les cadrages
+principale/choix, sans changer les accordéons ni l’espace de travail validés.
+Alignement Gauche/Centre/Droite agit sur un cadre plus étroit que son emplacement.
+Le point focal agit seulement sur le recadrage interne : en Original, ratio
+identique à la photo, ou Ajuster, l’absence de recadrage est expliquée et les
+commandes focales sans effet sont désactivées. Les coordonnées restent conservées.
+Un agrandissement peut ajouter des pages ; minimum QR et absence d’étirement
+restent obligatoires. Une hauteur limitée par la page est signalée.
+
+Persistance : seuls les champs optionnels height/align de PosterDesign sont
+ajoutés, normalisés Auto/Centre pour les cadrages v1 existants, sans mutation
+de l’entrée ni effacement. Clé voti.poster.v1 et formatVersion:1 conservées.
+Le fond reste inchangé fonctionnellement. Son renderer utilise désormais une
+projection explicite fit/focalX/focalY : le nouveau preset height ne peut pas
+écraser la hauteur numérique de page. Cette collision a été détectée et corrigée
+pendant Chromium ; un test Node dédié empêche la régression.
+
+Fichiers : web/poster-design.js, web/poster-controls.js, web/print-layout.js,
+web/print-renderer.js ; tests/poster-image-zones.test.js ; scripts/browser-studio.mjs,
+scripts/browser-test.mjs, scripts/test-posters.mjs ; package.json (commande seulement),
+docs/POSTER_STUDIO_POLISH_V0.md, ce rapport et index.html reconstruit.
+Aucune dépendance ajoutée, aucun changement métier, relais, Worker, configuration
+de production ou upload. PDF résultats : cadres analytiques compacts conservés,
+aucune modification des agrégats ou de la disponibilité.
+
+Tests ajoutés : neuf cas Node, dont 48 combinaisons images agrandies 2/3/6 choix,
+quatre layouts et deux types ; dimensions, alignement distinct du point focal,
+ratios/absence d’étirement, rétrocompatibilité, absence de chevauchement avec
+les QR et trois choix Compact sur une page. Chromium teste la persistance des
+quatre hauteurs et trois alignements, le cadrage activé seulement lorsqu’utile,
+et crée trois PDF supplémentaires de zones d’images sur photos synthétiques.
+La nouvelle commande test:poster-images réutilise Poppler et le décodeur existants.
+
+Premiers contrôles finaux : npm test, 349 tests passés ; npm run check, 86 fichiers
+JavaScript valides ; git diff --check, succès. Résultats Chromium/PDF et build
+production consignés ci-dessous après exécution complète.
+
+La capture personnelle fournie reste non suivie et hors commit. Aucune nouvelle
+archive d’audit avant fin de la recette humaine ; elle sera retirée avant le ZIP.
+Les suites HTTP Wrangler ne sont pas relancées pour cette correction isolée
+d’images/renderer : aucun code réseau ni protocole n’a changé ; tous les tests
+Node existants et la recette navigateur complète sont conservés.
+
+#### Résultats finaux de la correction des images
+
+| Commande | Résultat exact |
+| --- | --- |
+| npm test | 349 tests Node, succès, aucun échec |
+| npm run check | 86 fichiers JavaScript, syntaxe valide |
+| npm run build | HTML autonome 1 232 287 octets, aucune ressource externe |
+| npm run test:browser | 2 850 contrôles Chromium réussis |
+| npm run test:poster | 97 contrôles, 8 PDF A4, 30 QR décodés |
+| npm run test:poster-studio | 188 contrôles, 13 PDF A4, 51 QR décodés |
+| npm run test:poster-polish | 117 contrôles, 7 PDF A4, 36 QR décodés |
+| npm run test:poster-images | 57 contrôles, 3 PDF A4, 17 QR décodés |
+| npm run build:production | Build pilote gratuit, 1 232 535 octets, sans images distantes |
+| git diff --check | Succès |
+
+Soit 31 PDF et 134 QR effectivement redécodés après rasterisation à 300 dpi.
+Inspection visuelle réelle avec Poppler : première page pleine largeur du cas
+Cartes/accès, portrait Grande aligné à gauche en Essentielle/choix, carré aligné
+à droite en Mosaïque/choix, ainsi que les deuxièmes pages Cartes et Mosaïque.
+Images proportionnées et plus grandes, textes et QR séparés sans chevauchement.
+Les fixtures volontairement agrandies paginent ; ce n’est pas une promesse de
+page unique en Grande. Les cas Compact trois choix sur une page passent toujours.
+Ces vérifications synthétiques ne remplacent pas la validation de la vraie
+photo de Lu’uma, ni un scan physique ou une impression papier.
+
+Build production final : SHA-256
+`5b5c333143943aad1f04f378ca090c2d5f59ddb5fcd880a4f02adf96443d03e5`.
+Publication autorisée ; résultat Pages consigné après comparaison distante.

@@ -46,11 +46,22 @@ function basePlan(poll,design,measure,mediaSizes={}) {
     return lines.length*Math.ceil(size*1.28);
   }
   function surface(p,x,y,w,h,color='surface',radius=32){p.nodes.push({type:'surface',x,y,width:w,height:h,color,radius,opacity:color==='surface'?opacity:1});}
+  function imageRatio(id,key){const s=d.imageSettings[key]||defaultImageSettings(),dimensions=mediaSizes[id];
+    const ratio=s.ratio==='original'?(dimensions?dimensions.width/dimensions.height:16/9):s.ratio.split(':').map(Number).reduce((a,b)=>a/b);
+    ensure(Number.isFinite(ratio)&&ratio>0,'Dimensions d’image invalides.');return ratio;}
+  function imageFrame(id,key,w,autoHeight,maxHeight=Infinity){
+    if(!id)return {width:0,height:0};const s=d.imageSettings[key]||defaultImageSettings(),ratio=imageRatio(id,key);
+    const presets=key==='main'?{small:400,medium:800,large:1600}:{small:220,medium:440,large:900};
+    const desired=Math.min(w/ratio,s.height==='auto'?autoHeight:presets[s.height]);
+    ensure(maxHeight>0,'Pas assez de place pour l’image : réduis la taille des QR ou change de disposition.');
+    if(desired>maxHeight&&!plan.warnings.includes('Hauteur des images adaptée à la page pour préserver les QR et les textes.'))plan.warnings.push('Hauteur des images adaptée à la page pour préserver les QR et les textes.');
+    const height=Math.min(desired,maxHeight);return {width:height*ratio,height};
+  }
   function image(p,id,x,y,w,h,fit='cover',position='center',key='main'){
     if(!id)return;const s=d.imageSettings[key]||{...defaultImageSettings(),fit,focalY:position==='top'?0:position==='bottom'?1:.5};
-    const dimensions=mediaSizes[id],ratio=s.ratio==='original'?(dimensions?dimensions.width/dimensions.height:w/h):s.ratio.split(':').map(Number).reduce((a,b)=>a/b);
+    const ratio=imageRatio(id,key);
     const frameWidth=Math.min(w,h*ratio),frameHeight=frameWidth/ratio;
-    p.nodes.push({type:'image',id,x:x+(w-frameWidth)/2,y:y+(h-frameHeight)/2,width:frameWidth,height:frameHeight,fit:s.fit,position,radius:28,focalX:s.focalX,focalY:s.focalY});
+    p.nodes.push({type:'image',id,imageKey:key,x:x+(w-frameWidth)*({left:0,center:.5,right:1}[s.align]),y:y+(h-frameHeight)/2,width:frameWidth,height:frameHeight,fit:s.fit,position,radius:28,focalX:s.focalX,focalY:s.focalY});
   }
   function qr(p,url,x,y,maxSize,kind){const matrix=createQrMatrix(url),pixels=Math.floor(maxSize/matrix.size);ensure(pixels>=5&&pixels*matrix.size>=400,'QR trop dense : agrandis la zone ou réduis le nombre de choix par ligne.');const q={url,x:Math.round(x),y:Math.round(y),size:matrix.size*pixels,pixels,matrix,kind};
     const margin={large:30,compact:20,minimal:8}[d.qrSurfaceMode];surface(p,q.x-margin,q.y-margin,q.size+margin*2,q.size+margin*2,'qrSurface',12);p.qrs.push(q);return q;}
@@ -69,13 +80,13 @@ function basePlan(poll,design,measure,mediaSizes={}) {
     if(!continued&&content.description){const h=words(p,content.description,PAD+36,y,width-PAD*2-72,38);surface(p,PAD,y-22,width-PAD*2,h+40);const t=p.nodes.splice(p.nodes.length-2,1)[0];p.nodes.push(t);y+=h+65;}
     return y;
   }
-  return {plan,content,text,words,surface,image,qr,page,header,spacing};
+  return {plan,content,text,words,surface,image,imageFrame,qr,page,header,spacing};
 }
 
 export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].length*size*.6,mediaSizes={}}={}) {
   const id=poll.remoteRef?.pollId;
   ensure(isPublicPollId(id)&&poll.remoteRef.revision>0,'Publie d’abord ce sondage en ligne pour créer ses QR de partage.');
-  const tools=basePlan(poll,design,measure,mediaSizes),{plan,content,text,words,surface,image,qr,page,header,spacing}=tools;
+  const tools=basePlan(poll,design,measure,mediaSizes),{plan,content,text,words,surface,image,imageFrame,qr,page,header,spacing}=tools;
   const {width:w,height:h}=plan;const d=plan.design,main=d.media.main||(d.usePollImages?content.imageRef:null);
   plan.kind='poster';plan.mode=d.mode;plan.pollId=id;plan.accessUrl=buildPollUrl(id,baseUrl);
   const footerHeight=550,limit=h-footerHeight-40;
@@ -95,7 +106,7 @@ export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].len
   function next(){finish();p=page();y=header(p,true);}
   function room(size){if(y+size>limit)next();ensure(y+size<=limit,'Contenu trop long pour cette disposition.');}
   const ref=c=>d.media.choices[c.id]||(d.usePollImages?c.imageRef:null);
-  const factor={compact:.78,balanced:1,airy:1.18}[d.densityPreset];
+  const autoMediaHeight={compact:240,balanced:600,airy:760}[d.densityPreset];
   const desiredChoice={small:440,medium:500,large:620}[d.qrSize];
   const defaultCols=d.layout==='essential'?1:d.layout==='mosaic'?3:2;
   const requested=d.choicesPerRow==='auto'?defaultCols:Number(d.choicesPerRow);
@@ -106,26 +117,48 @@ export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].len
     if(cols!==requested)plan.warnings.push('Nombre de colonnes réduit pour garder des QR lisibles.');return cols;
   }
   const cols=d.mode==='choices'?safeColumns(requested):requested;
+  const rowLimit=limit-header(page(),true);
+  function mainImage(reserve){if(!main)return;
+    if(limit-y-spacing<400)next();
+    const autoHeight=d.densityPreset==='compact'?480:Math.max(600,Math.min(1600,limit-y-reserve-spacing));
+    const frame=imageFrame(main,'main',w-PAD*2,autoHeight,limit-y-spacing);
+    room(frame.height+spacing);image(p,main,PAD,y,w-PAD*2,frame.height);y+=frame.height+spacing;
+  }
+  function choiceRow(i){
+    const columns=d.layout==='magazine'&&i===0&&d.choicesPerRow==='auto'?1:cols,gap=spacing,tile=(w-PAD*2-gap*(columns-1))/columns,row=content.choices.slice(i,i+columns);
+    const maxQr=Math.min(desiredChoice,tile-80),minChoice=Math.max(...row.map(c=>{const m=createQrMatrix(buildChoiceUrl(id,c.id,baseUrl));return m.size*Math.max(5,Math.ceil(400/m.size));}));
+    if(maxQr<desiredChoice&&!plan.warnings.some(w=>w.startsWith('Taille du QR')))plan.warnings.push('Taille du QR adaptée à la largeur des colonnes, sans descendre sous le minimum sûr.');
+    ensure(maxQr>=minChoice,'Cette taille de QR ne tient pas. Choisis moins de colonnes.');
+    const labels=row.map(c=>text(c.label,columns===1?tile-maxQr-140:tile-70,42,700));
+    const destinations=row.map(c=>text(buildChoiceUrl(id,c.id,baseUrl),columns===1?maxQr:tile-70,24));
+    const hasMedia=row.some(c=>ref(c)),labelHeight=Math.max(...labels.map(ls=>ls.length))*54,linkHeight=Math.max(...destinations.map(ls=>ls.length))*31;
+    const mediaWidth=columns===1?tile-maxQr-160:tile-60;
+    const maxMediaHeight=columns===1?rowLimit-labelHeight-110:rowLimit-maxQr-linkHeight-labelHeight-115;
+    const mediaHeight=hasMedia?Math.max(...row.map(c=>imageFrame(ref(c),c.id,mediaWidth,autoMediaHeight,maxMediaHeight).height)):0;
+    const height=columns===1?Math.max(maxQr+linkHeight+85,labelHeight+80+(hasMedia?mediaHeight+30:0)):maxQr+linkHeight+labelHeight+95+(hasMedia?mediaHeight+20:0);
+    return {columns,gap,tile,row,maxQr,hasMedia,mediaHeight,labelHeight,linkHeight,height};
+  }
   // Chaque layout conserve sa composition par défaut ; les colonnes sont explicites.
   if(d.mode==='access') {
-    if(main){const hero=Math.round((d.layout==='magazine'?340:270)*factor);room(hero+spacing);image(p,main,PAD,y,w-PAD*2,hero);y+=hero+spacing;}
     const side=d.layout==='magazine'&&d.choicesPerRow==='auto';
     const listWidth=side?(w-PAD*2)*.49:w-PAD*2;
     const qrSize={small:650,medium:800,large:1000}[d.qrSize];
     const listCols=side?1:cols,gap=spacing,tile=(listWidth-gap*(listCols-1))/listCols;
+    function accessRow(i){const row=content.choices.slice(i,i+listCols),refs=row.map(ref),hasImages=refs.some(Boolean),labelWidth=tile-70;
+      const labelHeight=Math.max(...row.map((c,col)=>text(`${i+col+1}. ${c.label}`,labelWidth,42,700).length))*54+65;
+      const imageHeight=hasImages?Math.max(...row.map(c=>imageFrame(ref(c),c.id,tile-50,autoMediaHeight,rowLimit-labelHeight-20).height)):0;
+      return {row,refs,hasImages,labelWidth,imageHeight,rowHeight:labelHeight+(hasImages?imageHeight+20:0)};
+    }
+    const first=accessRow(0);mainImage(side?Math.max(first.rowHeight,qrSize+130):first.rowHeight);
     for(let i=0;i<content.choices.length;i+=listCols) {
-      const row=content.choices.slice(i,i+listCols),refs=row.map(ref);
-      const hasImages=refs.some(Boolean),imageHeight=hasImages?Math.round(180*factor):0;
-      const labelWidth=listCols===1&&hasImages?tile-370:tile-70;
-      const height=Math.max(...row.map((c,col)=>text(`${i+col+1}. ${c.label}`,labelWidth,42,700).length))*54+65+(listCols!==1?imageHeight+20:0);
-      const rowHeight=Math.max(height,listCols===1&&hasImages?imageHeight+50:0);
+      const {row,refs,hasImages,imageHeight,labelWidth,rowHeight}=accessRow(i);
       room(side&&!p.qrs.some(q=>q.kind==='access')?Math.max(rowHeight,qrSize+130):rowHeight);
       if(side&&!p.qrs.some(q=>q.kind==='access'))qr(p,plan.accessUrl,PAD+listWidth+65,y+70,qrSize,'access');
       row.forEach((c,col)=>{
         const x=PAD+col*(tile+gap);surface(p,x,y,tile,rowHeight);
         surface(p,x,y,12,rowHeight,'secondary',6);
-        if(hasImages)image(p,refs[col],x+25,y+25,listCols===1?290:tile-50,imageHeight,'cover','center',c.id);
-        const tx=x+(listCols===1&&hasImages?335:30),ty=y+30+(listCols!==1&&hasImages?imageHeight+20:0);
+        if(hasImages)image(p,refs[col],x+25,y+25,tile-50,imageHeight,'cover','center',c.id);
+        const tx=x+30,ty=y+30+(hasImages?imageHeight+20:0);
         words(p,`${i+col+1}. ${c.label}`,tx,ty,labelWidth,42,700);
         p.items.push({label:c.label,x,y,width:tile,height:rowHeight});
       });y+=rowHeight+gap;
@@ -140,21 +173,9 @@ export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].len
       qr(p,plan.accessUrl,(w-qrSize)/2,y+100,qrSize,'access');y+=qrSize+140;
     }
   } else {
-    if(main){const hero=Math.round((d.layout==='mosaic'?150:240)*factor);room(hero+spacing);image(p,main,PAD,y,w-PAD*2,hero);y+=hero+spacing;}
+    mainImage(choiceRow(0).height);
     for(let i=0;i<content.choices.length;) {
-      const columns=d.layout==='magazine'&&i===0&&d.choicesPerRow==='auto'?1:cols;
-      const gap=spacing,tile=(w-PAD*2-gap*(columns-1))/columns;
-      const row=content.choices.slice(i,i+columns);
-      const maxQr=Math.min(desiredChoice,tile-80),minChoice=Math.max(...row.map(c=>{const m=createQrMatrix(buildChoiceUrl(id,c.id,baseUrl));return m.size*Math.max(5,Math.ceil(400/m.size));}));
-      if(maxQr<desiredChoice&&!plan.warnings.some(w=>w.startsWith('Taille du QR')))plan.warnings.push('Taille du QR adaptée à la largeur des colonnes, sans descendre sous le minimum sûr.');
-      ensure(maxQr>=minChoice,'Cette taille de QR ne tient pas. Choisis moins de colonnes.');
-      const labels=row.map(c=>text(c.label,columns===1?tile-maxQr-140:tile-70,42,700));
-      const destinations=row.map(c=>text(buildChoiceUrl(id,c.id,baseUrl),columns===1?maxQr:tile-70,24));
-      const hasMedia=row.some(c=>ref(c));
-      const mediaHeight=Math.round((d.layout==='mosaic'?140:180)*factor);
-      const labelHeight=Math.max(...labels.map(ls=>ls.length))*54;
-      const linkHeight=Math.max(...destinations.map(ls=>ls.length))*31;
-      const height=columns===1?Math.max(maxQr+linkHeight+85,labelHeight+80+(hasMedia?mediaHeight+30:0)):maxQr+linkHeight+labelHeight+95+(hasMedia?mediaHeight+20:0);
+      const {columns,gap,tile,row,maxQr,hasMedia,mediaHeight,labelHeight,linkHeight,height}=choiceRow(i);
       room(height);
       row.forEach((c,col)=>{
         const x=PAD+col*(tile+gap),asset=ref(c);

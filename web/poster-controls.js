@@ -1,4 +1,4 @@
-import { TITLE_TYPOGRAPHIES, BODY_TYPOGRAPHIES, IMAGE_RATIOS, defaultImageSettings } from './poster-design.js';
+import { TITLE_TYPOGRAPHIES, BODY_TYPOGRAPHIES, IMAGE_RATIOS, IMAGE_HEIGHTS, defaultImageSettings } from './poster-design.js';
 
 const node=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
 const button=(label,action)=>{const b=node('button',label);b.type='button';b.addEventListener('click',action);return b;};
@@ -21,23 +21,34 @@ export function focalPicker({label,getSettings,getId,views,staged,change,allowRa
   function select(title,options,key){return setField(title,()=>{const n=node('select');for(const [v,t] of options){const o=node('option',t);o.value=v;n.append(o);}n.value=getSettings()[key];n.addEventListener('change',()=>edit({[key]:n.value}));return n;});}
   const ratio=select('Ratio de l’image',IMAGE_RATIOS,'ratio'),fit=select('Affichage de l’image',[['cover','Remplir'],['contain','Ajuster']],'fit');
   ratio.parentElement.hidden=!allowRatio;
+  const height=select('Hauteur de la zone',IMAGE_HEIGHTS,'height'),align=select('Alignement du cadre',[['left','Gauche'],['center','Centre'],['right','Droite']],'align');
+  height.parentElement.hidden=align.parentElement.hidden=!allowRatio;
+  const explanation=node('p');explanation.className='help';explanation.setAttribute('role','status');
+  let canCrop=false;
   function imageRect(){const r=preview.getBoundingClientRect(),img=preview.querySelector('img');if(!img?.naturalWidth)return {x:0,y:0,width:r.width,height:r.height};const scale=Math.min(r.width/img.naturalWidth,r.height/img.naturalHeight),width=img.naturalWidth*scale,height=img.naturalHeight*scale;return {x:(r.width-width)/2,y:(r.height-height)/2,width,height};}
-  function draw(){const s=getSettings(),r=imageRect();marker.style.left=(r.x+s.focalX*r.width)+'px';marker.style.top=(r.y+s.focalY*r.height)+'px';value.textContent=`Zone visible : ${Math.round(s.focalX*100)} % horizontal, ${Math.round(s.focalY*100)} % vertical.`;for(const [key,input] of inputFields)input.value=Math.round(s[key]*100);}
+  function draw(){const s=getSettings(),r=imageRect(),img=preview.querySelector('img'),target=s.ratio==='original'?null:s.ratio.split(':').map(Number).reduce((a,b)=>a/b);
+    canCrop=s.fit==='cover'&&(!allowRatio||(img?.naturalWidth&&target&&Math.abs(img.naturalWidth/img.naturalHeight-target)>.001));
+    marker.hidden=!canCrop;marker.style.left=(r.x+s.focalX*r.width)+'px';marker.style.top=(r.y+s.focalY*r.height)+'px';
+    value.textContent=`Zone visible : ${Math.round(s.focalX*100)} % horizontal, ${Math.round(s.focalY*100)} % vertical.`;
+    explanation.textContent=canCrop?'Déplace le repère sur la partie de la photo à garder visible.':s.fit==='contain'?'Ajuster montre toute la photo. Choisis Remplir pour recadrer.':'La photo est entière avec ce ratio. Choisis un autre ratio pour recadrer.';
+    for(const [key,input] of inputFields){input.value=Math.round(s[key]*100);input.disabled=!canCrop;}
+    for(const b of directions.querySelectorAll('button'))b.disabled=!canCrop&&b.textContent!=='Réinitialiser au centre';
+  }
   function edit(patch,commit=true){change({...getSettings(),...patch},commit);draw();}
   for(const [key,title] of [['focalX','Position horizontale'],['focalY','Position verticale']]){const input=setField(title,()=>{const n=node('input');n.type='range';n.min='0';n.max='100';n.step='1';n.addEventListener('input',()=>edit({[key]:Number(n.value)/100},false));n.addEventListener('change',()=>edit({[key]:Number(n.value)/100}));return n;});inputFields.push([key,input]);}
   let drag=false;
-  function point(e,commit=false){const r=imageRect(),bounds=preview.getBoundingClientRect();if(r.width&&r.height)edit({focalX:Math.max(0,Math.min(1,(e.clientX-bounds.left-r.x)/r.width)),focalY:Math.max(0,Math.min(1,(e.clientY-bounds.top-r.y)/r.height))},commit);}
-  preview.addEventListener('pointerdown',e=>{if(e.button!==0||!getId())return;drag=true;if(e.isTrusted)preview.setPointerCapture(e.pointerId);point(e);});
+  function point(e,commit=false){const r=imageRect(),bounds=preview.getBoundingClientRect();if(canCrop&&r.width&&r.height)edit({focalX:Math.max(0,Math.min(1,(e.clientX-bounds.left-r.x)/r.width)),focalY:Math.max(0,Math.min(1,(e.clientY-bounds.top-r.y)/r.height))},commit);}
+  preview.addEventListener('pointerdown',e=>{if(e.button!==0||!getId()||!canCrop)return;drag=true;if(e.isTrusted)preview.setPointerCapture(e.pointerId);point(e);});
   preview.addEventListener('pointermove',e=>{if(drag)point(e);});
   preview.addEventListener('pointerup',e=>{if(drag){drag=false;point(e,true);}});
   preview.addEventListener('pointercancel',()=>{drag=false;edit({});});
   const directions=node('div');directions.className='actions';
   for(const [title,key,delta] of [['Gauche','focalX',-.1],['Droite','focalX',.1],['Haut','focalY',-.1],['Bas','focalY',.1]])directions.append(button(title,()=>edit({[key]:Math.max(0,Math.min(1,getSettings()[key]+delta))})));
   directions.append(button('Réinitialiser au centre',()=>edit({focalX:.5,focalY:.5})));
-  group.append(node('p','En Remplir, déplace le repère sur la partie à garder visible. En Ajuster, toute l’image reste visible ; ton repère est conservé pour revenir à Remplir.'),preview,value,directions);
+  group.append(node('p',allowRatio?'La hauteur est un maximum : le ratio et la largeur disponible limitent la taille. L’alignement déplace un cadre plus étroit. De grandes images peuvent ajouter une page.':'En Remplir, déplace le repère sur la partie à garder visible.'),preview,explanation,value,directions);
   function update(){preview.replaceChildren();views.sweep();const id=getId();group.hidden=!id;
     if(id){const picture=views.show(id,{size:'focal',alt:label,staged});preview.append(picture,marker);picture.querySelector('img').addEventListener('load',draw,{once:true});}
-    ratio.value=getSettings().ratio;fit.value=getSettings().fit;draw();}
+    ratio.value=getSettings().ratio;fit.value=getSettings().fit;height.value=getSettings().height;align.value=getSettings().align;draw();}
   const resize=new ResizeObserver(draw);resize.observe(preview);update();
   return {element:group,update,dispose:()=>resize.disconnect()};
 }

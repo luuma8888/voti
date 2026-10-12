@@ -76,12 +76,29 @@ les dimensions locales réelles lorsque disponibles. Chaque frame respecte le
 ratio dans une zone bornée ; aucune image étirée. Remplir rogne en conservant
 les proportions ; Ajuster montre toute l’image, centrée.
 
+Après la réserve humaine sur les vignettes trop petites, chaque image principale
+et chaque image de choix dispose de **Hauteur de la zone : Auto / Petite /
+Moyenne / Grande** et **Alignement du cadre : Gauche / Centre / Droite**.
+La hauteur est un maximum, limité par le ratio, la largeur disponible et la page.
+Une principale paysage en Grande peut occuper toute la largeur utile ; une
+photo portrait garde ses proportions, sans étirement pour remplir la largeur.
+Les zones Auto sont plus généreuses en Équilibré/Aéré ; Compact privilégie
+toujours la densité. Agrandir peut ajouter des pages sans réduire les QR.
+Une limitation par la hauteur de page est signalée dans les avertissements.
+En accès, l’image du choix est désormais au-dessus de son texte, également
+en une colonne, au lieu d’une petite vignette latérale.
+
 Point focal par contexte d’image : miniature, souris/tactile, positions horizontale
 et verticale, boutons directionnels et Réinitialiser au centre. Les bandes de
 letterboxing de la miniature sont exclues du calcul du point. Le drag met à jour
 l’aperçu au rythme requestAnimationFrame ; enregistrement à la fin du geste,
 pas de PDF haute résolution pendant le déplacement. Le point agit en Remplir ;
 en Ajuster l’image est entière, le point reste conservé pour un retour à Remplir.
+En Original, ou lorsque le ratio choisi correspond à la photo, il n’y a pas
+de recadrage : les commandes focales sont désactivées avec une explication.
+En Ajuster elles sont également désactivées. La hauteur règle la taille ;
+l’alignement déplace le cadre lorsqu’il est plus étroit que la zone disponible ;
+le point focal choisit uniquement la partie visible en Remplir avec rognage.
 Le fond garde Remplir/Ajuster, voile, intensité et cadrage focal, sans ratio artificiel.
 
 Les images affiche-only restent dans IndexedDB dédié, sans upload ni activation
@@ -95,6 +112,9 @@ Clé et version conservées : voti.poster.v1 et formatVersion:1. Champs optionne
 ajoutés : titleTypography, bodyTypography, headerMode, qrSurfaceMode,
 textSurfaceOpacity, densityPreset, choicesPerRow, qrSize, imageSettings.
 Ce dernier associe main/background/choiceId à ratio, fit, focalX, focalY.
+Les nouvelles propriétés facultatives height/align sont normalisées en Auto /
+Centre lorsqu’elles manquent dans un design existant. Le fond conserve ses
+réglages propres et n’utilise pas ces tailles de zones. Toujours formatVersion:1.
 Absence = valeurs par défaut ; les anciennes typographies initialisent titre et
 corps. Les anciennes couleurs personnalisées activées sont conservées ; celles
 inactives sont resynchronisées avec leur palette, puisqu’elles n’étaient pas rendues.

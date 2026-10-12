@@ -21,7 +21,7 @@ export async function browserStudioScenario() {
     const previewBox=view.element.querySelector('.studio-preview'),sheet=view.element.querySelector('.studio-sheets');
     assert(getComputedStyle(view.element.querySelector('.studio-controls')).overflowY==='auto','Défilement indépendant du formulaire');
     const zoom=[...view.element.querySelectorAll('button')].find(b=>b.textContent==='Agrandir pour lire');assert(previewBox.classList.contains('studio-fit-page'),'Page entière par défaut');zoom.click();assert(!previewBox.classList.contains('studio-fit-page')&&zoom.textContent==='Voir la page entière','Lecture agrandie explicite');zoom.click();assert(previewBox.classList.contains('studio-fit-page'),'Retour à la page entière');
-    const change=async(label,value)=>{const l=[...view.element.querySelectorAll('label')].find(n=>n.textContent===label),input=document.getElementById(l.htmlFor),version=view.element.dataset.previewVersion;openGroup(input);input.value=value;input.dispatchEvent(new Event(input.type==='color'?'input':'change',{bubbles:true}));await wait(()=>view.element.dataset.previewVersion!==version);
+    const change=async(label,value)=>{const l=[...view.element.querySelectorAll('label')].find(n=>n.textContent===label),input=document.getElementById(l.htmlFor),version=view.element.dataset.previewVersion;openGroup(input);input.value=value;input.dispatchEvent(new Event(input.type==='color'?'input':'change',{bubbles:true}));try{await wait(()=>view.element.dataset.previewVersion!==version);}catch(e){throw new Error(label+' : '+errors.join(' / ')+' / '+e.message);}
       const key={'Disposition':'layout','Type d’affiche':'mode','Palette':'palette'}[label];
       if(key)await wait(()=>repo.get(poll.id)[key]===value);if(label==='Principale')await wait(()=>repo.get(poll.id).customColors.primary===value);
     };
@@ -54,12 +54,20 @@ export async function browserStudioScenario() {
     const crop=[...view.element.querySelectorAll('.focal-control')].find(g=>g.querySelector('legend').textContent==='Cadrage : Image principale d’affiche');
     openGroup(crop);
     assert(crop&&!crop.hidden,'Cadrage visible');
+    await wait(()=>crop.querySelector('img')?.naturalWidth);
+    assert(crop.querySelector('input[type=range]').disabled,'Image entière : aucun faux cadrage actif');
+    const ratio=crop.querySelector('select');ratio.value='1:1';ratio.dispatchEvent(new Event('change'));
+    await wait(()=>!crop.querySelector('input[type=range]').disabled);
     const rect=crop.querySelector('.focal-preview').getBoundingClientRect(),preview=crop.querySelector('.focal-preview');
     for(const type of ['pointerdown','pointermove','pointerup'])preview.dispatchEvent(new PointerEvent(type,{bubbles:true,pointerId:1,pointerType:'touch',button:0,clientX:rect.left+rect.width*.5,clientY:rect.top+rect.height*.8}));
     await wait(()=>repo.get(poll.id).imageSettings.main?.focalY>.7);assert(repo.get(poll.id).imageSettings.main.focalY>.7,'Point focal tactile simulé conservé');
     [...crop.querySelectorAll('button')].find(b=>b.textContent==='Gauche').click();await wait(()=>repo.get(poll.id).imageSettings.main.focalX<.5);
     [...crop.querySelectorAll('button')].find(b=>b.textContent==='Réinitialiser au centre').click();await wait(()=>repo.get(poll.id).imageSettings.main.focalX===.5&&repo.get(poll.id).imageSettings.main.focalY===.5);assert(true,'Clavier/directions et reset centre');
-    const ratio=crop.querySelector('select');for(const value of ['original','1:1','16:9','9:16','3:4','4:3']){ratio.value=value;ratio.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main.ratio===value);assert(true,'Ratio '+value);}
+    for(const value of ['original','1:1','16:9','9:16','3:4','4:3']){ratio.value=value;ratio.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main.ratio===value);assert(true,'Ratio '+value);}
+    for(const [text,key,values] of [['Hauteur de la zone','height',['small','medium','large','auto']],['Alignement du cadre','align',['left','right','center']]]){
+      const select=[...crop.querySelectorAll('label')].find(n=>n.textContent===text).control;
+      for(const value of values){select.value=value;select.dispatchEvent(new Event('change'));await wait(()=>repo.get(poll.id).imageSettings.main[key]===value);assert(true,text+' '+value);}
+    }
     await repo.recover();assert(await adapter.has(imageId),'Médias affiche conservés au sweep');
     assert(JSON.stringify(poll)===before&&localStorage.getItem('voti.local.v1')===stored,'Médias sans mutation métier');
     await change('Mode du fond','contain');await change('Position du fond','bottom');await change('Voile du fond','dark');
@@ -151,7 +159,7 @@ export async function browserStudioPdfScenario(layout,mode,n,kind='poster',long=
     const asset=await processImage(await new Promise(resolve=>canvas.toBlob(resolve,'image/png')),'poll');canvas.width=canvas.height=1;await adapter.put(asset);
     if(index===0)design.media.main=asset.id;if(index===1)design.background.assetId=asset.id;if(index===2)for(const choice of poll.definition.choices)design.media.choices[choice.id]=asset.id;
   }
-  if(polish){for(const [i,key] of ['main','background',...poll.definition.choices.map(c=>c.id)].entries())design.imageSettings[key]={ratio:['original','16:9','1:1','9:16','3:4','4:3'][i%6],fit:i%2?'contain':'cover',focalX:i%2?1:0,focalY:i%3?1:0};}
+  if(polish){for(const [i,key] of ['main','background',...poll.definition.choices.map(c=>c.id)].entries())design.imageSettings[key]={ratio:['original','16:9','1:1','9:16','3:4','4:3'][i%6],fit:i%2?'contain':'cover',focalX:i%2?1:0,focalY:i%3?1:0,...(polish.imageSettings?.[key]||{})};}
   const measure=printMeasure();let media;
   try{
     const counts=kind==='results'&&n===2?[10,0]:Array(n).fill(5),total=counts.reduce((a,b)=>a+b,0);
@@ -162,6 +170,6 @@ export async function browserStudioPdfScenario(layout,mode,n,kind='poster',long=
     media=await loadPrintMedia(plan,adapter,adapter);const {bytes}=await exportPrintPdf(plan,{media,logo:document.querySelector('.brand-icon')});
     let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
     return {name:`${polish?'v04c':'v04b'}-${kind}-${layout}-${mode}-${n}${long?'-long':''}${polish?'-'+(design.choicesPerRow)+'-'+design.headerMode:''}.pdf`,layout,mode,kind,theme:design.palette,width:plan.width,height:plan.height,pages:plan.pages.length,base64:btoa(binary),
-      qrs:plan.pages.map(p=>p.qrs.map(q=>({url:q.url,x:q.x,y:q.y,size:q.size}))),items:plan.pages.map(p=>p.items)};
+      qrs:plan.pages.map(p=>p.qrs.map(q=>({url:q.url,x:q.x,y:q.y,size:q.size}))),items:plan.pages.map(p=>p.items),images:plan.pages.map(p=>p.nodes.filter(n=>n.type==='image'))};
   }finally{measure.release();if(media)releasePrintMedia(media);}
 }

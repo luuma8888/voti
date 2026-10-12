@@ -38,7 +38,7 @@ export function paintPrintPage(canvas,plan,index,{media=new Map(),logo}={}) {
   c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,canvas.width,canvas.height);c.scale(scale,scale);
   c.fillStyle=palette.bg;c.fillRect(0,0,plan.width,plan.height);
   const bg=plan.design.background,image=media.get(bg.assetId);
-  if(image){c.globalAlpha=bg.intensity;paintImage(c,image,{x:0,y:0,width:plan.width,height:plan.height,fit:bg.fit,position:bg.position,...plan.design.imageSettings?.background});c.globalAlpha=1;
+  if(image){const settings=plan.design.imageSettings?.background;c.globalAlpha=bg.intensity;paintImage(c,image,{x:0,y:0,width:plan.width,height:plan.height,fit:settings?.fit??bg.fit,position:bg.position,...(settings?{focalX:settings.focalX,focalY:settings.focalY}:{})});c.globalAlpha=1;
     c.fillStyle=bg.veil==='dark'?'rgba(0,0,0,.18)':'rgba(255,255,255,.18)';c.fillRect(0,0,plan.width,plan.height);}
   for(const n of plan.pages[index].nodes){
     if(n.type==='surface'){c.globalAlpha=n.opacity??1;c.fillStyle=palette[n.color];rounded(c,n.x,n.y,n.width,n.height,n.radius);c.fill();c.globalAlpha=1;}

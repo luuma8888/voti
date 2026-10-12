@@ -587,6 +587,17 @@ try {
       const {base64,...metadata}=file;polishFiles.push(metadata);await writeFile(resolve(ROOT,'.browser-tests/polish-pdfs',file.name),Buffer.from(base64,'base64'));
     }
     await writeFile(resolve(ROOT,'.browser-tests/polish-pdfs/plans.json'),JSON.stringify(polishFiles));
+    const imageFiles=[];await mkdir(resolve(ROOT,'.browser-tests/image-pdfs'),{recursive:true});
+    for(const [layout,mode,n,settings] of [
+      ['cards','access',3,{ratio:'16:9',height:'large',align:'center',focalX:0,focalY:0}],
+      ['essential','choices',3,{ratio:'original',height:'large',align:'left'}],
+      ['mosaic','choices',6,{ratio:'1:1',height:'medium',align:'right',focalX:1,focalY:1}],
+    ]){
+      const options={imageSettings:{main:settings}};
+      const file=await evaluate(sessionId,`(${browserStudioPdfScenario.toString()})(${JSON.stringify(layout)},${JSON.stringify(mode)},${n},'poster',false,${JSON.stringify(options)})`);
+      const {base64,...metadata}=file;imageFiles.push(metadata);await writeFile(resolve(ROOT,'.browser-tests/image-pdfs',file.name),Buffer.from(base64,'base64'));
+    }
+    await writeFile(resolve(ROOT,'.browser-tests/image-pdfs/plans.json'),JSON.stringify(imageFiles));
   }
   await navigateReady(sessionId, offlineUrl);
   await evaluate(sessionId, `(async () => {
