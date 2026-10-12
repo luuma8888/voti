@@ -7,6 +7,10 @@ ont été relus. Ce lot ne modifie ni les règles métier ni le relais.
 Aucun commit/push/publication, aucune mutation Cloudflare, aucun appel au pilote
 de production pour les tests. Profil production sans R2 conservé.
 
+Les sections initiales décrivent la préparation avant autorisation de publication.
+Le lot a ensuite été publié et corrigé à la demande explicite de Lu’uma pendant
+la recette. Voir la clôture en fin de rapport pour l’état final validé.
+
 ## Cause des couleurs et correction
 
 Dans v0.4B, les champs custom restaient initialisés aux couleurs Pop même après
@@ -924,3 +928,79 @@ Build production final : 1 237 179 octets, profil gratuit sans images distantes,
 SHA-256 `2a33ba9f837eb040f5b7be2b8377172572004c0f0ef33709fc37779bb2260a2f`.
 Publication autorisée par la réponse ci-dessus ; comparaison Pages à effectuer
 après push. Aucun Worker redéployé ni ressource Cloudflare modifiée.
+
+Publication effective : commit `33b2bb7`, push main autorisé. GitHub Pages
+HTTP 200 au troisième contrôle, 1 237 179 octets et égalité binaire exacte avec
+index.html local ; SHA-256 identique à celui ci-dessus. Pas de ressources
+Cloudflare modifiées, pas de captures ni archive dans le commit. Cette note
+reste locale pour la clôture documentaire. La validation visuelle de Lu’uma
+sur son design réel en Côte à côte reste attendue, sans la présumer réussie.
+
+## Clôture — validation humaine finale du 12 octobre 2026
+
+Lu’uma répond « C’est super ! Tout fonctionne bien » après le correctif
+33b2bb7, puis « oui, je valide » à la demande de validation globale v0.4C
+avant finalisation du rapport et de l’archive. Les refus et corrections décrits
+plus haut restent l’historique réel ; ils ne sont pas des réserves bloquantes
+encore ouvertes après cette validation.
+
+Confirmations physiques finales, distinctes des tests automatisés :
+
+- Disposition image/QR côte à côte et fonctionnement général : satisfaisants.
+- PDF téléchargé et ouvert à 100 % : conforme à l’aperçu.
+- QR de choix scanné depuis le PDF affiché sur Chromebook avec le téléphone :
+  bon sondage chargé, annoncé fermé. Fermeture respectée ; aucun succès de vote
+  ni confirmation d’un choix ouvert déduit de cette action.
+- Réouverture du Studio : réglages et images toujours conservés.
+- Point focal de la principale en Remplir/Pleine largeur : partie visible change
+  de manière compréhensible, confirmé « oui ».
+- Accueil : distinction contexte Local/En ligne et état Ouvert/Fermé jugée
+  « parfaite ».
+- Avertissement SECRET : après avoir demandé où trouver Transférer l’administration,
+  Lu’uma confirme « oui très clair ». Chemin expliqué : Gérer → QR & partager →
+  section SECRET. Aucun transfert réel de capacité retesté dans cette recette.
+
+Les validations antérieures de cette même recette (couleurs, écritures, en-tête,
+fonds/surfaces et trois choix) sont consignées plus haut. Aucun commentaire
+positif final n’est étendu à des variantes que Lu’uma n’a pas manipulées.
+
+Limites physiques restantes, non bloquantes pour sa validation : impression
+papier non testée ; pas de sondage humain à six choix disponible ; scan du PDF
+réalisé sur un sondage fermé, pas de nouveau vote ouvert de recette v0.4C.
+Les parcours ouverts/QR/vote avaient été validés en v0.4B ; ils ne sont pas
+revendiqués comme un nouveau test physique v0.4C. Le cas six choix et les QR
+des PDF corrigés sont couverts par les contrôles automatiques documentés.
+
+Publication finale applicative inchangée depuis 33b2bb7 : HTML production
+1 237 179 octets, SHA-256
+`2a33ba9f837eb040f5b7be2b8377172572004c0f0ef33709fc37779bb2260a2f`.
+Pas de modification applicative après la recette, donc pas de nouveau build
+ni de relance des grosses suites Chromium/PDF/HTTP. Pas de nouvelle publication,
+pas de mutation Cloudflare. Le rapport final reste local jusqu’à une demande
+explicite de commit/push documentaire.
+
+Archive finale via le mécanisme existant : les captures personnelles à la racine
+sont explicitement exclues, avec renforcement du filtre dans
+scripts/audit-bundle.mjs et un test dans tests/audit-bundle.test.js. Les originaux
+sont conservés localement, sans suppression. PNG source de branding conservés.
+ZIP VOTI récursifs, PDF temporaires, fichiers de clé admin, caches/profils et
+bases locales exclus. Aucun média utilisateur du Studio exporté dans le dépôt.
+Contrôles finaux légers et vérification du contenu ZIP consignés après exécution.
+
+Contrôles de clôture : cinq tests audit-bundle passés (0 échec/sauté/annulé/todo),
+npm run check : 86 fichiers JavaScript valides, git diff --check : succès.
+SHA-256 du build inchangé. Dernier contrôle Pages read-only : HTTP 200,
+1 237 179 octets, égalité binaire exacte et empreinte ci-dessus confirmées.
+Les suites ciblées finales applicatives restent celles de 33b2bb7 : 131 tests
+Node, 258 contrôles Chromium, 53 contrôles Poppler et 16 QR décodés.
+Les grosses suites ne sont pas relancées sans code applicatif nouveau.
+
+Archive de clôture vérifiée : 150 fichiers Git admissibles, rapport final inclus.
+unzip -tq : aucune erreur. Inspection indépendante des entrées et décompression :
+liste exactement égale à auditPaths(), contenus égaux aux fichiers du dépôt,
+aucun ZIP VOTI récursif, PDF, capture personnelle, export admin, dossier de cache,
+profil, base locale ou fichier .env/.dev.vars. Aucun en-tête de clé privée détecté.
+Les images incluses sont les assets de marque du projet, pas les médias du Studio.
+Les deux captures utilisateur restent conservées localement mais exclues.
+L’archive est recréée après cette note pour inclure réellement cette clôture,
+puis contrôlée à nouveau. ZIP ignoré par Git, ni ajouté ni commité.
