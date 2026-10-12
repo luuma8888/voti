@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { inflateRawSync } from 'node:zlib';
-import { createZip, auditPaths, AUDIT_NAME, isAuditArchive } from '../scripts/audit-bundle.mjs';
+import { createZip, auditPaths, AUDIT_NAME, isAuditArchive, isPrivateOrTemporaryExport } from '../scripts/audit-bundle.mjs';
 import { crc32 } from '../relay/cloudflare/image-validation.js';
 test('Bundle audit : fichiers Git admissibles sans aucune archive VOTI récursive', async () => {
   const paths = await auditPaths(); assert.ok(paths.includes('AGENTS.md'));
@@ -9,6 +9,11 @@ test('Bundle audit : fichiers Git admissibles sans aucune archive VOTI récursiv
   assert.ok(!paths.includes(AUDIT_NAME));
   assert.ok(!paths.some(isAuditArchive));
   assert.equal(new Set(paths).size, paths.length);
+});
+test('Audit v0.4A : aucune clé exportée ni PDF de recette, même suivi par erreur', () => {
+  assert.equal(AUDIT_NAME, 'VOTI_AUDIT_V0_4A.zip');
+  for(const path of ['voti-admin-test.json','docs/voti-admin-test.json','.browser-tests/test.pdf','voti-affiche-test.pdf']) assert.ok(isPrivateOrTemporaryExport(path));
+  assert.equal(isPrivateOrTemporaryExport('shared/admin-key.js'), false);
 });
 test('Audit : exclusion des ZIP VOTI même anciens, imbriqués ou suivis', () => {
   for (const path of ['VOTI_AUDIT_V0_3B.zip', 'VOTI_AUDIT_V0_3C.zip', AUDIT_NAME, 'docs/VOTI_AUDIT_ancien.zip']) assert.ok(isAuditArchive(path));

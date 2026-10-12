@@ -64,7 +64,7 @@ try {
   if (process.argv.includes('--browser')) {
     const browser = spawn(process.execPath, ['scripts/browser-test.mjs'], { stdio: 'inherit', env: { ...localEnv,
       VOTI_RELAY_URL: baseUrl, VOTI_RELAY_ID: relayId, VOTI_TURNSTILE_MODE: 'local-test',
-      VOTI_REMOTE_ASSETS_ENABLED: 'false', VOTI_TEST_FREE_PILOT: '1' } });
+      VOTI_REMOTE_ASSETS_ENABLED: 'false', VOTI_TEST_FREE_PILOT: '1', VOTI_TEST_PERSIST: persist[1] } });
     check((await once(browser, 'exit'))[0] === 0);
   }
   console.log(`Pilote gratuit local : ${checks} contrôles réussis (HTTP/D1 sans R2).`);

@@ -1,7 +1,8 @@
 /** Attend le load du frame/loader renvoyé par Page.navigate.
  * L'écoute est installée AVANT la commande : le load peut précéder sa réponse.
  */
-export async function navigateAndWait(command, events, sessionId, url, timeoutMs = 15000) {
+export async function navigateAndWait(command, events, sessionId, url, timeoutMs = 15000, expectedUrl = url) {
+  const displayUrl = /^#\/?admin\/import\//.test(new URL(url).hash) ? new URL(url).origin + new URL(url).pathname + '#admin-transfer' : url;
   let navigation;
   let finished = false;
   const loads = [];
@@ -18,11 +19,11 @@ export async function navigateAndWait(command, events, sessionId, url, timeoutMs
       check();
     };
     events.on('event', onEvent);
-    timer = setTimeout(() => reject(new Error(`Document attendu non chargé : ${url} (aucun load du loader ${navigation?.loaderId || 'non reçu'}).`)), timeoutMs);
+    timer = setTimeout(() => reject(new Error(`Document attendu non chargé : ${displayUrl} (aucun load du loader ${navigation?.loaderId || 'non reçu'}).`)), timeoutMs);
     command('Page.navigate', { url }, sessionId).then(result => {
       if (finished) return;
       if (result.errorText || result.isDownload || !result.loaderId) {
-        reject(new Error(`Navigation impossible vers ${url} : ${result.errorText || 'aucun nouveau document chargé'}.`));
+        reject(new Error(`Navigation impossible vers ${displayUrl} : ${result.errorText || 'aucun nouveau document chargé'}.`));
         return;
       }
       navigation = result;
@@ -34,8 +35,9 @@ export async function navigateAndWait(command, events, sessionId, url, timeoutMs
     const { frameTree } = await command('Page.getFrameTree', {}, sessionId);
     const frame = frameTree.frame;
     const frameUrl = frame.url + (frame.url.includes('#') ? '' : frame.urlFragment || '');
-    if (frame.id !== navigation.frameId || frame.loaderId !== navigation.loaderId || frameUrl !== url) {
-      throw new Error(`Document inattendu après navigation : attendu ${url}, reçu ${frameUrl} (loader ${frame.loaderId}).`);
+    if (frame.id !== navigation.frameId || frame.loaderId !== navigation.loaderId || frameUrl !== expectedUrl) {
+      const received = /^#\/?admin\/import\//.test(new URL(frameUrl).hash) ? '[fragment secret retiré du diagnostic]' : frameUrl;
+      throw new Error(`Document inattendu après navigation : attendu ${displayUrl}, reçu ${received} (loader ${frame.loaderId}).`);
     }
     return navigation;
   } finally {

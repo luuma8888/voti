@@ -81,7 +81,18 @@ allowDirectChoiceQr: boolean
 Pour le MVP local :
 - `audience = public`
 - `requiresAccount = false`
-- `allowDirectChoiceQr = false` (QR non implémentés).
+- `allowDirectChoiceQr = false`, valeur toujours forcée pour compatibilité avec le schéma historique.
+
+Ce champ est actuellement réservé : il n'est pas utilisé comme politique
+d'autorisation opérationnelle. Depuis v0.4A, un QR par choix peut présélectionner
+une réponse, modifiable avant une confirmation explicite. Cette présélection
+ne constitue jamais un vote direct automatique : ni le scan, ni le chargement,
+ni la navigation ne créent un bulletin.
+
+La sémantique future de `allowDirectChoiceQr` devra être décidée avant d'en
+faire une véritable règle configurable. Cette clarification documentaire ne
+change ni sa valeur, ni le schéma, ni les validateurs, ni l'empreinte métier ;
+elle ne nécessite aucune migration. Voir `QR_AND_POSTER_V0.md`.
 
 ## 7. ResultPublicationRules
 

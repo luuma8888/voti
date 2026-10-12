@@ -16,6 +16,13 @@ import { assetReferences } from '../shared/assets.js';
 import { humanVerification } from './human-verification.js';
 import { exportAdminKey, importAdminKey, parseAdminKey } from '../shared/admin-key.js';
 import { confirmAction } from './confirmation.js';
+import { consumeAdminFragment } from './admin-transfer.js';
+import { decodeAdminPayload, buildPollUrl, buildChoiceUrl } from '../shared/qr-links.js';
+import { sharingPanel } from './sharing.js';
+import { publicPollRoute } from '../shared/relay.js';
+
+// Avant stockage, rendu, appel du relais ou traitement asynchrone.
+let pendingAdminPayload = consumeAdminFragment(location, history);
 
 const connections = new LocalStorageRemoteConnectionAdapter(localStorage, navigator.locks);
 const relay = RELAY_CONFIG ? new RelayClient(new HttpRelayAdapter(RELAY_CONFIG), connections) : null;
@@ -26,7 +33,7 @@ let renderSequence = 0;
 function getPoll(current, id) { return remoteViews.get(id) || localPoll(current, id); }
 function activeImages() { return remoteImages || images; }
 function mascot() { return el('img', null, { src: document.getElementById('brand-mascot').src, alt: '', width: '112', height: '101', class: 'mascot' }); }
-function publicLink(id, results = false) { return `#/p/${id}${results ? '/results' : ''}`; }
+function publicLink(id, results = false) { return publicPollRoute(id, results); }
 function questionBlock(poll, staged) {
   const box = el('section', null, { class: 'question-block' });
   const title = app.querySelector(':scope > h1');
@@ -124,6 +131,7 @@ function link(label, hash, className = '') { return el('a', label, { href: hash,
 function actions(...children) { return append(el('div', null, { class: 'actions' }), ...children); }
 function showError(error) {
   const french = { HUMAN_VERIFICATION_REQUIRED: 'Une vérification est nécessaire pour démarrer la publication en ligne.',
+    NOT_FOUND: 'Ce sondage est introuvable. Il a peut-être été supprimé.',
     HUMAN_VERIFICATION_FAILED: 'La vérification a expiré ou a échoué. Réessayez la publication.',
     CREATION_RATE_LIMITED: 'Trop de publications démarrent en ce moment. Réessayez dans une minute.',
     RATE_LIMITED: 'Le relais reçoit trop de demandes. Réessayez dans une minute.',
@@ -167,29 +175,77 @@ function adminKeyImport(expectedPollId) {
   input.addEventListener('change', async () => {
     if (control.disabled) return;
     const file = input.files[0]; if (!file) return;
+    const importRoute = location.hash;
     control.disabled = true; clearError();
     try {
       if (file.size > 4096) throw new Error('Fichier de clé trop volumineux.');
       const raw = await file.text(), key = parseAdminKey(raw, RELAY_CONFIG.relayId);
       if (expectedPollId && key.pollId !== expectedPollId) throw new Error('Cette clé concerne un autre sondage. Utilisez Sauvegarde & transfert.');
-      const adapter = new HttpRelayAdapter(RELAY_CONFIG);
-      let view;
-      try { view = await importAdminKey(raw, adapter, connections); }
-      catch (error) {
-        if (error.code !== 'CAPABILITY_CONFLICT') throw error;
-        const previous = await connections.get(key);
-        if (!await confirmAction({ trigger: control, title: 'Remplacer la clé d’administration ?',
-          description: 'Une autre clé est déjà conservée pour ce sondage. La nouvelle clé a été vérifiée. Elle remplacera la clé enregistrée dans ce navigateur ; le sondage restera inchangé.',
-          actionLabel: 'Remplacer la clé' })) return;
-        view = await importAdminKey(raw, adapter, connections, { replaceCapability: previous.adminCapability });
-      }
+      const view = await importConfirmedAdmin(raw, control);
+      if (!view) return;
       remoteViews.set(key.pollId, { ...view, id: key.pollId, lockedAt: view.locked ? 'remote' : null });
       navigate(`#poll/${key.pollId}`); notify('Clé vérifiée et importée. Vous pouvez administrer ce sondage.');
     } catch (error) { showError(error); }
-    finally { control.disabled = false; input.value = ''; }
+    finally {
+      control.disabled = false; input.value = '';
+      // Le helper partagé ajoute un await : restaurer après réactivation réelle.
+      if (control.isConnected && location.hash === importRoute) control.focus({ preventScroll: true });
+    }
   });
   panel.append(control, input, el('p', 'Import séparé des sauvegardes : le fichier est secret et sa clé est vérifiée auprès du relais.', { class: 'help' }));
   return panel;
+}
+/** Fichier et QR utilisent le même conflit explicite et la même vérification distante. */
+async function importConfirmedAdmin(raw, control) {
+  const key = parseAdminKey(raw, RELAY_CONFIG.relayId), adapter = new HttpRelayAdapter(RELAY_CONFIG);
+  const startRoute = location.hash, verify = adapter.verifyAdmin.bind(adapter);
+  adapter.verifyAdmin = async request => {
+    const view = await verify(request);
+    if (!control.isConnected || location.hash !== startRoute) throw new Error('Import annulé : la page a changé.');
+    return view;
+  };
+  try { return await importAdminKey(raw, adapter, connections); }
+  catch (error) {
+    if (error.code !== 'CAPABILITY_CONFLICT') throw error;
+    const previous = await connections.get(key);
+    if (!await confirmAction({ trigger: control, title: 'Remplacer la clé d’administration ?',
+      description: 'Une autre clé est déjà conservée pour ce sondage. La nouvelle clé a été vérifiée. Elle remplacera la clé enregistrée dans ce navigateur ; le sondage restera inchangé.',
+      actionLabel: 'Remplacer la clé' })) return null;
+    return importAdminKey(raw, adapter, connections, { replaceCapability: previous.adminCapability });
+  }
+}
+function adminTransfer() {
+  heading('Clé d’administration détectée');
+  if (pendingAdminPayload === null) { app.append(el('p', 'Aucune clé en attente. Scannez de nouveau le QR secret si nécessaire.'), actions(link('Accueil', '#home'))); return; }
+  if (!RELAY_CONFIG) { pendingAdminPayload = null; app.append(el('p', 'Relais non configuré. Aucune clé importée.'), actions(link('Accueil', '#home'))); return; }
+  let key;
+  try { key = decodeAdminPayload(pendingAdminPayload, RELAY_CONFIG.relayId); }
+  catch { pendingAdminPayload = null; app.append(el('p', 'QR secret invalide ou incompatible avec ce relais. Aucune clé importée.'), actions(link('Accueil', '#home'))); return; }
+  const card = el('section', null, { class: 'card secret-transfer' });
+  const accept = button('Importer l’administration', async () => {
+    if (accept.disabled) return; accept.disabled = true; clearError();
+    try {
+      const view = await importConfirmedAdmin(JSON.stringify(key), accept);
+      if (!view) return;
+      pendingAdminPayload = null; remoteViews.set(key.pollId, { ...view, id: key.pollId, lockedAt: view.locked ? 'remote' : null });
+      navigate(`#poll/${key.pollId}`); notify('Clé vérifiée et importée. Vous pouvez administrer ce sondage.');
+    } catch (error) { if (accept.isConnected) showError(error); }
+    finally { accept.disabled = false; if (accept.isConnected && location.hash === '#admin-transfer') accept.focus({ preventScroll: true }); }
+  }, 'primary');
+  const cancel = button('Annuler', () => { pendingAdminPayload = null; key = null; navigate('#home'); });
+  card.append(el('p', 'SECRET — Cette clé permet d’administrer ce sondage. Toute personne qui la possède peut le modifier ou le supprimer.'),
+    el('p', 'Rien n’est importé automatiquement. Le relais vérifiera la clé après votre confirmation.'), actions(cancel, accept));
+  app.append(card);
+}
+function share(id) {
+  const poll = getPoll(state, id);
+  heading('Partager le sondage');
+  if (!bindings.get(id)?.adminCapability || !poll.remoteRef || poll.remoteRef.revision <= 0) {
+    app.append(el('p', 'Publie d’abord ce sondage en ligne pour créer ses QR de partage.'), actions(link('Retour à la gestion', `#poll/${id}`))); return;
+  }
+  app.append(el('p', poll.definition.question), sharingPanel(poll, { error: showError, notify,
+    getAdminKey: async () => JSON.parse(await exportAdminKey(connections, RELAY_CONFIG.relayId, id)) }),
+  actions(link('Retour à la gestion', `#poll/${id}`)));
 }
 async function transact(node, operation, after = () => render(), staged = []) {
   if (node.disabled) return;
@@ -354,9 +410,9 @@ function management(id) {
   controls.push(link('Modifier l’apparence', `#style/${id}`), link('Voir les résultats', `#results/${id}`), link('Mes sondages', '#home'));
   card.append(actions(...controls));
   if (bindings.has(id)) {
-    const url = new URL(publicLink(id), location.href).href;
+    const url = buildPollUrl(id);
     const copy = button('Copier le lien', async () => { try { await navigator.clipboard.writeText(url); notify('Lien copié.'); } catch { notify(`Lien public : ${url}`); } });
-    card.append(el('p', 'En ligne · Le relais fait autorité.'), actions(link('Ouvrir le lien public', publicLink(id), 'primary'), copy, link('Résultats', publicLink(id, true))));
+    card.append(el('p', 'En ligne · Le relais fait autorité.'), actions(link('Ouvrir le lien public', publicLink(id), 'primary'), copy, link('Résultats', publicLink(id, true)), link('Partager le sondage', `#share/${id}`)));
     const keyExport = button('Exporter la clé d’administration', async () => {
       try { download(await exportAdminKey(connections, RELAY_CONFIG.relayId, id), `voti-admin-${id}.json`); notify('Clé secrète exportée. Vérifiez son enregistrement et conservez-la en lieu sûr.'); }
       catch (error) { showError(error); }
@@ -379,6 +435,7 @@ function management(id) {
     }
   }
   app.append(card);
+  if (!bindings.has(id)) app.append(el('p', 'Publie d’abord ce sondage en ligne pour créer ses QR de partage.', { class: 'help' }));
   app.append(el('p', bindings.has(id) ? 'Aucun nom demandé. Le relais peut voir les connexions réseau. Une personne peut voter plusieurs fois.' : 'Les autres appareils n’ont pas accès aux données de ce navigateur tant que le sondage n’est pas publié en ligne.', { class: 'help' }));
 }
 
@@ -493,7 +550,7 @@ function edit(id) {
   app.append(form);
 }
 
-function vote(id) {
+function vote(id, qrChoiceId) {
   const poll = getPoll(state, id);
   const distant = remoteViews.has(id);
   const resultsLink = distant ? publicLink(id, true) : `#results/${id}`;
@@ -505,6 +562,8 @@ function vote(id) {
   }
   const card = el('section', null, { class: 'card', 'data-accent': poll.style.themeId });
   card.append(questionBlock(poll));
+  const preset = qrChoiceId !== undefined && poll.definition.choices.find(choice => choice.id === qrChoiceId);
+  if (qrChoiceId !== undefined) card.append(el('p', preset ? `Choix présélectionné par le QR : ${preset.label}. Tu peux le changer. Ton vote doit encore être confirmé.` : 'Le choix du QR n’est plus disponible. Choisis une réponse.', { class: 'qr-preselection', role: 'status' }));
   if (voteSession?.pollId === id) {
     const choice = poll.definition.choices.find(item => item.id === voteSession.choiceId);
     if (!choice) { voteSession = null; vote(id); return; }
@@ -533,6 +592,7 @@ function vote(id) {
     const options = el('fieldset', null, { class: `vote-choices ${poll.definition.choices.some(c => c.imageRef) ? 'illustrated' : ''}` }); options.append(el('legend', 'Choisis une réponse'));
     for (const choice of poll.definition.choices) {
       const input = el('input', null, { type: 'radio', name: 'choice', value: choice.id, required: '' });
+      input.checked = Boolean(preset && preset.id === choice.id);
       const label = append(el('label', null, { class: 'vote-choice' }), input, el('span', choice.label));
       if (choice.imageRef) label.append(activeImages().show(choice.imageRef, { size: 'choice' }));
       options.append(label);
@@ -620,20 +680,31 @@ function appearance() {
 }
 
 async function render() {
+  const detected = consumeAdminFragment(location, history);
+  if (detected !== null) pendingAdminPayload = detected;
   if (!state) return;
   const sequence = ++renderSequence;
   app.setAttribute('aria-busy', 'true');
   app.replaceChildren();
   images.sweep();
   const nextRoute = location.hash || '#home';
+  if (nextRoute !== '#admin-transfer') pendingAdminPayload = null;
   if (nextRoute !== route) { editor = null; voteSession = null; clearError(); notify(''); route = nextRoute; }
   try {
-    const [view, id, extra] = nextRoute.replace(/^#\//, '#').slice(1).split('/');
+    const [view, id, extra, choiceId, ...tail] = nextRoute.replace(/^#\//, '#').slice(1).split('/');
+    if (view === 'admin-transfer' && !id) {
+      document.title = 'Transfert d’administration · Voti';
+      const marker = document.getElementById('location'); marker.hidden = false; marker.textContent = 'Transfert d’administration';
+      for (const node of document.querySelectorAll('.main-nav a')) node.removeAttribute('aria-current');
+      adminTransfer(); return;
+    }
+    if (tail.length || (view === 'p' && ((extra !== undefined && !['results', 'choice'].includes(extra)) ||
+      (extra !== 'choice' && choiceId !== undefined) || (extra === 'choice' && choiceId === undefined)))) throw new Error('Ce lien public n’est pas reconnu.');
     bindings = new Map(connections.read().connections.map(c => [c.pollId, c]));
     if (sequence !== renderSequence) return;
     remoteImages?.sweep(); remoteImages = null;
     const distant = view === 'p' || (id && bindings.has(id));
-    if (distant && ['poll', 'edit', 'style'].includes(view) && !bindings.get(id)?.adminCapability) throw new Error('La capacité créateur est nécessaire pour gérer ce sondage.');
+    if (distant && ['poll', 'edit', 'style', 'share'].includes(view) && !bindings.get(id)?.adminCapability) throw new Error('La capacité créateur est nécessaire pour gérer ce sondage.');
     if (distant) {
       if (!relay || (bindings.has(id) && bindings.get(id).relayId !== RELAY_CONFIG.relayId)) throw new Error('Relais non configuré ou indisponible. Aucun vote local de secours.');
       try {
@@ -652,7 +723,7 @@ async function render() {
         throw error;
       }
     } else if (id) remoteViews.delete(id);
-    const locations = { home: 'Accueil', new: 'Nouveau sondage', backup: 'Sauvegarde', appearance: 'Apparence de Voti', poll: 'Sondage · Gestion', edit: 'Sondage · Modification', vote: 'Sondage · Vote', results: 'Sondage · Résultats', style: 'Sondage · Apparence' };
+    const locations = { home: 'Accueil', new: 'Nouveau sondage', backup: 'Sauvegarde', appearance: 'Apparence de Voti', poll: 'Sondage · Gestion', edit: 'Sondage · Modification', vote: 'Sondage · Vote', results: 'Sondage · Résultats', style: 'Sondage · Apparence', share: 'Sondage · Partage' };
     const pageMarker = document.getElementById('location');
     pageMarker.textContent = view === 'p' ? (extra === 'results' ? 'Sondage · Résultats en ligne' : 'Sondage · Vote en ligne') : locations[view] || 'Page locale';
     pageMarker.hidden = view === 'home' && !id;
@@ -661,7 +732,7 @@ async function render() {
       else node.removeAttribute('aria-current');
     }
     document.title = `${locations[view] || 'Voti'} · Voti`;
-    if (view === 'p' && (!extra || extra === 'results')) { document.title = `${pageMarker.textContent} · Voti`; if (extra) results(id); else vote(id); return; }
+    if (view === 'p') { document.title = `${pageMarker.textContent} · Voti`; if (extra === 'results') results(id); else vote(id, extra === 'choice' ? choiceId : undefined); return; }
     if (extra) throw new Error('Ce lien local n’est pas reconnu.');
     if (view === 'home' && !id) home();
     else if (view === 'backup' && !id) backup();
@@ -672,8 +743,9 @@ async function render() {
     else if (view === 'vote' && id) vote(id);
     else if (view === 'results' && id) results(id);
     else if (view === 'style' && id) style(id);
+    else if (view === 'share' && id) share(id);
     else throw new Error('Ce lien local n’est pas reconnu.');
-  } catch (error) { app.replaceChildren(); heading('Impossible d’ouvrir cette page'); app.append(el('p', error.message), actions(link('Accueil', '#home'))); }
+  } catch (error) { app.replaceChildren(); heading('Impossible d’ouvrir cette page'); app.append(el('p', error.code === 'NOT_FOUND' ? 'Ce sondage est introuvable. Il a peut-être été supprimé.' : error.message), actions(link('Accueil', '#home'))); }
   finally { if (sequence === renderSequence) app.setAttribute('aria-busy', 'false'); }
 }
 

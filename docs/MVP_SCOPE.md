@@ -2,6 +2,12 @@
 
 ## 1. But du MVP
 
+Portée historique : fondation du MVP local. Les exclusions QR/PDF ci-dessous
+décrivent cette première livraison, pas l'état actuel de Voti. Depuis v0.4A,
+les sondages publiés sur le relais disposent de QR de partage et d'affiches
+PDF ; voir `QR_AND_POSTER_V0.md`. Le mode purement local ne propose toujours
+pas de faux lien de vote multi-appareils.
+
 Valider un parcours complet et simple :
 
 `Créer -> publier localement -> accéder au vote -> voter -> verrouiller -> consulter les résultats selon les règles`

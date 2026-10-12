@@ -10,6 +10,9 @@ import { browserAssetScenario } from './browser-assets.mjs';
 import { graphicFixtures, graphicChecks, remoteBrowserAction } from './browser-relay.mjs';
 import { browserKeyExport, browserKeyImport, browserDelete } from './browser-hardening.mjs';
 import { browserDialogScenario, keyboardDialogChecks } from './browser-dialogs.mjs';
+import { browserQrScenario, browserPosterScenario, qrChoiceStage } from './browser-qr.mjs';
+import { adminQrScenario } from './browser-admin-qr.mjs';
+import { wrangler } from './relay-local.mjs';
 
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
@@ -68,7 +71,9 @@ function command(method, params = {}, sessionId) {
   });
 }
 async function evaluate(session, expression) {
-  const result = await command('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, session);
+  let result;
+  try { result = await command('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, session); }
+  catch (error) { throw new Error(`${expression.match(/\bfunction\s+(\w+)/)?.[1] || 'Rendu navigateur'} : ${error.message}`); }
   if (result.exceptionDetails) throw new Error((result.exceptionDetails.exception?.description || result.exceptionDetails.text).replace(/data:text\/javascript;base64,[A-Za-z0-9+/=]+/g, '[module embarqué]'));
   return result.result.value;
 }
@@ -76,6 +81,16 @@ async function evaluate(session, expression) {
 async function navigateReady(session, destination) {
   await navigateAndWait(command, events, session, destination);
   await evaluate(session, `(${waitForApplication.toString()})(${JSON.stringify(destination)})`);
+}
+/** Observation indépendante des bulletins dans D1 local, jamais sur la production. */
+async function localBallotCount(id) {
+  if(!/^[a-f0-9-]{36}$/.test(id) || !/^\.relay-local\/(?:test|free)-\d+$/.test(process.env.VOTI_TEST_PERSIST||'')) throw new Error('Observation D1 locale non configurée.');
+  const free=process.env.VOTI_TEST_FREE_PILOT==='1';
+  const child=wrangler(['d1','execute',free?'voti-free-test':'voti-local','--config',free?'relay/cloudflare/wrangler.free-test.jsonc':'relay/cloudflare/wrangler.jsonc',
+    '--local','--persist-to',process.env.VOTI_TEST_PERSIST,'--json','--command',`SELECT COUNT(*) n FROM ballots WHERE poll_id='${id}'`],{stdio:['ignore','pipe','pipe']});
+  let output='';child.stdout.on('data',c=>output+=c);child.stderr.resume();
+  await new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',code=>code===0?resolve():reject(new Error('Lecture du compteur D1 local refusée.')));});
+  return JSON.parse(output)[0].results[0].n;
 }
 
 async function startDevServer() {
@@ -498,6 +513,20 @@ try {
   if (!await evaluate(sessionId, 'document.documentElement.dataset.theme === "nature"')) throw new Error('Préférence de thème perdue au rechargement offline.');
   if (requests.some(item => /^https?:/.test(item))) throw new Error('Requête HTTP inattendue pendant les tests file://.');
   const fileAssetChecks = await evaluate(sessionId, `(${browserAssetScenario.toString()})()`);
+  const qrChecks = {checks:await evaluate(sessionId, `(${browserQrScenario.toString()})()`)};
+  await mkdir(resolve(ROOT,'.browser-tests/pdfs'),{recursive:true});
+  const posterFiles=[];
+  // La recette PDF coûteuse appartient à test:browser/test:poster ; pas trois
+  // copies identiques dans les suites réseau, qui gardent tous leurs tests UI QR.
+  const pdfFixtures=process.env.VOTI_TEST_RELAY==='1'||process.env.VOTI_TEST_FREE_PILOT==='1'?[]:[[2,false],[3,false],[6,false],[6,true]];
+  for(const [n,long] of pdfFixtures) for(const mode of ['access','choices']) {
+    const theme=['pop','nature','douceur','dark','minimal','pop','pop','nature'][posterFiles.length];
+    const file=await evaluate(sessionId,`(${browserPosterScenario.toString()})(${n},${JSON.stringify(mode)},${long},${JSON.stringify(theme)})`);
+    qrChecks.checks+=file.checks;
+    await writeFile(resolve(ROOT,'.browser-tests/pdfs',file.name),Buffer.from(file.base64,'base64'));
+    const {base64,...metadata}=file;posterFiles.push(metadata);
+  }
+  if(posterFiles.length) await writeFile(resolve(ROOT,'.browser-tests/pdfs/plans.json'),JSON.stringify(posterFiles));
   await navigateReady(sessionId, offlineUrl);
   await evaluate(sessionId, `(async () => {
     const deadline = performance.now()+5000;
@@ -592,8 +621,29 @@ try {
     await command('Network.enable', {}, voter.sessionId);
     await command('Page.setLifecycleEventsEnabled', { enabled:true }, voter.sessionId);
     for (let n=0;n<5;n++) {
-      await navigateReady(voter.sessionId, servedUrl + '?visit=' + crypto.randomUUID() + '#/p/' + id);
-      relayChecks += await evaluate(voter.sessionId, `(${remoteBrowserAction.toString()})('vote',${JSON.stringify(id)},${process.env.VOTI_TEST_FREE_PILOT !== '1'})`);
+      if(n===0) {
+        const poll=await (await fetch('http://127.0.0.1:8787/api/v1/polls/'+id)).json(), choiceId=poll.definition.choices[1].id;
+        const choiceUrl=servedUrl+'?qr='+crypto.randomUUID()+'#/p/'+id+'/choice/'+choiceId;
+        const voteRequests=()=>relayRequests.filter(r=>r.sessionId===voter.sessionId && r.method==='POST' && r.url.endsWith(`/polls/${id}/votes`)).length;
+        const before=voteRequests();
+        await navigateReady(voter.sessionId,choiceUrl);
+        relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'preset')`);
+        if(await localBallotCount(id)!==0 || voteRequests()!==before)throw new Error('QR au chargement crée un vote');relayChecks++;
+        await navigateReady(voter.sessionId,choiceUrl.replace('?qr=','?refresh='));
+        relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'preset')`);
+        if(await localBallotCount(id)!==0 || voteRequests()!==before)throw new Error('Refresh QR crée un vote');relayChecks++;
+        await navigateReady(voter.sessionId,servedUrl+'?bad='+crypto.randomUUID()+'#/p/'+id+'/choice/invalide');
+        relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},'', 'invalid')`);
+        if(await localBallotCount(id)!==0)throw new Error('Choix QR invalide crée un vote');relayChecks++;
+        await navigateReady(voter.sessionId,choiceUrl.replace('?qr=','?confirm='));
+        relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'continue')`);
+        if(await localBallotCount(id)!==0 || voteRequests()!==before)throw new Error('Continuer QR crée un vote');relayChecks++;
+        relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},${JSON.stringify(choiceId)},'confirm')`);
+        if(await localBallotCount(id)!==1 || voteRequests()!==before+1)throw new Error('Confirmation QR pas exactement un vote');relayChecks++;
+      } else {
+        await navigateReady(voter.sessionId, servedUrl + '?visit=' + crypto.randomUUID() + '#/p/' + id);
+        relayChecks += await evaluate(voter.sessionId, `(${remoteBrowserAction.toString()})('vote',${JSON.stringify(id)},${process.env.VOTI_TEST_FREE_PILOT !== '1'})`);
+      }
       if(n===0) {
         await navigateReady(sessionId, servedUrl+'?visit='+crypto.randomUUID()+'#poll/'+id);
         relayChecks += await evaluate(sessionId, `(${remoteBrowserAction.toString()})('locked',${JSON.stringify(id)})`);
@@ -614,22 +664,66 @@ try {
     await command('Emulation.setDeviceMetricsOverride', { width:360, height:820, deviceScaleFactor:1, mobile:true }, voter.sessionId);
     await navigateReady(voter.sessionId, servedUrl+'?closed='+crypto.randomUUID()+'#/p/'+id);
     relayChecks += await evaluate(voter.sessionId, `(${remoteBrowserAction.toString()})('closed-public',${JSON.stringify(id)})`);
+    const closedPoll=await (await fetch('http://127.0.0.1:8787/api/v1/polls/'+id)).json();
+    await navigateReady(voter.sessionId,servedUrl+'?qr-closed='+crypto.randomUUID()+'#/p/'+id+'/choice/'+closedPoll.definition.choices[0].id);
+    relayChecks+=await evaluate(voter.sessionId,`(${qrChoiceStage.toString()})(${JSON.stringify(id)},'', 'closed')`);
+    if(await localBallotCount(id)!==5)throw new Error('QR fermé crée un bulletin');relayChecks++;
     const exported = await evaluate(sessionId, `(${browserKeyExport.toString()})()`); relayChecks += exported.checks;
     await command('Emulation.setDeviceMetricsOverride', { width: 360, height: 820, deviceScaleFactor: 1, mobile: true }, voter.sessionId);
     const adminBefore=requestCount(voter.sessionId,'GET',`/polls/${id}/admin`);
     const mutationsBefore=relayRequests.filter(r=>r.sessionId===voter.sessionId && r.method!=='GET' && r.method!=='OPTIONS').length;
     relayChecks += await evaluate(voter.sessionId, `(${browserKeyImport.toString()})(${JSON.stringify(exported.key)})`);
     if(requestCount(voter.sessionId,'GET',`/polls/${id}/admin`)!==adminBefore+5 || relayRequests.filter(r=>r.sessionId===voter.sessionId && r.method!=='GET' && r.method!=='OPTIONS').length!==mutationsBefore)throw new Error('Import clé : vérification distante ou action unique incorrecte');relayChecks++;
+    // Centre réel : destinations publiques canoniques, secret caché, 320/360 px.
+    await navigateReady(sessionId,servedUrl+'?share='+crypto.randomUUID()+'#share/'+id);
+    for(const width of [320,360,1200]) {
+      await command('Emulation.setDeviceMetricsOverride',{width,height:820,deviceScaleFactor:1,mobile:width<680},sessionId);
+      if(!await evaluate(sessionId,`document.querySelectorAll('.qr-grid .qr-card').length===${closedPoll.definition.choices.length} && document.querySelector('.secret-qr').hidden && !document.querySelector('.secret-qr img') && document.documentElement.scrollWidth<=innerWidth && [...document.querySelectorAll('.qr-destination')].every(a=>a.href.startsWith('https://luuma8888.github.io/voti/#/p/'))`))throw new Error('Centre de partage incorrect');relayChecks++;
+    }
+    const shareCapture=await command('Page.captureScreenshot',{format:'png'},sessionId);await writeFile(resolve(ROOT,'.browser-tests/v04a-sharing.png'),Buffer.from(shareCapture.data,'base64'));
+    await navigateReady(sessionId,servedUrl+'?admin-back='+crypto.randomUUID()+'#poll/'+id);
+    const transfers=await command('Target.createBrowserContext',{disposeOnDetach:true});
+    const transferTarget=await command('Target.createTarget',{url:'about:blank',browserContextId:transfers.browserContextId});
+    const transfer=await command('Target.attachToTarget',{targetId:transferTarget.targetId,flatten:true});
+    for(const method of ['Page.enable','Runtime.enable','Network.enable'])await command(method,{},transfer.sessionId);
+    await command('Page.setLifecycleEventsEnabled',{enabled:true},transfer.sessionId);
+    await command('Page.addScriptToEvaluateOnNewDocument',{source:`(() => {const f=window.fetch;window.fetch=function(...args){if(location.hash.includes('admin/import/'))throw new Error('Secret encore présent avant requête');return f.apply(this,args);};})()`},transfer.sessionId);
+    const {encodeAdminPayload}=await import('../shared/qr-links.js');
+    const clean=servedUrl+'?admin-init='+crypto.randomUUID()+'#admin-transfer';
+    await navigateAndWait(command,events,transfer.sessionId,clean.replace('#admin-transfer','#/admin/import/'+encodeAdminPayload(exported.key)),15000,clean);
+    await evaluate(transfer.sessionId,`(${waitForApplication.toString()})(${JSON.stringify(clean)})`);
+    if(!await evaluate(transfer.sessionId,"location.hash==='#admin-transfer' && localStorage.getItem('voti.remote.v1')===null && document.getElementById('app').textContent.includes('Rien n’est importé automatiquement')"))throw new Error('Bootstrap admin secret non nettoyé');relayChecks++;
+    for(const mode of ['cancel','invalid-payload','invalid-version','invalid-relay','invalid-structure','wrong-capability','wrong-poll','confirm']) {
+      let key={...exported.key};
+      if(mode==='invalid-version')key.version=2;
+      if(mode==='invalid-relay')key.relayId='another-relay';
+      if(mode==='invalid-structure')key.extra=true;
+      if(mode==='wrong-capability')key.adminCapability='voti-admin-v1.'+'0'.repeat(64);
+      if(mode==='wrong-poll')key.pollId='10000000-0000-4000-8000-000000000099';
+      relayChecks+=await evaluate(transfer.sessionId,`(${adminQrScenario.toString()})(${JSON.stringify(key)},${JSON.stringify(mode)})`);
+    }
+    relayChecks+=await evaluate(transfer.sessionId,`(${adminQrScenario.toString()})(${JSON.stringify(exported.key)},'confirm')`); // même capacité déjà conservée
+    await evaluate(transfer.sessionId,`(() => {const d=JSON.parse(localStorage.getItem('voti.remote.v1'));d.connections.find(c=>c.pollId===${JSON.stringify(id)}).adminCapability='voti-admin-v1.'+'1'.repeat(64);localStorage.setItem('voti.remote.v1',JSON.stringify(d));})()`);
+    relayChecks+=await evaluate(transfer.sessionId,`(${adminQrScenario.toString()})(${JSON.stringify(exported.key)},'conflict-cancel')`);
+    relayChecks+=await evaluate(transfer.sessionId,`(${adminQrScenario.toString()})(${JSON.stringify(exported.key)},'conflict-confirm')`);
     const deleteBefore=requestCount(sessionId,'DELETE',`/polls/${id}`);
     relayChecks += await evaluate(sessionId, `(${browserDelete.toString()})(${JSON.stringify(id)},true)`);
     if(requestCount(sessionId,'DELETE',`/polls/${id}`)!==deleteBefore)throw new Error('Suppression annulée envoie une requête');relayChecks++;
     relayChecks += await evaluate(sessionId, `(${browserDelete.toString()})(${JSON.stringify(id)})`);
     if(requestCount(sessionId,'DELETE',`/polls/${id}`)!==deleteBefore+1)throw new Error('Suppression confirmée : nombre de requêtes incorrect');relayChecks++;
+    for(const suffix of ['', '/results', '/choice/'+closedPoll.definition.choices[0].id]) {
+      await navigateAndWait(command,events,voter.sessionId,servedUrl+'?deleted='+crypto.randomUUID()+'#/p/'+id+suffix);
+      if(!await evaluate(voter.sessionId,`(async()=>{const end=performance.now()+10000;while(!document.getElementById('app')?.textContent.includes('Impossible d’ouvrir') || document.getElementById('app').getAttribute('aria-busy')!=='false'){if(performance.now()>end)throw new Error('Sondage supprimé QR non refusé');await new Promise(requestAnimationFrame);}return !document.querySelector('.vote-choices');})()`))throw new Error('QR supprimé permet un vote');relayChecks++;
+    }
+    relayChecks+=await evaluate(transfer.sessionId,`(${adminQrScenario.toString()})(${JSON.stringify(exported.key)},'deleted')`);
+    if(await localBallotCount(id)!==0)throw new Error('Bulletins conservés après suppression');relayChecks++;
+    if(relayRequests.some(r=>/voti-admin-v1\.|admin\/import/.test(new URL(r.url).pathname+new URL(r.url).search)))throw new Error('Secret dans URL HTTP');relayChecks++;
+    await command('Target.disposeBrowserContext',{browserContextId:transfers.browserContextId});
     await command('Target.disposeBrowserContext', { browserContextId:context.browserContextId });
   }
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
   if (requests.some(item => /^https?:/.test(item) && !['http://127.0.0.1:4173', ...((process.env.VOTI_TEST_RELAY === '1' || process.env.VOTI_TEST_FREE_PILOT === '1') ? ['http://127.0.0.1:8787'] : [])].includes(new URL(item).origin))) throw new Error('Requête réseau externe inattendue.');
-  console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks + relayChecks + dialogChecks} contrôles réussis (mode local, dialogues, graphiques, images, thèmes, clavier, responsive, offline, /voti/${process.env.VOTI_TEST_RELAY ? ', HTTP multi-contextes' : ''}).`);
+  console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks + relayChecks + dialogChecks + qrChecks.checks} contrôles réussis (mode local, QR/PDF, dialogues, graphiques, images, thèmes, clavier, responsive, offline, /voti/${process.env.VOTI_TEST_RELAY ? ', HTTP multi-contextes' : ''}).`);
 } catch (error) {
   console.error(`Tests navigateur ÉCHEC : ${error.message}`); process.exitCode = 1;
   if (process.env.VOTI_TEST_RELAY && httpDiagnostics.length) console.error(JSON.stringify(httpDiagnostics.slice(-8)));

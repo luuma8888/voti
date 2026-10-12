@@ -290,3 +290,17 @@ body:has(.confirmation-dialog[open]) { overflow:hidden; }
   .confirmation-dialog,.confirmation-dialog::backdrop { animation:none; transition:none; scroll-behavior:auto; }
 }
 @media print { .confirmation-dialog,.confirmation-dialog::backdrop { display:none!important; } }
+.sharing-section { border-bottom:1px solid var(--line); padding:8px 0 18px; }
+.sharing-section summary { color:var(--accent); }
+.qr-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr)); gap:16px; }
+.qr-card { min-width:0; padding:14px 0; }
+.qr-card h3 { margin:0 0 12px; }
+.qr-card img,.secret-qr img { display:block; width:260px; max-width:100%; height:auto; background:#fff; }
+.qr-destination { display:block; min-height:44px; margin:12px 0; font-size:13px; overflow-wrap:anywhere; }
+.qr-card .actions { margin-top:10px; }
+.secret-transfer { border:2px solid var(--warm); padding:16px; border-radius:12px; margin-top:24px; }
+.secret-transfer summary { color:var(--ink); }
+.secret-qr { margin-top:16px; }
+.sharing-section>button { margin:6px 8px 0 0; }
+.qr-preselection { background:var(--soft); padding:12px; border-radius:10px; }
+@media print { .secret-transfer { display:none!important; } }

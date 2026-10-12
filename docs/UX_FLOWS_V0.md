@@ -129,7 +129,8 @@ Ton vote a bien été enregistré.
 
 ## 6. QR pré-sélectionné
 
-Parcours futur : aucun QR n’est généré dans la fondation locale. Voir `LOCAL_MVP_DECISIONS.md`.
+Depuis v0.4A, les QR sont réservés aux sondages réellement publiés en ligne.
+Le mode local seul n'invente aucun lien multi-appareils. Voir `QR_AND_POSTER_V0.md`.
 
 Après scan :
 
@@ -139,11 +140,27 @@ QUESTION
 Tu as scanné :
 [ CHOIX B ]
 
-[ Confirmer mon vote ]
-[ Voir les autres choix ]
+[ choix présélectionné, modifiable ]
+[ Continuer ]
 ```
 
 Le choix doit rester modifiable avant confirmation si le sondage l’autorise.
+Puis l'écran « Tu choisis » exige « Oui, je confirme ». Le scan, la navigation,
+le refresh et Continuer n'enregistrent aucun bulletin. Un choix QR absent
+laisse tous les choix décochés et explique brièvement le problème.
+
+### Partage créateur et transfert secret v0.4A
+
+La gestion propose « Partager le sondage » vers une vue dédiée : QR d'accès,
+de choix, de résultats, exports PNG/SVG et deux affiches PDF A4. Les QR publics
+restent identiques après fermeture ; après suppression, le sondage est introuvable.
+
+Le transfert d'administration est une zone séparée SECRET, cachée par défaut.
+Le destinataire reçoit un fragment contenant la même clé que le fichier admin.
+Le fragment est retiré immédiatement de l'URL/historique, avant toute requête.
+L'écran « Clé d’administration détectée » offre Annuler et une importation
+explicite ; vérification distante avant stockage, conflit confirmé par le
+dialogue v0.3E. Annuler ne conserve rien. Une clé ne recrée jamais un sondage supprimé.
 
 ## 7. Résultats verrouillés
 

@@ -6,12 +6,13 @@ import { deflateRawSync } from 'node:zlib';
 import { ROOT } from './build.mjs';
 import { crc32 } from '../relay/cloudflare/image-validation.js';
 
-export const AUDIT_NAME = 'VOTI_AUDIT_V0_3D.zip';
+export const AUDIT_NAME = 'VOTI_AUDIT_V0_4A.zip';
 export function isAuditArchive(path) { return /(?:^|\/)VOTI_AUDIT_[^/]*\.zip$/i.test(path); }
+export function isPrivateOrTemporaryExport(path) { return /(?:^|\/)voti-admin-[^/]+\.json$/i.test(path) || /\.pdf$/i.test(path); }
 export async function auditPaths() {
   const { stdout } = await promisify(execFile)('git', ['ls-files', '-co', '--exclude-standard', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 8_000_000 });
   // Exclure aussi les anciennes archives déjà suivies par Git : jamais de ZIP récursif.
-  const paths = [...new Set(stdout.split('\0').filter(path => path && !isAuditArchive(path)))].sort();
+  const paths = [...new Set(stdout.split('\0').filter(path => path && !isAuditArchive(path) && !isPrivateOrTemporaryExport(path)))].sort();
   for (const path of paths) {
     if (path === AUDIT_NAME || path.startsWith('/') || path.split('/').includes('..') ||
       /^(?:node_modules|\.npm-cache|\.wrangler|\.relay-local|\.browser-tests|\.git|\.aws|coverage)(?:\/|$)/.test(path)) throw new Error('Contenu interdit dans le bundle d’audit.');

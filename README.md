@@ -11,6 +11,9 @@ images locales restent disponibles. État précis et gates :
 [guide du pilote gratuit](docs/PRODUCTION_DEPLOYMENT_V0.md) et
 [rapport final, limites et observations](docs/PRODUCTION_PILOT_REPORT_V0.md).
 Ce pilote contrôlé n'est pas une validation de charge/sécurité pour une ouverture large.
+Le lot v0.4A ajoute le partage QR et les affiches A4, sans modifier le relais.
+Son audit est validé ; la recette physique reste à confirmer étape par étape
+après publication. Voir [QR et affiches](docs/QR_AND_POSTER_V0.md).
 Les indications v0.3C suivantes décrivent le socle local historique.
 
 Prototype de sondages locaux pour choisir ensemble. Création guidée, 2 à 6 choix,
@@ -62,6 +65,7 @@ npm run worker:local   # Worker + D1/R2 locaux sur 127.0.0.1:8787
 npm run test:relay     # tests HTTP/D1/R2 locaux, avec redémarrage
 npm run test:integration # même suite + deux contextes navigateur
 npm run test:free-pilot # HTTP/D1 SANS R2 + deux contextes Chromium, local seulement
+npm run test:poster # après test:browser : Poppler à 300 dpi + décodage des QR PDF
 npm run worker:cleanup # scheduled explicite du Worker local
 npm run audit:bundle # ZIP léger, uniquement fichiers Git admissibles, après tests/rapport
 ```
@@ -81,7 +85,8 @@ locale peuvent nécessiter une autorisation d’exécution adaptée.
 - `shared/` : modèle, validation, moteur, publication et sérialisation sans DOM.
 - `web/` : interface, styles et adaptateur de stockage.
 - `relay/cloudflare/` : Worker, service D1/R2 et migrations locales versionnées.
-- `scripts/` : construction native sans dépendance, outils et tests navigateur.
+- `scripts/` : construction one-file, esbuild seulement pour les bibliothèques QR/PDF, tests navigateur.
+- `vendor/` : points d'entrée des bibliothèques npm embarquées (pas de CDN).
 - `tests/` : jeux fictifs et tests avec `node:test`.
 - `docs/LOCAL_MVP_DECISIONS.md` : arbitrages validés pour cette phase.
 - `docs/CODEX_MVP_FOUNDATION_REPORT_V0.md` : livraison et vérifications.

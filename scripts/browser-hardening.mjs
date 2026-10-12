@@ -18,7 +18,7 @@ export async function browserKeyExport() {
 export async function browserKeyImport(key) {
   let checks = 0;
   const assert = (value, label) => { if (!value) throw new Error(label); checks++; };
-  const wait = async predicate => { const end = performance.now() + 15000; while (!predicate()) { if (performance.now() > end) throw new Error('Import clé non terminé'); await new Promise(requestAnimationFrame); } };
+  const wait = async predicate => { const end = performance.now() + 15000; while (!predicate()) { if (performance.now() > end) throw new Error('Import clé non terminé : '+document.querySelector('#app h1')?.textContent+' / '+document.getElementById('message')?.textContent); await new Promise(requestAnimationFrame); } };
   const stored = () => JSON.parse(localStorage.getItem('voti.remote.v1')).connections.find(c => c.pollId === key.pollId);
   const input = () => document.querySelector('input[aria-label="Choisir une clé d’administration secrète"]');
   const send = value => {
@@ -29,7 +29,7 @@ export async function browserKeyImport(key) {
   assert(document.getElementById('app').textContent.includes('Importer une clé d’administration'), 'Import absent Sauvegarde');
   // Secret bien formé mais incorrect : le relais doit le refuser, pas le navigateur seul.
   send({ ...key, adminCapability: 'voti-admin-v1.' + '0'.repeat(64) });
-  await wait(() => !document.getElementById('message').hidden);
+  await wait(() => !document.getElementById('message').hidden && !document.querySelector('.admin-key-panel button').disabled);
   assert(stored().adminCapability === null, 'Mauvaise clé acceptée');
   // Simule un secret local obsolète : annulation puis confirmation du remplacement.
   const records = JSON.parse(localStorage.getItem('voti.remote.v1'));

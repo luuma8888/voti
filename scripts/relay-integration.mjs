@@ -192,12 +192,15 @@ try {
   await sql(`UPDATE polls SET created_at=0,published_at=1,closed_at=2 WHERE poll_id='${id}'`);
   check((await s.voter.getPoll(id)).status === 'closed');
   if (process.argv.includes('--browser')) {
-    const browser = spawn(process.execPath, ['scripts/browser-test.mjs'], { stdio: 'inherit', env: { ...localEnv, VOTI_RELAY_URL: baseUrl, VOTI_RELAY_ID: 'voti-local', VOTI_TURNSTILE_MODE: 'local-test', VOTI_TEST_RELAY: '1' } });
+    const browser = spawn(process.execPath, ['scripts/browser-test.mjs'], { stdio: 'inherit', env: { ...localEnv, VOTI_RELAY_URL: baseUrl, VOTI_RELAY_ID: 'voti-local', VOTI_TURNSTILE_MODE: 'local-test', VOTI_TEST_RELAY: '1', VOTI_TEST_PERSIST: statePath } });
     const [browserCode] = await once(browser, 'exit'); assert.equal(browserCode, 0); checks++;
   }
   // Fenêtre neuve pour le quota réel edge : nouvelles capacités ne le réinitialisent pas.
   await stop(); await start(); let creationLimited = false, created = 0;
-  for (let n = 0; n < 40; n++) {
+  // Le binding est approximatif ; 40 demandes peuvent aussi chevaucher deux
+  // fenêtres de 30. Une séquence bornée plus longue exige toujours un vrai 429,
+  // sans changer le quota serveur ni assouplir l'assertion anti-contournement.
+  for (let n = 0; n < 90; n++) {
     const state = draft();
     try { await adapter().preparePublication({ poll: state.polls[0], localBallots: [], expectedRevision: 0, adminCapability: createAdminCapability(), humanVerificationToken: token() }); created++; }
     catch (error) { if (error.code !== 'CREATION_RATE_LIMITED') throw error; creationLimited = true; break; }

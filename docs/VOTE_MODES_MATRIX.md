@@ -28,7 +28,12 @@ si aucun mécanisme ne permet de l’assurer.
 
 Éviter IP, fingerprint ou stockage navigateur comme fausse garantie.
 
-## 4. MVP
+## 4. Fondation MVP locale — historique
+
+Cette section décrit la livraison locale d'origine. Depuis v0.4A, les
+sondages publiés en ligne disposent de QR de partage, dont les QR par choix
+présélectionnent uniquement une réponse avant confirmation explicite.
+Voir `QR_AND_POSTER_V0.md`. Aucune garantie d'unicité par personne n'est ajoutée.
 
 Le MVP n’implémente pas encore l’unicité forte entre appareils.
 Il collecte uniquement dans le navigateur détenant les données, sans QR ni collecte multi-appareils. Le mode nominatif n’est pas proposé. Les bulletins sont minimaux, sans identité ni horodatage ; aucune garantie d’anonymat fort contre le propriétaire de l’appareil ou l’inspection du stockage.

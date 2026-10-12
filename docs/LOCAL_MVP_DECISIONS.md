@@ -3,6 +3,11 @@
 Statut : arbitrages validés par Lu’uma, faisant autorité pour cette phase.
 Ces décisions précisent les documents v0. Les références historiques restent conservées.
 
+Portée historique : fondation locale d'origine. Les reports et exclusions
+QR/PDF de cette phase restent consignés comme historique. Depuis v0.4A,
+les sondages réellement publiés en ligne proposent des QR de partage et des
+affiches PDF, sans vote automatique ; voir `QR_AND_POSTER_V0.md`.
+
 ## 1. Accès et QR
 
 Le prototype collecte uniquement dans le navigateur possédant les données. Il ne propose ni collecte multi-appareils, ni génération de QR. Les QR de vote partagés attendront un premier relais Internet. Moteur et UX locale passent en premier.
