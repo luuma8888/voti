@@ -1,10 +1,14 @@
 # Voti
 
-v0.5 participation/commentaires : **développement local, pas encore publié**.
+v0.5 participation/commentaires : **pilote publié et validé humainement par Lu’uma**.
 Nouveaux sondages anonymes avec commentaire facultatif privé par défaut ; identité
 déclarée optionnelle, jamais vérifiée. Pas de compte ni d'unicité par personne.
 Guides : [participation](docs/PARTICIPATION_V0.md),
 [commentaires et identité](docs/COMMENTS_AND_IDENTITY_V0.md).
+Migration D1 0003 puis Worker compatible déployés avant Pages ; profil Free
+sans R2 conservé. Recette et trois réserves UX pour le prochain lot :
+[rapport v0.5](docs/CODEX_PARTICIPATION_V0_5_REPORT.md).
+Les indications d'état des anciens lots ci-dessous décrivent leur historique.
 
 Studio v0.4C : couleurs palette/personnalisé synchronisées, typographies
 titre/corps prévisualisées, densité/QR, surfaces et cadrage focal local.

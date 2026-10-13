@@ -1,7 +1,8 @@
 # Voti v0.5 — participation et commentaires
 
-Statut : **audit validé ; migration0003 et Worker v0.5 déployés, compatibilité
-historique confirmée ; publication frontend et recette humaine v0.5 en cours**.
+Statut : **v0.5 publiée et clôturée, audit et recette humaine validés par Lu’uma**.
+Migration0003, Worker et Pages vérifiés ; trois réserves UX explicitement
+reportées au prochain lot, aucun code changé pendant la recette.
 
 ## Périmètre et garde-fous
 
@@ -189,9 +190,10 @@ htmlFor ; scénario de participation écrasant la fixture d'assets ; test de quo
 GET séquentiel chevauchant la fenêtre edge. Aucun échec supprimé ou ignoré :
 les assertions correspondantes ont été corrigées et les suites relancées.
 
-Build final de production **local seulement**, sans R2 :
+À l'issue du développement local, build production sans R2 :
 SHA-256 `9e550cb5a02eef911db452c65015319dab102b756f60669bb9624bf7e80a5734`.
-Aucune vérification de Pages v0.5 revendiquée, aucune nouvelle version publiée.
+À ce stade initial, aucune vérification de Pages v0.5 ni publication revendiquée.
+Les opérations ensuite autorisées et réalisées figurent dans la section production.
 
 ## Fichiers du lot
 
@@ -238,17 +240,18 @@ local ; la recommandation générique de logs reste écartée au profit de la pr
   inspection locale ne constitue pas une validation physique imprimante/téléphone.
 - Compatibilité lecture v1/v2 vers v3 ; retour arrière vers ancien frontend exige une
   sauvegarde antérieure, aucun downgrade automatique des données de participation.
-- Frontend v0.5 non publiable seul contre le Worker v0.4C actuel : migration additive
-  puis Worker compatible avant frontend, après audit et autorisation explicite.
+- Frontend v0.5 non publiable seul contre l'ancien Worker v0.4C : ordre migration
+  additive puis Worker compatible avant frontend respecté après autorisation.
 
-## Validations humaines restantes
+## Validations attendues au stade local — historique
 
 Audit ChatGPT de ce diff, revue du reçu d'idempotence et des données sensibles/backup ;
 recette UX participation/commentaire/modération et PDF nominatif avant publication.
 Accord séparé obligatoire pour toute migration/déploiement Worker et Pages.
-Aucune recette physique v0.5, identité réelle ou donnée réelle de mineur utilisée ici.
+Aucune recette physique v0.5 à ce stade local ; confirmations obtenues ensuite
+détaillées plus bas. Aucune identité réelle ni donnée réelle de mineur utilisée.
 
-## Audit final
+## Archive du développement local — historique
 
 Archive : `VOTI_AUDIT_V0_5.zip`, créée après les tests et ce rapport par
 `npm run audit:bundle`. Le mécanisme utilise exclusivement les chemins Git
@@ -261,7 +264,7 @@ de code restent inclus ; aucune donnée utilisateur runtime. Aucun ZIP commité.
 Contrôle final réussi : 162 chemins admissibles, chaque entrée décompressée comparée
 octet par octet au fichier courant ; zéro ZIP récursif, capture, PDF temporaire,
 export admin, runtime/base/cache local ou capacité admin littérale. Archive ignorée
-par Git. Aucun fichier staged, aucun commit/push/déploiement dans ce lot.
+par Git. Aucun fichier staged, commit/push/déploiement à ce stade local.
 
 ## Pré-déploiement production — Gate A suspendu (13 octobre 2026)
 
@@ -378,3 +381,243 @@ Avant push, Pages servait encore exactement le précédent build Git v0.4C :
 Commit/push v0.5 autorisés par Lu’uma ; vérifier la propagation et l'identité
 binaire après publication. Aucun ZIP, sauvegarde D1, export admin ou capture
 personnelle ne doit être inclus dans le commit.
+
+### Gate D — publication vérifiée
+
+- Commit `b938a2e` (`feat: Voti v0.5 participation et commentaires`) créé et
+  poussé sur main après validation des Gates A/B/C. 53 fichiers v0.5 inclus.
+  Les anciens rapports QR4A/Poster4B/UX3E et spec UX3E hors lot restent non
+  commités ; aucun ZIP, capture, backup D1 ou export admin suivi.
+- Pages `https://luuma8888.github.io/voti/` répond HTTP200 et sert exactement
+  le build production attendu : **1 282 682 octets**, SHA-256
+  `9e550cb5a02eef911db452c65015319dab102b756f60669bb9624bf7e80a5734`.
+  Comparaison octet par octet réussie à la troisième lecture de propagation.
+- Aucun nouveau déploiement Worker ni changement D1/Turnstile/bindings/R2 lors
+  de cette publication frontend. Profil gratuit sans R2 inchangé.
+- git diff --check réussi ; le code applicatif et index.html sont commités.
+  Cet ajout documentaire de suivi sera finalisé après la recette humaine.
+
+### Recette humaine v0.5 — validée
+
+Le vote simple **de compatibilité v0.4C** ne vaut pas validation des nouveaux
+parcours v0.5. Les confirmations physiques obtenues ensuite sont détaillées
+ci-dessous ; ne pas revendiquer les étapes encore à effectuer. Guider la
+recette une manipulation à la fois ; conserver
+les pseudonymes fictifs uniquement et consigner les retours sans correction
+silencieuse. Supprimer aussi la fixture de compatibilité à la fin.
+L'archive d'audit finale n'est pas recréée avant cette validation et le rapport final.
+
+Confirmations physiques de Lu’uma, après publication v0.5 :
+
+- **A — réglages de création :** valeurs par défaut Anonyme / commentaire
+  facultatif / commentaires privés confirmées. Modification provisoire des
+  trois réglages puis retour aux valeurs par défaut possible avant tout vote.
+  Libellés jugés clairs. Suite de la recette détaillée ci-dessous.
+
+- **B — anonyme + commentaire privé :** premier sondage v0.5 fictif publié
+  (`#/p/a65f801f-2ca0-41d0-8a61-c6ed0876ef89`). Réglages distants vérifiés par
+  simple GET : anonymous / optional / private, ouvert et non verrouillé.
+  Lu’uma confirme sur téléphone la notice d'anonymat et l'absence de champ
+  nom/pseudonyme, puis les succès du vote et de l'envoi du commentaire après
+  confirmation explicite. Juste avant confirmation, GET attestait locked=false
+  et definitionHash=null : aucun vote accepté selon l'invariant du relais ;
+  ce contrôle n'est pas présenté comme une lecture de bulletins D1.
+  Côté Chromebook, Lu’uma confirme le commentaire immédiatement visible dans
+  l'administration, avant seuil, sans identité associée.
+- **C — verrouillage :** Lu’uma confirme que les trois réglages participation /
+  mode de commentaire / visibilité sont verrouillés après ce premier vote,
+  avec une explication claire.
+- **D — privé/public :** Lu’uma confirme sur les résultats publics du premier
+  sondage l'absence du commentaire privé, de compteur et de message révélant
+  son existence.
+- **E — second sondage, modération :** sondage fictif anonyme / commentaire
+  facultatif / public_with_results publié :
+  `#/p/4c41f4dc-20cd-41c7-99b7-107606019fc9`. Le seuil était resté à5 ; Lu’uma
+  confirme un oubli et le corrige à2 avant tout vote. GET confirme la correction,
+  releaseMode=threshold et l'absence de verrouillage. Aucun défaut applicatif
+  revendiqué à propos de cet oubli. Lu’uma confirme ensuite le succès du premier
+  vote/commentaire et l'état « En attente » dans l'administration sous le seuil.
+- **F — première approbation :** Lu’uma clique « Afficher » et confirme l'état
+  « Visible » dans l'administration. Sous seuil, Lu’uma confirme physiquement
+  que les résultats restent bloqués et le commentaire approuvé absent. GET
+  confirme aucune information de commentaires/total ; getComments renvoie
+  RESULTS_LOCKED. Deuxième vote fictif avec commentaire non approuvé confirmé.
+  Au seuil2, Lu’uma confirme 2 votes et uniquement le premier commentaire
+  approuvé, sous le bon choix, sans identité ; le second reste absent.
+  Projection publique contrôlée : 1 commentaire visible, champs limités à
+  commentId/choiceId/text, aucune identité/actionId/capacité.
+- **F — masquage :** premier clic de Lu’uma sur le second commentaire plutôt
+  que le premier ; le contrôle public renvoyait logiquement encore le premier.
+  Lu’uma confirme cette erreur de sélection puis masque aussi le premier.
+  GET confirme zéro commentaire public et l'absence de section comments dans
+  les résultats. Comparaison avec les agrégats publics conservés avant modération :
+  total2, nombres et pourcentages strictement inchangés. Lu’uma confirme ensuite
+  physiquement la disparition et les chiffres inchangés sur téléphone.
+  Aucun défaut applicatif constaté. Lu’uma réaffiche ensuite le premier seulement ;
+  GET confirme son retour public (1 visible), agrégats strictement inchangés.
+- **G — suppression de commentaire :** Lu’uma ouvre le dialogue puis annule :
+  avertissement jugé clair et commentaire toujours présent dans l'administration.
+  Nouvelle ouverture et confirmation séparée : disparition du premier commentaire
+  de l'administration confirmée par Lu’uma. GET public confirme zéro commentaire
+  visible et aucune section comments ; comparaison quantitative avant/après
+  strictement identique (total2, nombres par choix et pourcentages). Le second
+  commentaire reste masqué, non supprimé pendant cette étape. Aucun bulletin brut
+  lu.
+- **H — participation identifiée :** troisième sondage fictif publié :
+  `#/p/42c3e5bd-440e-4376-bf9d-03a8c22a8342`. GET vérifie identified / optional /
+  public_with_results / threshold2, non verrouillé avant vote. Lu’uma confirme
+  sur téléphone le champ « Ton nom ou pseudonyme » et les notices identité non
+  vérifiée / informations personnelles inutiles déconseillées. Participation
+  avec le pseudonyme **fictif** « Emma », succès du vote confirmé.
+- **I — doublons déclarés :** deuxième vote pour l'autre choix avec le même
+  pseudonyme **fictif** « Emma » accepté. Lu’uma confirme la distinction des
+  participations et les associations choix/commentaire dans l'administration.
+  Clarification ultérieure de Lu’uma : oubli des commentaires lors de deux votes,
+  puis **deux votes supplémentaires** pour ajouter des commentaires. Total public
+  réel : **4 votes**, pas2 ; cet écart ne démontre pas un double envoi accidentel.
+  Ne pas présenter la recette comme limitée à deux soumissions. Deux pseudonymes
+  identiques acceptés ; aucun nom réel utilisé, aucune garantie
+  une-personne-un-vote revendiquée.
+- **J — contrôle technique public :** un commentaire approuvé, l'autre non
+  approuvé ; API publique : 4 votes / 1 commentaire visible. Les objets publics
+  de commentaires ne contiennent que commentId/choiceId/text ; aucune identité,
+  Participation, actionId ou capacité exposée. Les textes ne sont pas affichés
+  par les contrôles. Lu’uma confirme physiquement les 4 votes, uniquement le
+  commentaire approuvé et l'absence de nom/pseudonyme affiché publiquement.
+- **K — PDF, premières vérifications :** Lu’uma confirme les deux options
+  commentaires visibles / identités décochées par défaut dans Rapport. Premier
+  PDF sans ces options ouvert à100% : question, total4 et graphique corrects,
+  aucun commentaire/pseudonyme ; « Résultats au moment de l’export » présent.
+  Deuxième Rapport avec seulement commentaires visibles : commentaire approuvé
+  sous le bon choix, sans pseudonyme ni commentaire en attente, confirmé.
+  Troisième Rapport : option identités explicitement cochée par Lu’uma,
+  commentaires visibles conservés ; associations pseudonymes fictifs / choix,
+  commentaire approuvé, mise en page lisible et QR résultats présent confirmés.
+  Scan physique de ce QR depuis le PDF affiché : bonne page publique, résultats
+  visibles **sans noms/pseudonymes**, confirmé par Lu’uma. Aucun PDF de recette
+  transmis au dépôt ou au rapport ; aucune validation papier revendiquée.
+  Réserve sur l'avertissement permanent détaillée plus bas, reportée au prochain
+  lot par Lu’uma.
+- **L — QR par choix identifié :** QR affiché sur Chromebook ; scan physique
+  sur téléphone confirmé : écran direct de confirmation du bon choix, champ
+  nom/pseudonyme et commentaire facultatif présents. Total public relevé avant
+  scan puis après scan/avant confirmation : **4 → 4**, aucun vote automatique.
+  Lu’uma saisit le pseudonyme **fictif** « Test QR » et un commentaire fictif,
+  confirme explicitement puis valide les succès vote/commentaire. GET après
+  confirmation : **4 → 5**, exactement une nouvelle réponse ; toujours un seul
+  commentaire approuvé public. Cette validation physique concerne le QR identifié ;
+  les variantes anonymes sont couvertes par les tests automatisés du lot.
+- **M — sauvegarde :** Lu’uma confirme dans la zone Sauvegarde l'avertissement
+  indiquant que le fichier peut contenir commentaires et noms/pseudonymes locaux.
+  Aucun contenu de sauvegarde demandé, transmis ou lu pendant la recette.
+- **N — nettoyage :** Lu’uma confirme la suppression en ligne des trois sondages
+  v0.5 fictifs (« Test », « Codex aime-t-il blaguer ? », « Quel est le meilleur
+  prénom ? »), puis de « Compatibilité v0.4C ». Vérification finale : 12 GET
+  getPoll/getResults/getComments → NOT_FOUND pour les quatre ids.
+  COUNT D1 read-only : zéro ligne correspondante dans polls, ballots, comments,
+  participations, publications, asset_links et asset_refs. quick_check OK,
+  foreign_key_check vide ; le sondage préexistant non utilisé pour les nouveaux
+  votes et son compteur historique sont strictement conservés (empreinte de
+  comparaison identique). Worker/bindings toujours identiques, aucun R2.
+  Une première tentative CLI du contrôle final n'a pas abouti ; relecture réussie,
+  sans changement d'authentification, de configuration ou écriture SQL.
+  Aucun bulletin brut, texte de commentaire, pseudonyme interne ou secret lu
+  par ces contrôles D1. Les suppressions métier sont définitives en production ;
+  aucune sauvegarde opérateur/Time Travel n'est purgée ou réputée purgée ici.
+
+Les étapes physiques A à N sont confirmées comme détaillé ci-dessus. Lu’uma a
+**explicitement validé la clôture** avec les trois réserves UX reportées au
+prochain lot ci-dessous. Aucun code modifié pendant la recette ; aucun nouveau
+build nécessaire. Ni fermeture + seuil ni QR anonyme ne sont revendiqués comme
+retestés physiquement dans cette recette ciblée : leurs tests automatisés restent
+ceux du lot audité. Aucune validation imprimante, charge publique large ou
+anonymat réseau absolu revendiquée.
+
+Note de contrôle ad hoc : la première assertion de pagination publique utilisait
+par erreur entries (champ admin) au lieu de items (contrat public). Corrigée dans
+la commande de vérification uniquement, contrôle réussi ; aucun code applicatif
+modifié et aucun texte de commentaire affiché par ces diagnostics.
+
+### Retour UX à prévoir au lot suivant — non implémenté
+
+Lu’uma : « à l'accueil, sur la liste des sondages, il serait bien d'indiquer le
+nombre de commentaires (nombre + icône) quand c'est > 0 », évolution mineure
+pour le lot suivant. Contexte : bibliothèque du créateur. Le futur compteur
+devra rester dans l'espace créateur autorisé ; ne pas révéler publiquement la
+présence de commentaires privés, en attente/masqués ou sous le seuil.
+Aucun changement applicatif ou protocolaire réalisé pendant cette recette.
+
+Deuxième retour de Lu’uma, amélioration mineure pour le prochain lot : dans
+« Gérer », la liste des réponses n'est pas visuellement identifiée ; « Oui »
+puis « Non » sur deux lignes se confondent avec le message précédent :
+« Le premier vote a verrouillé la question, les choix et les règles. Vous
+pouvez encore changer l’apparence. » Prévoir seulement une meilleure
+présentation/hiérarchie visuelle de cette liste, sans changement métier.
+Aucune correction réalisée maintenant, conformément à sa demande.
+
+Troisième réserve UX, explicitement **reportée au prochain lot par Lu’uma** :
+l'avertissement « Ce PDF contiendra les noms ou pseudonymes associés aux réponses »
+reste affiché que l'option identités soit cochée ou non. Cause vérifiée dans
+resultsPdfPanel : le paragraphe est ajouté en permanence ; la collecte et
+l'inclusion des identités restent bien conditionnées au mode Rapport, à l'option
+includeIdentities et à l'autorisation admin. Le PDF option OFF a été confirmé sans pseudonymes.
+Proposition pour le prochain lot : avertissement seulement si l'option est active
+(ou formulation conditionnelle explicite). Aucun défaut de confidentialité
+démontré ici, aucun code modifié ni nouveau build/déploiement pendant la recette.
+
+## Clôture finale validée
+
+Lu’uma valide explicitement la clôture de v0.5, avec les trois améliorations
+UX ci-dessus pour le prochain lot. Aucun changement applicatif pendant la
+recette ; aucun redéploiement Worker, migration, binding ou Turnstile supplémentaire.
+Les quatre sondages fictifs sont supprimés ; les copies locales et les PDF déjà
+téléchargés ne sont pas réputés effacés automatiquement.
+
+### Versions réellement publiées
+
+- Migration D1 : `0003_participation_comments.sql`, quatre CASE parenthésés
+  après autorisation explicite de Lu’uma ; migrations0001/0002 inchangées.
+- Worker : `9ea6d58d-0ced-4a76-b7a1-0b5262ad5748`, endpoint workers.dev existant,
+  D1 EU, profil Free sans R2 et configuration conservés.
+- Frontend applicatif : commit `b938a2e` poussé sur main. Build local/Git/Pages
+  identiques, HTTP200, **1 282 682 octets**, SHA-256
+  `9e550cb5a02eef911db452c65015319dab102b756f60669bb9624bf7e80a5734`.
+- Clôture documentaire séparée : README, guide de déploiement et présent rapport
+  uniquement ; aucune ancienne modification documentaire hors lot, capture ou
+  archive à inclure. Aucune nouvelle version applicative produite par cette clôture.
+
+### Contrôles utiles rejoués à la clôture
+
+| Contrôle | Résultat |
+| --- | --- |
+| node tests/audit-bundle.test.js | 6 tests, 6 réussis, 0 échec |
+| npm run check | 93 fichiers JavaScript, succès |
+| git diff --check | Succès |
+| Diff applicatif depuis b938a2e | Aucun changement dans index/web/shared/relay/scripts/tests/package/lock/configuration |
+| Pages / Git / build local | Identité binaire et empreinte ci-dessus confirmées |
+| GET après suppressions | 12 contrôles NOT_FOUND pour les quatre fixtures |
+| D1, lecture seule | Zéro résidu dans sept tables, intégrité/FK OK, sondage préexistant conservé |
+
+Les grosses suites Chromium/PDF ne sont pas relancées : résultats du lot audité
+et régressions après la correction SQL consignés plus haut, aucune nouvelle
+modification de code. Le test d'audit invoqué directement affiche ses six cas ;
+l'invocation Node --test initiale n'affichait que son conteneur fichier et n'est
+pas utilisée pour revendiquer six assertions distinctes.
+
+### Archive de clôture
+
+`VOTI_AUDIT_V0_5.zip` est régénéré **après la documentation finale**, via
+`npm run audit:bundle`. Contrôle dédié du manifeste et du ZIP : chaque entrée
+décompressée comparée au fichier courant et CRC vérifié ; uniquement chemins
+Git admissibles filtrés. Exclusions explicites : anciens ZIP, captures, PDF,
+exports admin, backup D1, .env/.dev.vars, runtime/profils/caches/bases locales,
+node_modules et médias utilisateur. Les seuls fichiers image admissibles ici
+sont les assets de marque validés. Contrôle de capacités littérales et clés
+privées dans les sources et les modules embarqués ; aucune valeur secrète lue,
+affichée ou ajoutée. ZIP ignoré et non commité. Taille et résultat du contrôle
+de l'archive physique fournis dans la sortie de clôture, hors du ZIP lui-même.
+
+Les skills Wrangler/Workers ont guidé les contrôles de déploiement et les lectures
+bornées ; leur recommandation générique d'observabilité reste écartée au profit
+de la confidentialité actée pour Voti. Aucune garantie exhaustive de sécurité,
+de rétention des copies opérateur ou d'anonymat réseau ajoutée à cette validation.

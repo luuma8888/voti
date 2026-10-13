@@ -4,8 +4,10 @@
 > réalisée, migration additive `0003_participation_comments.sql` appliquée puis
 > Worker compatible déployé (version `9ea6d58d-0ced-4a76-b7a1-0b5262ad5748`).
 > Compatibilité v0.4C confirmée avant publication du frontend : vote simple
-> accepté, aucun commentaire ni Participation rétroactifs. Frontend en cours
-> de publication ; recette humaine v0.5 restante. Le profil Free sans R2 reste
+> accepté, aucun commentaire ni Participation rétroactifs. Frontend publié par
+> le commit `b938a2e` et identité binaire Pages/build vérifiée ; recette humaine
+> A à N confirmée et clôture validée par Lu’uma. Les quatre sondages fictifs de
+> recette ont été supprimés, absence de résidus D1 vérifiée. Le profil Free sans R2 reste
 > inchangé. Voir `CODEX_PARTICIPATION_V0_5_REPORT.md` pour la progression exacte.
 > Aucun ordre dans ce guide ne vaut autorisation générale d'un autre déploiement.
 
