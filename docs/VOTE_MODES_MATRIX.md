@@ -1,5 +1,11 @@
 # VOTE_MODES_MATRIX.md — Voti
 
+> Évolution v0.5 : la matrice ci-dessous décrit la fondation historique.
+> La participation identified déclarée sans compte est désormais préparée localement
+> par `VOTI_PARTICIPATION_COMMENTS_V0_5_SPEC.md` et `PARTICIPATION_V0.md`.
+> Elle ne vérifie pas l'identité, accepte les noms identiques et ne garantit pas
+> une personne = un vote. Anonymous ne crée toujours aucune Participation.
+
 ## 1. Objectif
 
 Clarifier la différence entre :

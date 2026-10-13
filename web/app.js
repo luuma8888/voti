@@ -23,6 +23,8 @@ import { PollContexts } from './poll-context.js';
 import { publicPollRoute } from '../shared/relay.js';
 import { PosterRepository } from './poster-storage.js';
 import { posterStudio, resultsPdfPanel } from './poster-studio.js';
+import { participationRules, administrativeEntries, moderateComment, publicComments } from '../shared/participation.js';
+import { submissionFields, commentsAdministration, IDENTITY_NOTICE } from './participation-ui.js';
 
 // Avant stockage, rendu, appel du relais ou traitement asynchrone.
 let pendingAdminPayload = consumeAdminFragment(location, history);
@@ -154,6 +156,10 @@ function showError(error) {
     CREATION_RATE_LIMITED: 'Trop de publications démarrent en ce moment. Réessayez dans une minute.',
     RATE_LIMITED: 'Le relais reçoit trop de demandes. Réessayez dans une minute.',
     INVALID_CAPABILITY: 'Cette clé ne permet pas d’administrer ce sondage.',
+    INVALID_COMMENT: 'Commentaire invalide : 300 caractères maximum. Vérifiez aussi que les commentaires sont autorisés.',
+    INVALID_PARTICIPATION: 'Indique ton nom ou pseudonyme : entre 1 et 60 caractères.',
+    IDEMPOTENCY_CONFLICT: 'Cette confirmation a déjà été utilisée avec un contenu différent. Aucun nouveau vote n’a été enregistré.',
+    REVISION_CONFLICT: 'Cette donnée a changé dans un autre onglet ou appareil. Actualise avant de recommencer : rien n’a été écrasé.',
     RELAY_UNAVAILABLE: 'Le relais est momentanément indisponible. Le mode local reste utilisable.',
     CAPABILITY_CONFLICT: 'Une autre clé est déjà conservée. Son remplacement nécessite votre confirmation.',
     REMOTE_ASSETS_DISABLED: REMOTE_IMAGES_MESSAGE };
@@ -389,7 +395,7 @@ function backup() {
     } catch (error) { showError(error); input.disabled = false; importButton.disabled = false; input.value = ''; }
   });
   panel.append(actions(exportButton, importButton), input,
-    el('p', 'La sauvegarde contient vos sondages et les bulletins. Conservez-la dans un endroit sûr : le stockage du navigateur peut être effacé.', { class: 'help' }),
+    el('p', 'La sauvegarde contient vos sondages, votes, commentaires et éventuels noms ou pseudonymes locaux. Conservez-la dans un endroit sûr : le stockage du navigateur peut être effacé.', { class: 'help' }),
     el('p', 'Pour importer, utilisez un navigateur sans sondage. Aucune donnée existante ne sera remplacée. Vous pouvez essayer dans un autre profil vide.', { class: 'help' }));
   const advanced = append(el('details', null, { class: 'advanced' }), el('summary', 'Options avancées'));
   const json = el('textarea', null, { readonly: '', rows: '12', 'aria-label': 'Données JSON de la sauvegarde', spellcheck: 'false' });
@@ -459,6 +465,19 @@ function management(id) {
     }
   }
   app.append(card);
+  const participation = participationRules(poll.definition);
+  if (participation.commentMode === 'optional' || participation.participationIdentityMode === 'identified') {
+    const panel = commentsAdministration(poll, {
+      load: async cursor => bindings.has(id) ? relay.getParticipations(id,cursor) : { entries:administrativeEntries(await repository.load(),id), nextCursor:null },
+      mutate: async (_node,comment,action) => {
+        if(bindings.has(id)) {
+          await relay.getPoll(id);
+          if(action==='delete')await relay.deleteComment(id,comment.commentId,comment.revision);
+          else await relay.updateCommentStatus(id,comment.commentId,comment.revision,action);
+        } else state=await repository.transact(current=>moderateComment(current,id,comment.commentId,comment.revision,action));
+      }, error:showError,
+    });app.append(panel.element);disposeView=panel.dispose;
+  }
   if (!bindings.has(id)) {
     app.append(el('p', 'Publie d’abord ce sondage en ligne pour créer ses QR de partage.', { class: 'help' }));
     let hasDesign=false;try{hasDesign=Boolean(posters.read().designs[id]);}catch{app.append(el('p','Réglages d’affiche locaux illisibles. Le sondage reste utilisable.',{class:'help'}));}
@@ -467,7 +486,7 @@ function management(id) {
       app.append(actions(removeDesign));
     }
   }
-  app.append(el('p', bindings.has(id) ? 'Aucun nom demandé. Le relais peut voir les connexions réseau. Une personne peut voter plusieurs fois.' : 'Les autres appareils n’ont pas accès aux données de ce navigateur tant que le sondage n’est pas publié en ligne.', { class: 'help' }));
+  app.append(el('p', bindings.has(id) ? `${participation.participationIdentityMode==='identified' ? IDENTITY_NOTICE : 'Aucun nom demandé.'} Le relais peut voir les connexions réseau. Une personne peut voter plusieurs fois.` : 'Les autres appareils n’ont pas accès aux données de ce navigateur tant que le sondage n’est pas publié en ligne.', { class: 'help' }));
 }
 
 function makeEditor(id) {
@@ -475,9 +494,10 @@ function makeEditor(id) {
     const poll = getPoll(state, id);
     if (poll.lockedAt || poll.status === 'closed') throw new Error('Le fond de ce sondage ne peut plus être modifié.');
     return { id, step: 0, remoteRevision: poll.remoteRef?.revision, question: poll.definition.question, pollImageAssetId: poll.definition.pollImageAssetId, staged: new Map(), processing: 0,
-      choices: structuredClone(poll.definition.choices), rules: structuredClone(poll.resultRules) };
+      choices: structuredClone(poll.definition.choices), rules: structuredClone(poll.resultRules), participation:participationRules(poll.definition), participationChanged:false };
   }
-  return { id: null, step: 0, question: '', pollImageAssetId: null, staged: new Map(), processing: 0, choices: ['', ''].map(label => ({ id: crypto.randomUUID(), label, imageRef: null })), rules: defaultRules() };
+  return { id: null, step: 0, question: '', pollImageAssetId: null, staged: new Map(), processing: 0, choices: ['', ''].map(label => ({ id: crypto.randomUUID(), label, imageRef: null })), rules: defaultRules(),
+    participation:{participationIdentityMode:'anonymous',commentMode:'optional',commentVisibility:'private'},participationChanged:false };
 }
 
 function editorImage(owner, target, key, kind, label) {
@@ -498,7 +518,7 @@ function edit(id) {
   const referenced = new Set([editor.pollImageAssetId, ...editor.choices.map(choice => choice.imageRef)]);
   for (const assetId of editor.staged.keys()) if (!referenced.has(assetId)) editor.staged.delete(assetId);
   heading(['Que veux-tu demander ?', 'Quelles réponses proposes-tu ?', 'Quand montrer les résultats ?', 'Tout est prêt ?'][editor.step]);
-  app.append(el('p', `Étape ${editor.step + 1} sur 4 · Aucun nom demandé`, { class: 'step' }));
+  app.append(el('p', `Étape ${editor.step + 1} sur 4 · ${editor.participation.participationIdentityMode==='identified'?'Participation identifiée (non vérifiée)':'Participation anonyme'}`, { class: 'step' }));
   const form = el('form', null, { class: 'card' });
   const step = editor.step;
   if (step === 0) {
@@ -526,6 +546,14 @@ function edit(id) {
     const add = button('Ajouter une réponse', () => { editor.choices.push({ id: crypto.randomUUID(), label: '' }); render(); });
     add.disabled = editor.choices.length >= 6; form.append(add);
   } else if (step === 2) {
+    const participation = el('fieldset');participation.append(el('legend','Participation et commentaires'));
+    for(const [key,label,options] of [
+      ['participationIdentityMode','Participation',[['anonymous','Anonyme'],['identified','Identifiée (nom ou pseudonyme non vérifié)']]],
+      ['commentMode','Commentaire',[['optional','Vote + commentaire facultatif'],['disabled','Vote simple']]],
+      ['commentVisibility','Visibilité des commentaires',[['private','Privés — seulement pour le créateur'],['public_with_results','Publics avec les résultats, après approbation']]],
+    ]) {const control=el('select',null,{'data-testid':key});for(const [value,name]of options)control.append(el('option',name,{value}));control.value=editor.participation[key];
+      control.addEventListener('change',()=>{editor.participation[key]=control.value;editor.participationChanged=true;});participation.append(field(label,control));}
+    participation.append(el('p',IDENTITY_NOTICE,{class:'help'}),el('p','Ces règles seront verrouillées au premier vote. Le commentaire reste toujours facultatif.',{class:'help'}));form.append(participation);
     const minimum = el('input', null, { type: 'number', min: '1', max: '100000', step: '1', required: '' });
     minimum.value = editor.rules.minimumResponses;
     minimum.addEventListener('input', () => { editor.rules.minimumResponses = Number(minimum.value); });
@@ -538,7 +566,7 @@ function edit(id) {
   } else {
     form.append(questionBlock({ definition: { question: editor.question, pollImageAssetId: editor.pollImageAssetId } }, editor.staged), choiceSummary(editor.choices, editor.staged));
     form.append(el('p', `${editor.rules.minimumResponses} réponses minimum${editor.rules.releaseMode === 'closed' ? ' ET sondage fermé' : ''}.`),
-      el('p', 'Aucun nom demandé. Ce prototype ne garantit pas le secret contre l’inspection du stockage de l’appareil.', { class: 'help' }));
+      el('p', `${editor.participation.participationIdentityMode==='identified'?IDENTITY_NOTICE:'Aucun nom demandé.'} ${editor.participation.commentMode==='optional'?'Commentaire facultatif.':'Vote simple.'} ${editor.participation.commentVisibility==='private'?'Commentaires privés.':'Commentaires publics après approbation et publication des résultats.'} Le stockage local n’est pas une garantie d’anonymat contre son propriétaire.`, { class: 'help' }));
   }
   const submit = el('button', step === 3 ? (id ? 'Enregistrer les modifications' : 'Créer le brouillon') : 'Continuer', { type: 'submit', class: 'primary' });
   const back = button('Retour', () => { editor.step--; render(); });
@@ -558,6 +586,7 @@ function edit(id) {
     if (id && bindings.has(id)) {
       const original = getPoll(state, id);
       const definition = { ...original.definition, question: snapshot.question.trim(), pollImageAssetId: snapshot.pollImageAssetId,
+        ...(original.definition.participationIdentityMode || snapshot.participationChanged ? {...snapshot.participation,privacy:snapshot.participation.participationIdentityMode==='identified'?'named':'anonymous'} : {}),
         choices: snapshot.choices.map((choice, order) => ({ id: choice.id, label: choice.label.trim(), shortLabel: choice.shortLabel || null,
           emoji: choice.emoji || null, imageRef: choice.imageRef || null, order })) };
       await remoteAction(submit, async () => {
@@ -570,9 +599,11 @@ function edit(id) {
     }
     await transact(submit, current => {
       if (!id) return createPoll(current, { question: snapshot.question.trim(), choices: snapshot.choices.map(choice => choice.label.trim()), resultRules: snapshot.rules,
+        ...snapshot.participation,
         pollImageAssetId: snapshot.pollImageAssetId, choiceImageRefs: snapshot.choices.map(choice => choice.imageRef) });
       const original = getPoll(current, id);
-      const definition = { ...original.definition, question: snapshot.question.trim(), pollImageAssetId: snapshot.pollImageAssetId, choices: snapshot.choices.map((choice, order) => ({
+      const definition = { ...original.definition, question: snapshot.question.trim(), pollImageAssetId: snapshot.pollImageAssetId,
+        ...(original.definition.participationIdentityMode || snapshot.participationChanged ? {...snapshot.participation,privacy:snapshot.participation.participationIdentityMode==='identified'?'named':'anonymous'} : {}), choices: snapshot.choices.map((choice, order) => ({
         id: choice.id, label: choice.label.trim(), shortLabel: choice.shortLabel || null, emoji: choice.emoji || null, imageRef: choice.imageRef || null, order })) };
       return updateSemantics(current, id, definition, snapshot.rules);
     }, () => { editor = null; navigate(`#poll/${id || state.polls.at(-1).id}`); }, [...snapshot.staged.values()]);
@@ -602,22 +633,28 @@ function vote(id, qrChoiceId) {
     if (!choice) { voteSession = null; vote(id); return; }
     card.append(el('p', 'Tu choisis :'), el('p', choice.label, { class: 'confirmation', 'data-choice-id':choice.id }));
     if (choice.imageRef) card.append(activeImages().show(choice.imageRef, { size: 'choice' }));
-    const action = structuredClone(voteSession);
+    const session=voteSession, fields=submissionFields(poll.definition,session);card.append(fields.element);
+    if(session.payload)fields.freeze();
     let submitted = false;
     const confirm = button('Oui, je confirme', async () => {
       if (submitted) return;
+      let submission;
+      try {submission=session.payload??fields.validate();}catch(error){showError(error);return;}
       submitted = true;
+      session.payload=structuredClone(submission);fields.freeze();
+      const action={id:session.id,pollId:id,choiceId:session.choiceId,...submission};
       const success = () => {
-        voteSession = null; voteOutcome={pollId:id}; ++renderSequence;
+        voteSession = null; voteOutcome={pollId:id,commentSent:Boolean(submission.comment),commentVisibility:participationRules(poll.definition).commentVisibility}; ++renderSequence;
         showVoteSuccess(id,resultsLink);
       };
-      if (remoteViews.has(id)) await remoteAction(confirm, () => relay.castVote(id, action.choiceId, action.id), success);
+      back.disabled=true;
+      if (remoteViews.has(id)) await remoteAction(confirm, () => relay.castVote(id, action.choiceId, action.id, submission), success);
       else await transact(confirm, current => castVote(current, action), success);
-      if (!confirm.disabled) submitted = false;
+      if (!confirm.disabled) {submitted = false;back.disabled=false;notify('Aucun succès n’a été confirmé. Réessayez avec le même contenu pour éviter un vote en double.');}
     }, 'primary');
-    const back = button(action.fromQr ? 'Autre choix' : 'Retour aux choix', () => {
+    const back = button(session.fromQr ? 'Autre choix' : 'Retour aux choix', () => {
       voteSession = null;
-      if(action.fromQr) history.replaceState(null,'',publicLink(id));
+      if(session.fromQr) history.replaceState(null,'',publicLink(id));
       render();
     });
     card.append(actions(confirm, back));
@@ -648,6 +685,8 @@ function showVoteSuccess(id,resultsLink) {
   app.replaceChildren(); heading('Merci !'); images.sweep();
   app.append(append(el('section',null,{class:'card vote-success'}),mascot(),el('span','✓',{class:'success-icon','aria-hidden':'true'}),
     el('p','Ton vote a bien été enregistré.'),actions(link('Revenir à mes sondages','#home'),link('Résultats',resultsLink))));
+  if(voteOutcome?.commentSent){const card=app.querySelector('.vote-success');card.append(el('p','Ton commentaire a aussi été envoyé.'));
+    if(voteOutcome.commentVisibility==='public_with_results')card.append(el('p','Il sera visible seulement s’il est approuvé et lorsque les résultats seront disponibles.',{class:'help'}));}
   app.setAttribute('aria-busy','false');
 }
 
@@ -663,16 +702,35 @@ function results(id) {
     if (Object.hasOwn(result, 'totalBallots')) card.append(el('p', `${result.totalBallots} réponses reçues.`));
   } else {
     card.append(el('p', `${result.totalBallots} réponses`));
+    if(result.comments?.count)card.append(el('p',`${result.comments.count} commentaire(s) approuvé(s)`,{class:'help'}));
     for (const choice of result.choices) {
       const row = el('div', null, { class: 'result-row' });
       const percentage = choice.percentage.toLocaleString('fr-FR', { maximumFractionDigits: 1 });
       row.append(append(el('p'), el('span', choice.label), el('span', `${choice.count} · ${percentage} %`)),
         el('progress', `${percentage} %`, { value: choice.count, max: result.totalBallots, 'aria-label': `${choice.label} : ${choice.count} votes, ${percentage} pour cent` }));
       card.append(row);
+      row.dataset.resultChoice=choice.id;
+      for(const comment of result.comments?.items.filter(c=>c.choiceId===choice.id)??[])row.append(el('p',comment.text,{class:'comment-text public-comment'}));
+    }
+    if(result.comments?.nextCursor && remoteViews.has(id)) {
+      let cursor=result.comments.nextCursor;const more=button('Voir d’autres commentaires',async()=>{if(more.disabled)return;more.disabled=true;
+        try {const page=await relay.getComments(id,cursor);if(!more.isConnected)return;
+          for(const c of page.items)card.querySelector(`[data-result-choice="${c.choiceId}"]`)?.append(el('p',c.text,{class:'comment-text public-comment'}));
+          cursor=page.nextCursor;if(!cursor)more.remove();}catch(error){showError(error);}finally{more.disabled=false;}
+      });card.append(more);
     }
   }
   card.append(actions(...(bindings.get(id)?.adminCapability || !remoteViews.has(id) ? [link('Gérer le sondage', `#poll/${id}`)] : []), link('Mes sondages', '#home')));
   try { card.append(resultsPdfPanel(poll,result,{repository:posters,pollAssets:assets,error:showError,notify,
+    admin:!remoteViews.has(id)||Boolean(bindings.get(id)?.adminCapability),
+    loadComments:async()=>{
+      if(!remoteViews.has(id)){const fresh=await repository.load();return getResults(fresh,id).available&&participationRules(localPoll(fresh,id).definition).commentVisibility==='public_with_results'?publicComments(fresh,id):[];}
+      const items=[];let cursor=null;do{const page=await relay.getComments(id,cursor);items.push(...page.items);cursor=page.nextCursor;if(cursor&&items.length>=500)throw new Error('PDF limité à 500 commentaires.');}while(cursor);return items;
+    },
+    loadIdentities:async()=>{
+      if(!remoteViews.has(id))return administrativeEntries(await repository.load(),id);
+      const entries=[];let cursor=null;do{const page=await relay.getParticipations(id,cursor);entries.push(...page.entries);cursor=page.nextCursor;if(cursor&&entries.length>=500)throw new Error('PDF limité à 500 participations.');}while(cursor);return entries;
+    },
     refreshPoll:async()=>{
       if(remoteViews.has(id)){const fresh=await relay.getPoll(id);return {poll:fresh,results:fresh.results};}
       const fresh=await repository.load();return {poll:localPoll(fresh,id),results:getResults(fresh,id)};

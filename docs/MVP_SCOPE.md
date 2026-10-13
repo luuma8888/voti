@@ -1,5 +1,10 @@
 # MVP_SCOPE.md — Voti
 
+> Ce document conserve le périmètre de la fondation locale d'origine.
+> Le lot v0.5 ajoute explicitement commentaires facultatifs et participation
+> déclarée identified sans compte selon `VOTI_PARTICIPATION_COMMENTS_V0_5_SPEC.md`.
+> Identified n'est pas une identité vérifiée ni un vote unique par personne.
+
 ## 1. But du MVP
 
 Portée historique : fondation du MVP local. Les exclusions QR/PDF ci-dessous

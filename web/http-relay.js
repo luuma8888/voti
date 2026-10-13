@@ -14,7 +14,8 @@ export class HttpRelayAdapter extends RelayAdapter {
     const request = structuredClone(input), pollId = request.pollId || request.poll?.id;
     need(isPublicPollId(pollId), 'INVALID_REQUEST');
     const [verb, path] = HTTP_ROUTES[method];
-    const { adminCapability, pollId: _poll, assetId, ...body } = request;
+    const { adminCapability, pollId: _poll, assetId, cursor = null, ...body } = request;
+    if (path.includes(':cursor')) need(cursor === null || isPublicPollId(cursor), 'INVALID_REQUEST');
     const headers = { Accept: 'application/json' };
     if (adminCapability) headers.Authorization = `Bearer ${adminCapability}`;
     if (method === 'putAssets') body.assets = await Promise.all(body.assets.map(encodeAsset));
@@ -22,7 +23,7 @@ export class HttpRelayAdapter extends RelayAdapter {
     if (payload) { need(new TextEncoder().encode(payload).length <= (method === 'putAssets' ? 20_000_000 : 65_536), 'PAYLOAD_TOO_LARGE'); headers['Content-Type'] = 'application/json'; }
     const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      const response = await this.fetchImpl.call(globalThis, `${this.baseUrl}/api/v1/${path.replace(':id', pollId).replace(':asset', encodeURIComponent(assetId || ''))}`,
+      const response = await this.fetchImpl.call(globalThis, `${this.baseUrl}/api/v1/${path.replace(':id', pollId).replace(':asset', encodeURIComponent(assetId || '')).replace(':cursor', cursor ?? 'start')}`,
         { method: verb, headers, body: payload, credentials: 'omit', redirect: 'error', cache: method === 'getAsset' ? 'default' : 'no-store', signal: controller.signal });
       const value = await readBoundedJson(response, method === 'getAsset' ? 1_400_000 : 65_536);
       if (!response.ok) {
@@ -50,4 +51,8 @@ export class HttpRelayAdapter extends RelayAdapter {
   async castVote(r) { return this.call('castVote', r); }
   async getResults(r) { return this.call('getResults', r); }
   async getAsset(r) { return this.call('getAsset', r); }
+  async getComments(r) { return this.call('getComments', r); }
+  async getParticipations(r) { return this.call('getParticipations', r); }
+  async updateCommentStatus(r) { return this.call('updateCommentStatus', r); }
+  async deleteComment(r) { return this.call('deleteComment', r); }
 }

@@ -63,3 +63,18 @@ Limites : PDF raster sans balisage et sans texte sélectionnable ; polices
 système et date empêchent une reproductibilité binaire universelle.
 Une ancienne copie PDF peut naturellement survivre à la suppression du sondage.
 La recette humaine d’impression et de lecture reste à confirmer avant publication.
+
+## v0.5 — options du Rapport
+
+Synthèse inchangée : aucune identité/commentaire. Rapport : « Inclure les commentaires
+visibles », OFF par défaut, seulement public_with_results avec results.available.
+Les pages publiques approuvées sont relues ; aucun bulletin/raw actionId transmis au PDF.
+Le Rapport identified admin propose « Inclure les identités des participants », OFF
+par défaut, et avertit « Ce PDF contiendra les noms ou pseudonymes associés aux réponses. »
+Les identités sont relues depuis l'endpoint administrateur authentifié, jamais déduites
+du public. Noms et commentaires regroupés sous le choix ; rappel du choix en continuation.
+Pas d'export des commentaires privés dans ce lot (administration lisible avant seuil).
+
+Textes bruts Canvas, accents/Unicode, pagination A4, QR publics réutilisés.
+Bornes : 500 entrées / 32 pages, refus explicite plutôt que perte silencieuse.
+Un PDF nominatif est sensible ; son stockage et sa diffusion relèvent de l'administrateur.

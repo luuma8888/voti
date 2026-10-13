@@ -13,7 +13,7 @@ export class RelayClient {
     // Une réponse retardataire ne doit pas rétrograder le cache.
     if (previous && previous.remoteRevision > revision) return response;
     const known = response.definition ? { status: response.status, locked: response.locked,
-      definitionHash: response.definitionHash, resultsAvailable: response.results.available } : null;
+      definitionHash: response.definitionHash, resultsAvailable: response.results.available } : previous?.lastKnownRemoteState ?? null;
     await this.#connections.put({ formatVersion: 1, relayId, pollId, remoteRevision: revision,
       adminCapability: previous?.adminCapability ?? null, lastKnownRemoteState: known });
     return response;
@@ -74,7 +74,11 @@ export class RelayClient {
     catch (error) { if (error.code !== 'NOT_FOUND') throw error; result = { deleted: true }; }
     await this.#connections.delete(this.#key(pollId)); return result;
   }
-  async castVote(pollId, choiceId, actionId) { return this.#remember(await this.#relay.castVote({ pollId, choiceId, actionId })); }
+  async castVote(pollId, choiceId, actionId, submission = {}) { return this.#remember(await this.#relay.castVote({ pollId, choiceId, actionId, ...submission })); }
+  async getComments(pollId, cursor = null) { return this.#relay.getComments({ pollId, cursor }); }
+  async getParticipations(pollId, cursor = null) { return this.#admin('getParticipations', pollId, { cursor }); }
+  async updateCommentStatus(pollId, commentId, expectedCommentRevision, moderationStatus) { return this.#admin('updateCommentStatus', pollId, { commentId, expectedCommentRevision, moderationStatus }); }
+  async deleteComment(pollId, commentId, expectedCommentRevision) { return this.#admin('deleteComment', pollId, { commentId, expectedCommentRevision }); }
   async getResults(pollId) { return this.#relay.getResults({ pollId }); }
   async getAsset(pollId, assetId) { return this.#relay.getAsset({ pollId, assetId }); }
 }

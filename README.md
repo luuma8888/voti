@@ -1,5 +1,11 @@
 # Voti
 
+v0.5 participation/commentaires : **développement local, pas encore publié**.
+Nouveaux sondages anonymes avec commentaire facultatif privé par défaut ; identité
+déclarée optionnelle, jamais vérifiée. Pas de compte ni d'unicité par personne.
+Guides : [participation](docs/PARTICIPATION_V0.md),
+[commentaires et identité](docs/COMMENTS_AND_IDENTITY_V0.md).
+
 Studio v0.4C : couleurs palette/personnalisé synchronisées, typographies
 titre/corps prévisualisées, densité/QR, surfaces et cadrage focal local.
 Guide : `docs/POSTER_STUDIO_POLISH_V0.md`. Après `npm run test:browser`,
@@ -122,8 +128,10 @@ Le stockage local n’est pas une sauvegarde durable. L’import valide entière
 fichier avant écriture et accepte uniquement un espace vide ; aucune fusion ni
 remplacement. Utiliser un autre profil vide pour tester une restauration, après export.
 
-Le snapshot métier est en schéma 2. Les anciennes données et sauvegardes v1 sont
-validées puis migrées de façon déterministe. La sauvegarde unique utilise le conteneur
+Le snapshot métier v0.5 est en schéma 3. Les anciennes données et sauvegardes v1/v2 sont
+validées puis migrées de façon déterministe, sans réécriture des empreintes v2.
+Les commentaires et identités locaux sont inclus : sauvegarde sensible.
+La sauvegarde unique utilise le conteneur
 `voti-backup`, `backupVersion: 1`, avec le snapshot et les images encodées. Il s'agit
 toujours d'un format JSON de prototype, distinct de `.sondagebox`.
 Version inconnue, références incohérentes, identifiants dupliqués, métadonnées de

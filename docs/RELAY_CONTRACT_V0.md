@@ -302,3 +302,30 @@ Tester les transactions réelles (verrouillage + bulletin + idempotence + révis
 les interruptions réseau, CORS/HTTPS et les uploads bornés. Aucun de ces composants
 n’est implémenté dans v0.3A. Android pourra implémenter le même contrat et conserver
 ses capacités dans un stockage natif adapté ; aucune couche Android créée ici.
+
+## Extension v0.5 — soumission et administration
+
+`castVote({pollId,choiceId,actionId,comment?,displayName?})` : commentaire facultatif,
+nom requis seulement identified et interdit en anonymous. Normalisation trim et
+bornes 300/60 points de code Unicode. Une action identique avec contenu identique est
+idempotente ; changement de choix, commentaire ou nom = IDEMPOTENCY_CONFLICT.
+Une nouvelle action reste une nouvelle soumission, sans unicité par personne.
+
+Nouveaux contrats :
+
+- `getComments({pollId,cursor:null|UUID})` : lecture publique paginée, seulement après
+  disponibilité/public_with_results ; `{remoteRef,count,items:[{commentId,choiceId,text}],nextCursor}`.
+- `getParticipations({pollId,adminCapability,expectedRevision?,cursor:null|UUID})` :
+  lecture authentifiée avant seuil ; `{remoteRef,participationIdentityMode,entries,nextCursor}`.
+  Entrée : choiceId, Participation/displayName seulement identified, commentaire éventuel
+  `{commentId,text,moderationStatus,revision}`. Aucun actionId/ballot brut retourné.
+- `updateCommentStatus({pollId,adminCapability,expectedRevision,commentId,expectedCommentRevision,moderationStatus})`
+  : visible ou hidden, public_with_results seulement, CAS poll + commentaire.
+- `deleteComment({pollId,adminCapability,expectedRevision,commentId,expectedCommentRevision})` :
+  suppression définitive du texte seulement ; vote conservé, retry sans résurrection.
+
+Erreurs supplémentaires INVALID_COMMENT / INVALID_PARTICIPATION. NOT_FOUND et
+REVISION_CONFLICT conservés. Aucun endpoint public de soumission de commentaire séparé.
+Résultats disponibles peuvent contenir `comments:{count,items,nextCursor}` seulement
+si au moins un visible ; aucune identité même identified. Projections bornées à 25.
+Les opérations de modération ne changent pas les agrégats ni la révision publique du poll.

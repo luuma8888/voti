@@ -28,8 +28,11 @@ async function pictured() {
 }
 async function legacy(state) {
   const old = structuredClone(state); old.schemaVersion = 1;
+  delete old.comments; delete old.participations;
+  for (const ballot of old.ballots) delete ballot.submissionDigest;
   for (const poll of old.polls) {
     poll.schemaVersion = 1; delete poll.definition.pollImageAssetId;
+    for (const key of ['participationIdentityMode', 'commentMode', 'commentVisibility']) delete poll.definition[key];
     if (poll.lockedAt) poll.definitionHash = await semanticHash(poll);
   }
   return old;
@@ -78,7 +81,7 @@ test('migration v1 brouillon et verrouillé : déterministe, sources intactes et
   for (const original of [draft(), await votes(2)]) {
     const old = await legacy(original), before = structuredClone(old);
     const next = await migrateState(old);
-    assert.equal(next.schemaVersion, 2); assert.equal(next.polls[0].definition.pollImageAssetId, null);
+    assert.equal(next.schemaVersion, 3); assert.equal(next.polls[0].schemaVersion, 2); assert.equal(next.polls[0].definition.pollImageAssetId, null);
     assert.deepEqual(await migrateState(old), next); assert.deepEqual(old, before);
     assert.deepEqual(await parseExport(JSON.stringify(old)), next);
     assert.deepEqual(next.ballots, old.ballots); await validateState(next);
@@ -89,7 +92,7 @@ test('migration v1 brouillon et verrouillé : déterministe, sources intactes et
   }
 });
 test('versions inconnues et anciennes références d’images ambiguës refusées', async () => {
-  await assert.rejects(migrateState({ ...emptyState(), schemaVersion:3 }), /Version/);
+  await assert.rejects(migrateState({ ...emptyState(), schemaVersion:4 }), /Version/);
   const old = await legacy(draft()); old.polls[0].definition.choices[0].imageRef = (await asset()).id;
   await assert.rejects(migrateState(old), /Référence/);
 });
@@ -113,7 +116,7 @@ test('backup sans asset et import ancien format', async () => {
   const adapter = new MemoryAssetAdapter();
   const raw = await exportBackup(draft(), adapter), parsed = await parseBackup(raw);
   assert.equal(parsed.state.polls.length, 1); assert.deepEqual(parsed.assets, []);
-  assert.equal((await parseBackup(JSON.stringify(await legacy(draft())))).state.schemaVersion, 2);
+  assert.equal((await parseBackup(JSON.stringify(await legacy(draft())))).state.schemaVersion, 3);
 });
 test('backup image sondage et choix : une seule copie de l’asset partagé, décodage obligatoire', async () => {
   const { state, image } = await pictured(), adapter = new MemoryAssetAdapter(); await adapter.put(image);

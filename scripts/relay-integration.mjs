@@ -11,6 +11,7 @@ import { draft, votes } from '../tests/fixtures.js';
 import { makeAsset, MemoryAssetAdapter } from '../shared/assets.js';
 import { pngFixture } from '../tests/image-fixtures.js';
 import { exportAdminKey, importAdminKey } from '../shared/admin-key.js';
+import { participationChecks } from './participation-checks.mjs';
 
 const baseUrl = 'http://127.0.0.1:8787';
 const statePath = `.relay-local/test-${Date.now()}`;
@@ -60,6 +61,7 @@ try {
   let migrationOutput = ''; migration.stdout.on('data', c => { migrationOutput += c; }); migration.stderr.on('data', c => { migrationOutput += c; });
   const [code] = await once(migration, 'exit'); assert.equal(code, 0, migrationOutput);
   await start();
+  checks += await participationChecks({adapter:adapter(),sql});
   const humanState = draft(), humanPoll = humanState.polls[0], humanCap = createAdminCapability();
   const prepare = { poll: humanPoll, localBallots: [], adminCapability: humanCap, expectedRevision: 0 };
   await rejects(adapter().preparePublication(prepare), 'HUMAN_VERIFICATION_REQUIRED');
@@ -136,7 +138,12 @@ try {
   const huge = await fetch(`${baseUrl}/api/v1/polls/${id}/votes`, { method: 'POST', body: ' '.repeat(66_000) }); check(huge.status === 413);
   for (const suffix of ['ballots', 'rawBallots', 'listBallots']) check((await fetch(`${baseUrl}/api/v1/polls/${id}/${suffix}`)).status === 404);
   const rateId = crypto.randomUUID(); let limited = false;
-  for (let n = 0; n < 125; n++) { const response = await fetch(`${baseUrl}/api/v1/polls/${rateId}`); if (response.status === 429) { limited = (await response.json()).error.code === 'RATE_LIMITED'; break; } }
+  // Binding edge approximatif/fenêtre minute : une rafale bornée plutôt que
+  // 125 lectures séquentielles susceptibles de chevaucher deux fenêtres.
+  for (let batch=0;batch<3&&!limited;batch++) {
+    const responses=await Promise.all(Array.from({length:120},()=>fetch(`${baseUrl}/api/v1/polls/${rateId}`)));
+    for(const response of responses)if(response.status===429){limited=(await response.json()).error.code==='RATE_LIMITED';break;}
+  }
   check(limited);
   // 7 assets indépendants, 30 arrivées simultanées normales : aucun 429.
   const groupState = draft(), groupPoll = groupState.polls[0], groupStore = new MemoryRemoteConnectionAdapter();

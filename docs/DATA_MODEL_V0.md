@@ -43,7 +43,8 @@ choices: Choice[]
 ```
 
 Règle : après `lockedAt`, cette structure ne peut plus être modifiée.
-`named` est réservé au futur et refusé dans les données actives du prototype local.
+Dans la fondation historique v1/v2, `named` était réservé et refusé.
+La participation déclarée v0.5 est décrite en section 20 ; elle n'est pas une identité vérifiée.
 
 ## 4. Choice
 
@@ -121,7 +122,7 @@ pollId: UUID
 choiceId: UUID
 ```
 
-Le bulletin MVP contient uniquement ces trois identifiants, sans horodatage ni source. Aucun champ supplémentaire d’identité ou de métadonnées n’est accepté à l’import.
+Le bulletin historique v1/v2 contient uniquement ces trois identifiants, sans horodatage ni source. Le contrat v0.5 et son reçu de soumission sont précisés en section 20. Aucun champ arbitraire d’identité ou de métadonnées n’est accepté à l’import.
 
 Pour un futur sondage anonyme :
 - aucun `userId` dans Ballot ;
@@ -232,7 +233,7 @@ Ne pas utiliser ce hash comme mécanisme de sécurité autonome.
 
 ## 18. Contrat exécuté par la fondation locale
 
-Cette section décrit le contrat historique v1. Le contrat actif v0.2B.2 est précisé en section 19.
+Cette section décrit le contrat historique v1. L'évolution v0.2B.2 est en section 19, le contrat v0.5 en section 20.
 
 La sauvegarde JSON version 1 contient `{ schemaVersion: 1, polls: Poll[], ballots: Ballot[] }`.
 Les validateurs de `shared/validation.js` constituent le contrat exécutable de cette livraison.
@@ -301,3 +302,37 @@ après publication ; ceux d'une écriture échouée sont nettoyés avant de reto
 Une reprise au démarrage traite les orphelins après interruption. Il n'existe pas de
 transaction ACID couvrant les deux API : les cas de nettoyage impossible sont signalés
 et réessayés au prochain démarrage. Voir le rapport de lot pour les limites exactes.
+
+## 20. Évolution v0.5 — participation et commentaires
+
+Autorité : `VOTI_PARTICIPATION_COMMENTS_V0_5_SPEC.md`.
+Snapshot v3 : `{schemaVersion:3,polls,ballots,comments,participations}`.
+Un Poll peut être historique v2 ou nouveau v3. V2 reste anonymous/disabled/private,
+sans ajout de champs dans sa définition ni réécriture de son hash. V2 → v3 ajoute
+seulement les deux tableaux vides après validation. Versions inconnues refusées.
+
+Les Poll v3 ajoutent à PollDefinition :
+`participationIdentityMode: anonymous | identified`, `commentMode: optional | disabled`,
+`commentVisibility: private | public_with_results`. Défauts nouveaux sondages :
+anonymous/optional/private. Privacy reste anonymous en anonyme, named en identified.
+`identified != verified identity`, sans compte, pas de garantie une personne = un vote.
+Ces trois règles sont incluses dans semanticHash et verrouillées au premier vote.
+
+Participation : `{participationId,pollId,displayName}`, nom libre 1–60 points de code,
+trim, Unicode, aucune unicité du texte. Aucune Participation en anonymous.
+Ballot v3 : `{id,pollId,choiceId,submissionDigest}`, participationId seulement identified.
+SubmissionDigest est un reçu SHA-256 par action (pollId/actionId/choix/contenu normalisé),
+pas un identifiant stable de personne. Bulletin historique v2 inchangé.
+Comment : `{commentId,pollId,ballotId,choiceId,text,moderationStatus,revision}`,
+participationId seulement identified. Texte facultatif 300 points de code, trim ;
+espaces seuls absents. Pas d'horodatage individuel, IP, UA ou donnée de session.
+
+Modération pending/visible/hidden ; aucun texte modifiable. Suppression définitive
+du commentaire conserve le bulletin et son reçu idempotent. Révision de commentaire
+distincte de la révision publique du sondage. Public : visible uniquement avec les
+résultats publiables, sans identité, existence/counter masqués avant publication.
+
+Migration D1 additive `0003_participation_comments.sql`. Tables séparées, FK/cascades,
+batch transactionnel et gardes de soumission. Aucune migration déjà appliquée modifiée.
+BackupVersion 1 conservée avec snapshotVersion 3 explicite et données locales sensibles.
+Voir `PARTICIPATION_V0.md` et `COMMENTS_AND_IDENTITY_V0.md`.

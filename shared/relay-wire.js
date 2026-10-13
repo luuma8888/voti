@@ -1,5 +1,6 @@
 import { RelayError, relayEnsure as need, remoteRef } from './relay.js';
-import { object, validateDefinition, validateStyle, validateRules } from './validation.js';
+import { object, validateDefinition, validateStyle, validateRules, isUuid } from './validation.js';
+import { normalizedText, MAX_COMMENT_LENGTH, MAX_DISPLAY_NAME_LENGTH } from './participation.js';
 import { ASSET_KEYS, metadata, validateAsset } from './assets.js';
 import { encodeBase64 } from './backup.js';
 
@@ -14,6 +15,9 @@ export const HTTP_ROUTES = {
   castVote: ['POST', 'polls/:id/votes'], getResults: ['GET', 'polls/:id/results'],
   getAsset: ['GET', 'polls/:id/assets/:asset'],
   deletePoll: ['DELETE', 'polls/:id'], verifyAdmin: ['GET', 'polls/:id/admin'],
+  getComments: ['GET', 'polls/:id/comments/:cursor'],
+  getParticipations: ['GET', 'polls/:id/admin/participations/:cursor'],
+  updateCommentStatus: ['PATCH', 'polls/:id/comments'], deleteComment: ['DELETE', 'polls/:id/comments'],
 };
 export async function encodeAsset(asset) {
   await validateAsset(asset);
@@ -47,7 +51,8 @@ export function validateProjection(value) {
     object(value, ['available', 'minimumResponses', 'releaseMode', ...('totalBallots' in value ? ['totalBallots'] : [])], 'Résultats');
     need(Number.isSafeInteger(value.minimumResponses) && value.minimumResponses > 0 && ['threshold', 'closed'].includes(value.releaseMode), 'RELAY_UNAVAILABLE');
   } else {
-    object(value, ['available', 'totalBallots', 'choices'], 'Résultats');
+    object(value, ['available', 'totalBallots', 'choices', ...('comments' in value ? ['comments'] : [])], 'Résultats');
+    if ('comments' in value) validateCommentPage(value.comments);
     need(Array.isArray(value.choices) && value.choices.length >= 2 && value.choices.length <= 6, 'RELAY_UNAVAILABLE');
     for (const choice of value.choices) {
       object(choice, ['id', 'label', 'count', 'percentage'], 'Résultat');
@@ -62,7 +67,28 @@ export function validateRelayResponse(method, value, relayId, pollId) {
   const ref = value?.remoteRef;
   object(ref, ['relayId', 'pollId', 'revision'], 'Référence'); remoteRef(ref.relayId, ref.pollId, ref.revision);
   need(ref.relayId === relayId && ref.pollId === pollId, 'RELAY_UNAVAILABLE');
-  if (method === 'preparePublication') object(value, ['remoteRef'], 'Préparation');
+  if (method === 'getComments') { const { remoteRef: _ref, ...page } = value; validateCommentPage(page); }
+  else if (method === 'getParticipations') {
+    object(value, ['remoteRef', 'participationIdentityMode', 'entries', 'nextCursor'], 'Administration');
+    need(['anonymous', 'identified'].includes(value.participationIdentityMode) && Array.isArray(value.entries) && value.entries.length <= 25, 'RELAY_UNAVAILABLE');
+    need(value.nextCursor === null || isUuid(value.nextCursor), 'RELAY_UNAVAILABLE');
+    for (const entry of value.entries) {
+      const identified = value.participationIdentityMode === 'identified';
+      object(entry, ['choiceId', ...(identified ? ['participationId', 'displayName'] : []), ...('comment' in entry ? ['comment'] : [])], 'Participation administrateur');
+      need(isUuid(entry.choiceId) && (identified || entry.comment), 'RELAY_UNAVAILABLE');
+      if (identified) need(isUuid(entry.participationId) && normalizedText(entry.displayName, MAX_DISPLAY_NAME_LENGTH, 'Nom', true) === entry.displayName, 'RELAY_UNAVAILABLE');
+      if (entry.comment) {
+        object(entry.comment, ['commentId', 'text', 'moderationStatus', 'revision'], 'Commentaire administrateur');
+        need(isUuid(entry.comment.commentId) && ['pending','visible','hidden'].includes(entry.comment.moderationStatus) && Number.isSafeInteger(entry.comment.revision) && entry.comment.revision >= 1, 'RELAY_UNAVAILABLE');
+        need(normalizedText(entry.comment.text, MAX_COMMENT_LENGTH, 'Commentaire', true) === entry.comment.text, 'RELAY_UNAVAILABLE');
+      }
+    }
+  } else if (['updateCommentStatus', 'deleteComment'].includes(method)) {
+    object(value, ['remoteRef', 'commentId', ...(method === 'deleteComment' ? ['deleted'] : ['moderationStatus', 'revision'])], 'Modération');
+    need(isUuid(value.commentId), 'RELAY_UNAVAILABLE');
+    if (method === 'deleteComment') need(value.deleted === true, 'RELAY_UNAVAILABLE');
+    else need(['visible','hidden'].includes(value.moderationStatus) && Number.isSafeInteger(value.revision) && value.revision >= 2, 'RELAY_UNAVAILABLE');
+  } else if (method === 'preparePublication') object(value, ['remoteRef'], 'Préparation');
   else if (['getMissingAssets', 'putAssets'].includes(method)) {
     const key = method === 'putAssets' ? 'assetIds' : 'missingAssetIds'; object(value, ['remoteRef', key], 'Assets');
     need(Array.isArray(value[key]) && value[key].every(id => /^sha256-[a-f0-9]{64}$/.test(id)), 'RELAY_UNAVAILABLE');
@@ -81,4 +107,14 @@ export function validateRelayResponse(method, value, relayId, pollId) {
   }
   if ('status' in value) need(['published', 'closed'].includes(value.status) && typeof value.locked === 'boolean', 'RELAY_UNAVAILABLE');
   return value;
+}
+
+export function validateCommentPage(page) {
+  object(page, ['count', 'items', 'nextCursor'], 'Commentaires publics');
+  need(Number.isSafeInteger(page.count) && page.count >= 0 && Array.isArray(page.items) && page.items.length <= 25 && page.items.length <= page.count, 'RELAY_UNAVAILABLE');
+  need(page.nextCursor === null || isUuid(page.nextCursor), 'RELAY_UNAVAILABLE');
+  for (const item of page.items) {
+    object(item, ['commentId', 'choiceId', 'text'], 'Commentaire public');
+    need(isUuid(item.commentId) && isUuid(item.choiceId) && normalizedText(item.text, MAX_COMMENT_LENGTH, 'Commentaire', true) === item.text, 'RELAY_UNAVAILABLE');
+  }
 }

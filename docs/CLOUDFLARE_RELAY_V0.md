@@ -295,3 +295,29 @@ d'autre clé puis comparaison atomique sous Web Lock. Aucune inclusion au backup
 ou URL. Toute personne possédant ce fichier peut modifier/fermer/supprimer.
 Pas de compte ni chiffrement du fichier ; conserver en lieu sûr. Les administrations
 importées restent accessibles à l'accueil même sans snapshot local.
+
+## Extension locale v0.5
+
+Nouvelle migration additive 0003_participation_comments.sql, sans modification 0001/0002.
+Ballots : participation_id facultatif et submission_digest de protocole. Tables
+comments/participations séparées ; aucune Participation anonyme. FK poll/ballot,
+contraintes et triggers empêchent liaison étrangère, identité anonyme et édition du texte.
+
+La soumission utilise un batch D1 : garde hash sémantique/statut/choix/idempotence,
+marqueur transactionnel de nouvelle action, INSERT Participation si identified,
+INSERT bulletin (trigger lock/révision historique), INSERT commentaire si non vide,
+suppression des gardes. Tout rollback sur échec ; retry concurrent n'insère aucun
+objet supplémentaire. La définition est revérifiée dans le batch, pas seulement en SELECT.
+
+Routes supplémentaires `/api/v1` :
+GET polls/:id/comments/:cursor ; GET polls/:id/admin/participations/:cursor ;
+PATCH polls/:id/comments ; DELETE polls/:id/comments. Cursor `start` ou UUID,
+jamais de secret dans path/query. Administration Bearer inchangée, double CAS
+expectedRevision/expectedCommentRevision. Bodies stricts, aucune édition du texte.
+
+Le vote enrichi reste UNE requête publique, même quota vote et aucun Turnstile.
+Lecture comments publique limitée par poll/catégorie ; lecture/modération admin
+limitée par dérivé de capacité existant. CORS, cron, rétention, GC et sans R2 inchangés.
+DeletePoll supprime d'abord ballots (cascade comments), puis poll (cascade participations).
+Projection publique strictement sans nom ni bulletin brut ; voir RELAY_CONTRACT_V0.md.
+**Production non migrée / Worker non déployé pour ce lot.**

@@ -8,10 +8,19 @@ test('Bundle audit : fichiers Git admissibles sans aucune archive VOTI récursiv
   assert.ok(paths.includes('docs/VOTI_RELAY_V0_3C_SPEC.md'));
   assert.ok(!paths.includes(AUDIT_NAME));
   assert.ok(!paths.some(isAuditArchive));
+  assert.ok(!paths.some(isPrivateOrTemporaryExport));
   assert.equal(new Set(paths).size, paths.length);
 });
+test('Audit v0.5 : .env/.dev.vars exclus même suivis par erreur',()=>{
+  assert.equal(AUDIT_NAME,'VOTI_AUDIT_V0_5.zip');
+  for(const path of ['.env','.env.local','relay/.dev.vars','relay/.dev.vars.test'])assert.ok(isPrivateOrTemporaryExport(path));
+});
+test('Audit : captures personnelles exclues, assets de marque conservés',()=>{
+  for(const path of ['Screenshot 2026-10-12 20.46.53.png','Screenshot 2026-10-12 21.45.36.png','docs/Screenshot test.webp'])assert.ok(isPrivateOrTemporaryExport(path));
+  assert.equal(isPrivateOrTemporaryExport('assets/branding/source/voti-logo-source.png'),false);
+});
 test('Audit v0.4A : aucune clé exportée ni PDF de recette, même suivi par erreur', () => {
-  assert.equal(AUDIT_NAME, 'VOTI_AUDIT_V0_4C.zip');
+  assert.equal(AUDIT_NAME, 'VOTI_AUDIT_V0_5.zip');
   for(const path of ['voti-admin-test.json','docs/voti-admin-test.json','.browser-tests/test.pdf','voti-affiche-test.pdf']) assert.ok(isPrivateOrTemporaryExport(path));
   assert.equal(isPrivateOrTemporaryExport('shared/admin-key.js'), false);
 });

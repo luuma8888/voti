@@ -4,6 +4,7 @@ import { object, isAssetId, validateState } from '../shared/validation.js';
 import { publishPoll, updateSemantics, updateStyle, closePoll, castVote } from '../shared/poll-engine.js';
 import { getResults } from '../shared/result-rules.js';
 import { assetReferences, validateAsset, validateReferences, contentId } from '../shared/assets.js';
+import { normalizeSubmission, submissionDigest, administrativeEntries, moderateComment, participationRules, publicComments } from '../shared/participation.js';
 
 const ADMIN = ['pollId', 'adminCapability', 'expectedRevision'];
 const keys = {
@@ -14,6 +15,9 @@ const keys = {
   updateDefinition: [...ADMIN, 'definition', 'resultRules'], updateStyle: [...ADMIN, 'style'],
   getPoll: ['pollId'], getResults: ['pollId'], getAsset: ['pollId', 'assetId'],
   castVote: ['pollId', 'actionId', 'choiceId'],
+  getComments: ['pollId', 'cursor'], getParticipations: [...ADMIN, 'cursor'],
+  updateCommentStatus: [...ADMIN, 'commentId', 'expectedCommentRevision', 'moderationStatus'],
+  deleteComment: [...ADMIN, 'commentId', 'expectedCommentRevision'],
 };
 
 /** Simulation uniquement. File sérialisée = point de linéarisation commun à tous les clients.
@@ -30,7 +34,8 @@ export class InMemoryRelayAdapter extends RelayAdapter {
     let request;
     try {
       request = structuredClone(input);
-      object(request, [...keys[method], ...(method === 'preparePublication' && Object.hasOwn(request, 'humanVerificationToken') ? ['humanVerificationToken'] : [])], 'Requête relais');
+      object(request, [...keys[method], ...(method === 'preparePublication' && Object.hasOwn(request, 'humanVerificationToken') ? ['humanVerificationToken'] : []),
+        ...(method === 'castVote' ? ['comment','displayName'].filter(k => Object.hasOwn(request,k)) : [])], 'Requête relais');
       need(JSON.stringify(request).length <= 65_536, 'PAYLOAD_TOO_LARGE');
     } catch (error) { return Promise.reject(error instanceof RelayError ? error : new RelayError('INVALID_REQUEST')); }
     const result = this.#tail.then(() => this.#execute(method, request)).catch(error => {
@@ -99,13 +104,36 @@ export class InMemoryRelayAdapter extends RelayAdapter {
       need(await this.#digest(request.pollId, request.adminCapability) === record.capabilityHash, 'INVALID_CAPABILITY');
       // Lecture authentifiée : permet aussi de retrouver une préparation après
       // perte de réponse. Seules les mutations imposent la révision exacte.
-      if (!['getMissingAssets', 'verifyAdmin'].includes(method)) need(Number.isSafeInteger(request.expectedRevision) && request.expectedRevision === record.revision,
+      if (!['getMissingAssets', 'verifyAdmin', 'getParticipations'].includes(method)) need(Number.isSafeInteger(request.expectedRevision) && request.expectedRevision === record.revision,
         'REVISION_CONFLICT', 'Rechargez l’état distant.', { remoteRef: this.#ref(record) });
     } else need(record.public, 'NOT_FOUND');
     const poll = record.state.polls[0];
     if (method === 'verifyAdmin') { need(record.public, 'NOT_FOUND'); return this.#view(record); }
     if (method === 'deletePoll') { need(record.public, 'NOT_FOUND'); this.#records.delete(poll.id); return { deleted: true }; }
     if (method === 'getPoll') return this.#view(record);
+    if (['getComments','getParticipations'].includes(method)) {
+      need(request.cursor === null || isPublicPollId(request.cursor), 'INVALID_REQUEST');
+      if (method === 'getParticipations') {
+        need(record.public,'NOT_FOUND'); const identified = participationRules(poll.definition).participationIdentityMode === 'identified';
+        const key = item => identified ? item.participationId : item.comment.commentId;
+        const entries = administrativeEntries(record.state,poll.id).sort((a,b) => key(a).localeCompare(key(b))).filter(e => key(e) > (request.cursor ?? ''));
+        return { remoteRef: this.#ref(record), participationIdentityMode: identified ? 'identified' : 'anonymous', entries: entries.slice(0,25), nextCursor: entries.length > 25 ? key(entries[24]) : null };
+      }
+      const result = getResults(record.state,poll.id);
+      need(result.available,'RESULTS_LOCKED','Résultats non disponibles.',{ remoteRef: this.#ref(record), ...result });
+      need(participationRules(poll.definition).commentVisibility === 'public_with_results','NOT_FOUND');
+      const comments = publicComments(record.state,poll.id).sort((a,b) => a.commentId.localeCompare(b.commentId));
+      const items = comments.filter(c => c.commentId > (request.cursor ?? ''));
+      return { remoteRef: this.#ref(record), count: comments.length, items: items.slice(0,25), nextCursor: items.length > 25 ? items[24].commentId : null };
+    }
+    if (['updateCommentStatus','deleteComment'].includes(method)) {
+      const comment = record.state.comments.find(c => c.pollId === poll.id && c.commentId === request.commentId); need(comment,'NOT_FOUND');
+      need(comment.revision === request.expectedCommentRevision,'REVISION_CONFLICT');
+      const deleting = method === 'deleteComment';
+      try { record.state = moderateComment(record.state,poll.id,comment.commentId,request.expectedCommentRevision,deleting ? 'delete' : request.moderationStatus); }
+      catch { throw new RelayError('INVALID_COMMENT'); }
+      return { remoteRef: this.#ref(record), commentId: comment.commentId, ...(deleting ? { deleted: true } : { moderationStatus: request.moderationStatus, revision: comment.revision + 1 }) };
+    }
     if (method === 'getResults') {
       const result = { remoteRef: this.#ref(record), ...getResults(record.state, poll.id) };
       need(result.available, 'RESULTS_LOCKED', 'Les résultats ne sont pas encore disponibles.', result);
@@ -143,12 +171,15 @@ export class InMemoryRelayAdapter extends RelayAdapter {
     if (method === 'castVote') {
       need(isPublicPollId(request.actionId), 'INVALID_REQUEST');
       const existing = record.state.ballots.find(item => item.id === request.actionId);
-      if (existing) need(existing.choiceId === request.choiceId, 'IDEMPOTENCY_CONFLICT');
+      let submission;
+      try { submission = normalizeSubmission(poll.definition,request); } catch(error) { throw new RelayError(error.code==='INVALID_PARTICIPATION'?'INVALID_PARTICIPATION':'INVALID_COMMENT'); }
+      const digest = await submissionDigest(poll.id,request.actionId,request.choiceId,submission);
+      if (existing) need(existing.choiceId === request.choiceId && (existing.submissionDigest ? existing.submissionDigest === digest : !submission.comment && !submission.displayName), 'IDEMPOTENCY_CONFLICT');
       else {
         need(poll.status !== 'closed', 'POLL_CLOSED');
         need(poll.definition.choices.some(choice => choice.id === request.choiceId), 'INVALID_CHOICE');
         need(request.actionId !== poll.id && !poll.definition.choices.some(choice => choice.id === request.actionId), 'INVALID_REQUEST');
-        const next = await castVote(record.state, { id: request.actionId, pollId: poll.id, choiceId: request.choiceId }, this.#now);
+        const next = await castVote(record.state, { id: request.actionId, pollId: poll.id, choiceId: request.choiceId, ...submission }, this.#now);
         await this.#valid(next);
         need(next.polls[0].definitionHash === record.semanticDigest, 'INVALID_DEFINITION');
         const revision = this.#nextRevision(record);
@@ -197,4 +228,8 @@ export class InMemoryRelayAdapter extends RelayAdapter {
   async deletePoll(request) { return this.#run('deletePoll', request); }
   async verifyAdmin(request) { return this.#run('verifyAdmin', request); }
   async castVote(request) { return this.#run('castVote', request); }
+  async getComments(request) { return this.#run('getComments', request); }
+  async getParticipations(request) { return this.#run('getParticipations', request); }
+  async updateCommentStatus(request) { return this.#run('updateCommentStatus', request); }
+  async deleteComment(request) { return this.#run('deleteComment', request); }
 }

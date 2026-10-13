@@ -1,10 +1,10 @@
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const MAX_JSON_LENGTH = 2_000_000;
 export const THEMES = ['mint', 'lavender', 'peach'];
 
-/** @returns {{schemaVersion: number, polls: object[], ballots: object[]}} */
+/** @returns {{schemaVersion: number, polls: object[], ballots: object[], comments: object[], participations: object[]}} */
 export function emptyState() {
-  return { schemaVersion: SCHEMA_VERSION, polls: [], ballots: [] };
+  return { schemaVersion: SCHEMA_VERSION, polls: [], ballots: [], comments: [], participations: [] };
 }
 
 export function defaultRules() {

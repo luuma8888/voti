@@ -30,7 +30,7 @@ test('premier bulletin accepté : verrouillage et bulletin atomiques, entrée in
   assert.equal(next.polls[0].lockedAt, now());
   assert.equal(next.polls[0].definitionHash, await semanticHash(next.polls[0]));
   assert.equal(next.ballots.length, 1);
-  assert.deepEqual(Object.keys(next.ballots[0]).sort(), ['choiceId', 'id', 'pollId']);
+  assert.deepEqual(Object.keys(next.ballots[0]).sort(), ['choiceId', 'id', 'pollId', 'submissionDigest']);
   await validateState(next);
 });
 

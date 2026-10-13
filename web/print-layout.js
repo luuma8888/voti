@@ -1,5 +1,6 @@
 import { ensure } from '../shared/validation.js';
 import { validateDefinition } from '../shared/validation.js';
+import { participationRules, normalizedText } from '../shared/participation.js';
 import { isPublicPollId } from '../shared/relay.js';
 import { buildPollUrl, buildChoiceUrl, buildResultsUrl } from '../shared/qr-links.js';
 import { createQrMatrix } from './qr.js';
@@ -227,9 +228,13 @@ export function authorizedResults(poll,result) {
     sum+=c.count;return {id:c.id,label:c.label,count:c.count,percentage:c.percentage};
   });ensure(sum===total,'Total différent de la somme des choix.');return {total,choices};
 }
-export function makeResultsPlan(poll,result,design,{style='summary',baseUrl,exportDate=new Date(),measure=(t,s)=>[...t].length*s*.6,usePosterMedia=false,mediaSizes={}}={}) {
+export function makeResultsPlan(poll,result,design,{style='summary',baseUrl,exportDate=new Date(),measure=(t,s)=>[...t].length*s*.6,usePosterMedia=false,mediaSizes={},includeComments=false,comments=[],includeIdentities=false,identities=[],adminAuthorized=false}={}) {
   const projection=authorizedResults(poll,result);
   ensure(['summary','report'].includes(style),'Style de résultats inconnu.');
+  const rules=participationRules(poll.definition);
+  ensure(!includeComments || (style==='report'&&rules.commentVisibility==='public_with_results'),'Commentaires publics indisponibles pour ce PDF.');
+  ensure(!includeIdentities || (style==='report'&&adminAuthorized&&rules.participationIdentityMode==='identified'),'Identités réservées à un export administrateur explicite.');
+  ensure(Array.isArray(comments)&&comments.length<=500&&Array.isArray(identities)&&identities.length<=500,'PDF limité à 500 commentaires/participations.');
   const normalized=validateDesign(design);normalized.layout='cards';normalized.background.assetId=null;
   const {plan,content,words,surface,image,qr,page,header}=basePlan(poll,normalized,measure,mediaSizes);
   plan.kind='results';plan.style=style;plan.total=projection.total;
@@ -243,7 +248,7 @@ export function makeResultsPlan(poll,result,design,{style='summary',baseUrl,expo
     words(p,'Date d’export : '+plan.exportLabel,PAD+35,plan.height-445,plan.width-PAD*2-550,32);
     if(url){words(p,'Résultats publics : '+url,PAD+35,plan.height-360,plan.width-PAD*2-550,28);qr(p,url,plan.width-PAD-470,plan.height-575,440,'results');}
     surface(p,PAD,plan.height-80,plan.width-PAD*2,65);
-    words(p,`Voti · A4 · ${plan.pages.length+1}`,PAD+20,plan.height-65,plan.width-PAD*2-40,28);plan.pages.push(p);ensure(plan.pages.length<=8,'Rapport trop long.');
+    words(p,`Voti · A4 · ${plan.pages.length+1}`,PAD+20,plan.height-65,plan.width-PAD*2-40,28);plan.pages.push(p);ensure(plan.pages.length<=32,'Rapport trop long : 32 pages maximum.');
   }
   function room(height){if(y+height>limit){finish();p=page();y=header(p,true);}ensure(y+height<=limit,'Rapport trop dense.');}
   room(180);surface(p,PAD,y,plan.width-PAD*2,155,'primary');words(p,`${projection.total} réponses`,PAD+35,y+35,plan.width-PAD*2-70,60,700,'onPrimary');y+=190;
@@ -264,6 +269,18 @@ export function makeResultsPlan(poll,result,design,{style='summary',baseUrl,expo
     words(p,`${c.count} vote${c.count===1?'':'s'} · ${c.percentage.toLocaleString('fr-FR',{maximumFractionDigits:1})} %`,x,chartY,width,38,700,'accentText');
     p.nodes.push({type:'bar',x,y:chartY+68,width,height:34,value:c.percentage/100});
     p.items.push({label:c.label,count:c.count,percentage:c.percentage,x:PAD,y,width:plan.width-PAD*2,height});y+=height+38;
+    const appendText=(value,heading)=>{
+      const plain=normalizedText(value,heading==='Commentaire visible'?300:60,heading,true);
+      const lines=wrapPrintText(plain,plan.width-PAD*2-70,t=>measure(t,34,400,plan.family));
+      const blockHeight=lines.length*44+110;
+      if(y+blockHeight>limit){finish();p=page();y=header(p,true);
+        const contextHeight=words(p,'Choix : '+c.label,PAD+35,y,plan.width-PAD*2-70,34,700,'accentText');y+=contextHeight+30;
+      }
+      ensure(y+blockHeight<=limit,'Commentaire trop dense pour cette page.');surface(p,PAD,y,plan.width-PAD*2,blockHeight);
+      words(p,heading,PAD+35,y+22,plan.width-PAD*2-70,28,700,'accentText');words(p,plain,PAD+35,y+66,plan.width-PAD*2-70,34);y+=blockHeight+24;
+    };
+    if(includeComments)for(const comment of comments.filter(entry=>entry.choiceId===c.id))appendText(comment.text,'Commentaire visible');
+    if(includeIdentities)for(const participant of identities.filter(entry=>entry.choiceId===c.id))appendText(participant.displayName,'Nom ou pseudonyme déclaré — non vérifié');
   }
   finish();return plan;
 }

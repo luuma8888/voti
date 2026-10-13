@@ -169,22 +169,33 @@ export function posterStudio(poll,{repository,pollAssets,error,notify,refreshPol
 }
 
 /** Disponible sur la vue résultats, jamais alimenté par des bulletins. */
-export function resultsPdfPanel(poll,result,{repository,pollAssets,refreshPoll,error,notify}) {
+export function resultsPdfPanel(poll,result,{repository,pollAssets,refreshPoll,error,notify,admin=false,loadComments,loadIdentities}) {
   const box=node('details',null,'results-pdf advanced');box.append(node('summary','Télécharger les résultats en PDF'));
-  let design=repository.get(poll.id||poll.remoteRef.pollId),style='summary',usePosterMedia=false;
-  box.append(select('Présentation',[['summary','Synthèse'],['report','Rapport']],style,v=>style=v),
+  let design=repository.get(poll.id||poll.remoteRef.pollId),style='summary',usePosterMedia=false,includeComments=false,includeIdentities=false;
+  const extras=node('div',null,'results-pdf-extras');extras.hidden=true;
+  box.append(select('Présentation',[['summary','Synthèse'],['report','Rapport']],style,v=>{style=v;extras.hidden=v!=='report';}),
     select('Palette du PDF',PALETTES.map(p=>[p[0],p[1]]),design.palette,v=>design=resetPalette(choosePalette(design,v))),
     typographyChoices('Typographie du titre','title',design.titleTypography,v=>design.titleTypography=v),
     typographyChoices('Typographie du texte','body',design.bodyTypography,v=>design.bodyTypography=v),
     select('En-tête Voti',[['normal','Normal'],['discreet','Discret'],['hidden','Masqué']],design.headerMode,v=>design.headerMode=v),
     check('Inclure les images du sondage disponibles localement',design.usePollImages,v=>design.usePollImages=v),
     check('Inclure aussi les images affiche-only de ce Studio',false,v=>usePosterMedia=v));
+  if(poll.definition.commentVisibility==='public_with_results')extras.append(check('Inclure les commentaires visibles',false,v=>includeComments=v));
+  if(admin&&poll.definition.participationIdentityMode==='identified'){
+    extras.append(check('Inclure les identités des participants',false,v=>includeIdentities=v),node('p','Ce PDF contiendra les noms ou pseudonymes associés aux réponses.','privacy-notice'));
+  }
+  box.append(extras);
   const download=button('Télécharger les résultats en PDF',async()=>{
     if(download.disabled)return;download.disabled=true;let media;const measure=printMeasure();
     try{
       const fresh=await refreshPoll();if(!download.isConnected)return;
+      if(fresh.results.available!==true)throw new Error('Les résultats ne sont pas encore disponibles.');
+      const comments=style==='report'&&includeComments&&loadComments?await loadComments():[];
+      const identities=style==='report'&&includeIdentities&&admin&&loadIdentities?await loadIdentities():[];
       const mediaSizes=await printMediaSizes(fresh.poll,design,repository.assets,pollAssets);
-      const plan=makeResultsPlan(fresh.poll,fresh.results,design,{style,usePosterMedia,measure:measure.measure,mediaSizes});
+      const plan=makeResultsPlan(fresh.poll,fresh.results,design,{style,usePosterMedia,measure:measure.measure,mediaSizes,
+        includeComments:style==='report'&&includeComments,comments,
+        includeIdentities:style==='report'&&includeIdentities,identities,adminAuthorized:admin});
       media=await loadPrintMedia(plan,repository.assets,pollAssets);const file=await exportPrintPdf(plan,{media,logo:document.querySelector('.brand-icon')});
       if(download.isConnected){downloadBlob(new Blob([file.bytes],{type:'application/pdf'}),`voti-resultats-${poll.id||poll.remoteRef.pollId}.pdf`);notify('PDF généré à partir des résultats disponibles au moment de l’export.');}
     }catch(e){if(download.isConnected)error(e);}finally{if(media)releasePrintMedia(media);measure.release();download.disabled=result.available!==true;}

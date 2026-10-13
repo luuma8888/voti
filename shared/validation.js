@@ -1,4 +1,5 @@
 import { SCHEMA_VERSION, THEMES, recalculateStats, semanticHash } from './model.js';
+import { definitionVersion, participationRules, normalizeSubmission, normalizedText, submissionDigest, MAX_COMMENT_LENGTH, MAX_DISPLAY_NAME_LENGTH } from './participation.js';
 
 export function ensure(condition, message) {
   if (!condition) throw new Error(message);
@@ -27,13 +28,20 @@ export function isAssetId(value) {
   return typeof value === 'string' && /^sha256-[a-f0-9]{64}$/.test(value);
 }
 
-export function validateDefinition(definition, version = SCHEMA_VERSION) {
-  object(definition, ['question', 'description', 'mode', 'privacy', 'choices', ...(version === 2 ? ['pollImageAssetId'] : [])], 'Définition');
-  if (version === 2) ensure(definition.pollImageAssetId === null || isAssetId(definition.pollImageAssetId), 'Référence image du sondage invalide.');
+export function validateDefinition(definition, version = definitionVersion(definition ?? {})) {
+  ensure([1, 2, 3].includes(version), 'Version de définition inconnue.');
+  object(definition, ['question', 'description', 'mode', 'privacy', 'choices', ...(version >= 2 ? ['pollImageAssetId'] : []),
+    ...(version >= 3 ? ['participationIdentityMode', 'commentMode', 'commentVisibility'] : [])], 'Définition');
+  if (version >= 2) ensure(definition.pollImageAssetId === null || isAssetId(definition.pollImageAssetId), 'Référence image du sondage invalide.');
   text(definition.question, 240, 'Question');
   text(definition.description, 1000, 'Description', true);
   ensure(definition.mode === 'single_choice', 'Seul le choix unique est disponible.');
-  ensure(definition.privacy === 'anonymous', 'Le vote nominatif est réservé à une phase future.');
+  if (version >= 3) {
+    ensure(['anonymous', 'identified'].includes(definition.participationIdentityMode), 'Mode de participation invalide.');
+    ensure(['disabled', 'optional'].includes(definition.commentMode), 'Mode de commentaire invalide.');
+    ensure(['private', 'public_with_results'].includes(definition.commentVisibility), 'Visibilité des commentaires invalide.');
+    ensure(definition.privacy === (definition.participationIdentityMode === 'identified' ? 'named' : 'anonymous'), 'Confidentialité et participation incohérentes.');
+  } else ensure(definition.privacy === 'anonymous', 'Identité non disponible dans le schéma historique.');
   ensure(Array.isArray(definition.choices) && definition.choices.length >= 2 && definition.choices.length <= 6, 'Il faut entre 2 et 6 choix.');
   const ids = new Set();
   for (const [index, choice] of definition.choices.entries()) {
@@ -43,7 +51,7 @@ export function validateDefinition(definition, version = SCHEMA_VERSION) {
     text(choice.label, 100, 'Réponse');
     text(choice.shortLabel, 40, 'Libellé court', true);
     text(choice.emoji, 16, 'Pictogramme', true);
-    ensure(choice.imageRef === null || (version === 2 && isAssetId(choice.imageRef)), 'Référence image du choix invalide.');
+    ensure(choice.imageRef === null || (version >= 2 && isAssetId(choice.imageRef)), 'Référence image du choix invalide.');
     ensure(choice.order === index, 'Ordre des choix incohérent.');
   }
 }
@@ -61,10 +69,10 @@ export function validateStyle(style) {
   ensure(THEMES.includes(style.themeId) && style.accent === null && style.background === null && style.layout === 'cards' && style.posterVariant === 'none', 'Apparence non prise en charge.');
 }
 
-export function validatePoll(poll, version = SCHEMA_VERSION) {
+export function validatePoll(poll, version = poll?.schemaVersion) {
   object(poll, ['id', 'schemaVersion', 'contextId', 'status', 'createdAt', 'publishedAt', 'closedAt', 'lockedAt', 'definitionHash', 'definition', 'style', 'accessRules', 'resultRules', 'stats'], 'Sondage');
   ensure(isUuid(poll.id), 'Identifiant du sondage invalide.');
-  ensure(poll.schemaVersion === version, 'Version du sondage inconnue.');
+  ensure([1, 2, 3].includes(version) && poll.schemaVersion === version, 'Version du sondage inconnue.');
   ensure(poll.contextId === null, 'Les contextes ne sont pas disponibles.');
   ensure(['draft', 'published', 'closed'].includes(poll.status), 'État du sondage invalide.');
   date(poll.createdAt, 'Création', false);
@@ -90,10 +98,11 @@ export function validatePoll(poll, version = SCHEMA_VERSION) {
 }
 
 /** Valide l'intégralité de l'état, vérifie les empreintes, recalcule les caches. */
-export async function validateState(input, version = SCHEMA_VERSION) {
-  object(input, ['schemaVersion', 'polls', 'ballots'], 'Sauvegarde');
-  ensure([1, 2].includes(version) && input.schemaVersion === version, 'Version de schéma inconnue : import refusé.');
+export async function validateState(input, version = input?.schemaVersion ?? SCHEMA_VERSION) {
+  ensure([1, 2, 3].includes(version) && input.schemaVersion === version, 'Version de schéma inconnue : import refusé.');
+  object(input, ['schemaVersion', 'polls', 'ballots', ...(version >= 3 ? ['comments', 'participations'] : [])], 'Sauvegarde');
   ensure(Array.isArray(input.polls) && Array.isArray(input.ballots), 'Listes de données invalides.');
+  if (version >= 3) ensure(Array.isArray(input.comments) && Array.isArray(input.participations), 'Participations et commentaires invalides.');
   const state = structuredClone(input);
   const ids = new Set();
   const reserve = id => {
@@ -102,17 +111,50 @@ export async function validateState(input, version = SCHEMA_VERSION) {
   };
   const polls = new Map();
   for (const poll of state.polls) {
-    validatePoll(poll, version);
+    ensure(version < 3 ? poll.schemaVersion === version : [2, 3].includes(poll.schemaVersion), 'Version de sondage incompatible.');
+    validatePoll(poll);
     reserve(poll.id);
     polls.set(poll.id, poll);
     for (const choice of poll.definition.choices) reserve(choice.id);
   }
+  const participations = new Map();
+  for (const participation of state.participations ?? []) {
+    object(participation, ['participationId', 'pollId', 'displayName'], 'Participation');
+    reserve(participation.participationId);
+    ensure(polls.has(participation.pollId) && participationRules(polls.get(participation.pollId).definition).participationIdentityMode === 'identified', 'Participation interdite sur ce sondage.');
+    ensure(normalizedText(participation.displayName, MAX_DISPLAY_NAME_LENGTH, 'Nom ou pseudonyme', true) === participation.displayName && !/[\r\n\t]/u.test(participation.displayName), 'Nom ou pseudonyme non normalisé.');
+    participations.set(participation.participationId, participation);
+  }
+  const linked = new Set(), ballots = new Map();
   for (const ballot of state.ballots) {
-    object(ballot, ['id', 'pollId', 'choiceId'], 'Bulletin');
     reserve(ballot.id);
     const poll = polls.get(ballot.pollId);
     ensure(poll && poll.definition.choices.some(choice => choice.id === ballot.choiceId), 'Bulletin : sondage ou choix inexistant.');
+    const identified = participationRules(poll.definition).participationIdentityMode === 'identified';
+    object(ballot, ['id', 'pollId', 'choiceId', ...(poll.schemaVersion >= 3 ? ['submissionDigest'] : []), ...(identified ? ['participationId'] : [])], 'Bulletin');
+    if (poll.schemaVersion >= 3) ensure(typeof ballot.submissionDigest === 'string' && /^[a-f0-9]{64}$/.test(ballot.submissionDigest), 'Reçu de soumission invalide.');
+    if (identified) {
+      ensure(participations.get(ballot.participationId)?.pollId === poll.id && !linked.has(ballot.participationId), 'Participation du bulletin invalide ou réutilisée.');
+      linked.add(ballot.participationId);
+    }
+    ballots.set(ballot.id, ballot);
     ensure(poll.status !== 'draft', 'Un brouillon ne peut pas contenir de bulletin.');
+  }
+  ensure(linked.size === participations.size, 'Participation orpheline.');
+  const commented = new Set();
+  for (const comment of state.comments ?? []) {
+    const poll = polls.get(comment.pollId), ballot = ballots.get(comment.ballotId);
+    ensure(poll && participationRules(poll.definition).commentMode === 'optional' && ballot?.pollId === poll.id && ballot.choiceId === comment.choiceId, 'Commentaire incohérent ou orphelin.');
+    const identified = participationRules(poll.definition).participationIdentityMode === 'identified';
+    object(comment, ['commentId', 'pollId', 'ballotId', 'choiceId', 'text', 'moderationStatus', 'revision', ...(identified ? ['participationId'] : [])], 'Commentaire');
+    reserve(comment.commentId);
+    ensure(!commented.has(ballot.id), 'Plusieurs commentaires pour un bulletin.'); commented.add(ballot.id);
+    ensure(!identified || comment.participationId === ballot.participationId, 'Identité du commentaire incohérente.');
+    ensure(normalizedText(comment.text, MAX_COMMENT_LENGTH, 'Commentaire', true) === comment.text, 'Commentaire non normalisé.');
+    const normalized=normalizeSubmission(poll.definition, { comment: comment.text, ...(identified ? { displayName: participations.get(ballot.participationId).displayName } : {}) });
+    ensure(await submissionDigest(poll.id,ballot.id,ballot.choiceId,normalized)===ballot.submissionDigest,'Contenu du commentaire/Participation incompatible avec le reçu de soumission.');
+    ensure(['pending', 'visible', 'hidden'].includes(comment.moderationStatus) && Number.isSafeInteger(comment.revision) && comment.revision >= 1, 'État de modération invalide.');
+    ensure(participationRules(poll.definition).commentVisibility === 'public_with_results' || comment.moderationStatus === 'pending', 'Un commentaire privé ne peut pas être rendu public.');
   }
   for (const poll of state.polls) {
     poll.stats = recalculateStats(poll, state.ballots);

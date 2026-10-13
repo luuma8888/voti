@@ -4,6 +4,7 @@ import { validateState, validateDefinition, validateRules, validateStyle, object
 import { assetReferences, contentId, metadata, validateReferences } from '../../shared/assets.js';
 import { decodeAsset, encodeAsset } from '../../shared/relay-wire.js';
 import { validateServerImage } from './image-validation.js';
+import { participationRules, normalizeSubmission, submissionDigest } from '../../shared/participation.js';
 
 const NOW = () => Math.floor(Date.now() / 1000);
 const fields = {
@@ -12,6 +13,8 @@ const fields = {
   closePoll: ['expectedRevision'], updateDefinition: ['definition', 'resultRules', 'expectedRevision'],
   deletePoll: ['expectedRevision'], verifyAdmin: [],
   updateStyle: ['style', 'expectedRevision'], castVote: ['actionId', 'choiceId'], getPoll: [], getResults: [], getAsset: [],
+  getComments: [], getParticipations: [], updateCommentStatus: ['commentId', 'expectedCommentRevision', 'moderationStatus', 'expectedRevision'],
+  deleteComment: ['commentId', 'expectedCommentRevision', 'expectedRevision'],
 };
 export async function capabilityDigest(relayId, pollId, capability) {
   need(isAdminCapability(capability), 'INVALID_CAPABILITY');
@@ -73,9 +76,71 @@ export class CloudflareRelay {
       const counts = JSON.parse(row.counts || '{}');
       results = { available: true, totalBallots: row.total, choices: definition.choices.map(c => ({ id: c.id, label: c.label,
         count: counts[c.id] || 0, percentage: (counts[c.id] || 0) / row.total * 100 })) };
+      if (participationRules(definition).commentVisibility === 'public_with_results') {
+        const comments = await this.comments(id, null);
+        if (comments.count) results.comments = comments;
+      }
     }
     return { remoteRef: this.ref(row), status: row.status, locked: Boolean(row.locked), definitionHash: row.locked ? row.semantic_hash : null,
       definition, style: JSON.parse(row.style), accessRules: JSON.parse(row.access_rules), resultRules: rules, results };
+  }
+  async comments(id, cursor) {
+    const { results } = await this.sql(`SELECT comment_id,choice_id,text,
+      (SELECT COUNT(*) FROM comments WHERE poll_id=? AND moderation_status='visible') total
+      FROM comments WHERE poll_id=? AND moderation_status='visible' AND comment_id>? ORDER BY comment_id LIMIT 26`, id, id, cursor ?? '').all();
+    return { count: results[0]?.total ?? (await this.sql("SELECT COUNT(*) total FROM comments WHERE poll_id=? AND moderation_status='visible'", id).first()).total,
+      items: results.slice(0,25).map(c => ({ commentId: c.comment_id, choiceId: c.choice_id, text: c.text })), nextCursor: results.length > 25 ? results[24].comment_id : null };
+  }
+  async participations(row, cursor) {
+    const identified = participationRules(JSON.parse(row.definition)).participationIdentityMode === 'identified';
+    const { results } = await this.sql(identified ? `SELECT b.choice_id,x.participation_id,x.display_name,c.comment_id,c.text,c.moderation_status,c.revision
+      FROM participations x JOIN ballots b ON b.poll_id=x.poll_id AND b.participation_id=x.participation_id
+      LEFT JOIN comments c ON c.poll_id=b.poll_id AND c.action_id=b.action_id
+      WHERE x.poll_id=? AND x.participation_id>? ORDER BY x.participation_id LIMIT 26` :
+      `SELECT choice_id,comment_id,text,moderation_status,revision FROM comments WHERE poll_id=? AND comment_id>? ORDER BY comment_id LIMIT 26`, row.poll_id, cursor ?? '').all();
+    return { remoteRef: this.ref(row), participationIdentityMode: identified ? 'identified' : 'anonymous',
+      entries: results.slice(0,25).map(c => ({ choiceId: c.choice_id, ...(identified ? { participationId: c.participation_id, displayName: c.display_name } : {}),
+        ...(c.comment_id ? { comment: { commentId: c.comment_id, text: c.text, moderationStatus: c.moderation_status, revision: c.revision } } : {}) })),
+      nextCursor: results.length > 25 ? (identified ? results[24].participation_id : results[24].comment_id) : null };
+  }
+  async vote(id, body) {
+    need(isPublicPollId(body.actionId), 'INVALID_REQUEST');
+    need(typeof body.choiceId === 'string', 'INVALID_CHOICE');
+    const row = await this.publicRow(id), definition = JSON.parse(row.definition);
+    need(body.actionId !== id && !definition.choices.some(c => c.id === body.actionId), 'INVALID_REQUEST');
+    let submission;
+    try { submission = normalizeSubmission(definition, body); }
+    catch(error) { throw new RelayError(error.code==='INVALID_PARTICIPATION' ? 'INVALID_PARTICIPATION' : 'INVALID_COMMENT'); }
+    const digest = await submissionDigest(id, body.actionId, body.choiceId, submission);
+    const guard = crypto.randomUUID(), fresh = crypto.randomUUID(), participationId = Object.hasOwn(submission, 'displayName') ? crypto.randomUUID() : null;
+    const matches = b => b && b.choice_id === body.choiceId && (b.submission_digest ? b.submission_digest === digest : !submission.comment && !submission.displayName);
+    const existing = await this.sql('SELECT choice_id,submission_digest FROM ballots WHERE poll_id=? AND action_id=?', id, body.actionId).first();
+    if (existing) { need(matches(existing), 'IDEMPOTENCY_CONFLICT'); const v = await this.projection(id); return { accepted: true, alreadyAccepted: true, remoteRef: v.remoteRef, status: v.status, locked: v.locked, results: v.results }; }
+    need(row.status === 'published', 'POLL_CLOSED');
+    need(definition.choices.some(c => c.id === body.choiceId), 'INVALID_CHOICE');
+    const statements = [
+      this.sql(`INSERT INTO mutation_guards VALUES(?,CASE WHEN EXISTS(SELECT 1 FROM polls WHERE poll_id=? AND semantic_hash=? AND (
+        EXISTS(SELECT 1 FROM ballots WHERE poll_id=? AND action_id=? AND choice_id=? AND submission_digest=?) OR (
+          status='published' AND EXISTS(SELECT 1 FROM json_each(definition,'$.choices') WHERE json_extract(value,'$.id')=?)
+          AND NOT EXISTS(SELECT 1 FROM ballots WHERE poll_id=? AND action_id=?)))) THEN 1 ELSE 0 END)`,
+        guard,id,row.semantic_hash,id,body.actionId,body.choiceId,digest,body.choiceId,id,body.actionId),
+      this.sql('INSERT INTO mutation_guards SELECT ?,1 WHERE NOT EXISTS(SELECT 1 FROM ballots WHERE poll_id=? AND action_id=?)', fresh,id,body.actionId),
+    ];
+    if (participationId) statements.push(this.sql('INSERT INTO participations SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM mutation_guards WHERE id=?)', participationId,id,submission.displayName,fresh));
+    const insertIndex = statements.length;
+    statements.push(this.sql('INSERT INTO ballots(poll_id,action_id,choice_id,participation_id,submission_digest) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM mutation_guards WHERE id=?)', id,body.actionId,body.choiceId,participationId,digest,fresh));
+    if (submission.comment) statements.push(this.sql("INSERT INTO comments(comment_id,poll_id,action_id,choice_id,text,moderation_status,revision,participation_id) SELECT ?,?,?,?,?,'pending',1,? WHERE EXISTS(SELECT 1 FROM mutation_guards WHERE id=?)", crypto.randomUUID(),id,body.actionId,body.choiceId,submission.comment,participationId,fresh));
+    statements.push(this.sql('DELETE FROM mutation_guards WHERE id IN (?,?)',guard,fresh));
+    let out;
+    try { out = await this.db.batch(statements); }
+    catch {
+      const current = await this.publicRow(id), previous = await this.sql('SELECT choice_id,submission_digest FROM ballots WHERE poll_id=? AND action_id=?',id,body.actionId).first();
+      if (previous) need(matches(previous), 'IDEMPOTENCY_CONFLICT');
+      need(current.semantic_hash === row.semantic_hash, 'REVISION_CONFLICT'); need(current.status === 'published' || matches(previous), 'POLL_CLOSED');
+      throw new RelayError('RELAY_UNAVAILABLE');
+    }
+    const view = await this.projection(id);
+    return { accepted: true, alreadyAccepted: out[insertIndex].meta.changes === 0, remoteRef: view.remoteRef, status: view.status, locked: view.locked, results: view.results };
   }
   async asset(id, assetId, publicOnly = false) {
     const row = await this.sql(`SELECT a.* FROM asset_links a JOIN polls p USING(poll_id) WHERE a.poll_id=? AND a.asset_id=?
@@ -96,8 +161,9 @@ export class CloudflareRelay {
       need(assetReferences({ polls: [{ definition }] }).size === 0, 'REMOTE_ASSETS_DISABLED');
     }
   }
-  async execute(method, id, body, capability, assetId) {
-    try { object(body, fields[method], 'Requête'); } catch { throw new RelayError('INVALID_REQUEST'); }
+  async execute(method, id, body, capability, assetId, cursor) {
+    try { object(body, [...fields[method], ...(method === 'castVote' ? ['comment','displayName'].filter(k => Object.hasOwn(body,k)) : [])], 'Requête'); } catch { throw new RelayError('INVALID_REQUEST'); }
+    if (['getComments','getParticipations'].includes(method)) { need(cursor === 'start' || isPublicPollId(cursor), 'INVALID_REQUEST'); cursor = cursor === 'start' ? null : cursor; }
     if (method === 'preparePublication') {
       const { poll, localBallots, expectedRevision } = body; id = poll?.id;
       need(isPublicPollId(id) && Array.isArray(localBallots), 'INVALID_DEFINITION');
@@ -119,6 +185,11 @@ export class CloudflareRelay {
     }
     need(isPublicPollId(id), 'INVALID_REQUEST');
     if (method === 'getPoll') return this.projection(id);
+    if (method === 'getComments') {
+      const view = await this.projection(id); need(view.results.available, 'RESULTS_LOCKED', 'Résultats non disponibles.', { remoteRef: view.remoteRef, ...view.results });
+      need(participationRules(view.definition).commentVisibility === 'public_with_results', 'NOT_FOUND');
+      return { remoteRef: view.remoteRef, ...await this.comments(id,cursor) };
+    }
     if (method === 'getResults') {
       const view = await this.projection(id), result = { remoteRef: view.remoteRef, ...view.results };
       need(result.available, 'RESULTS_LOCKED', 'Résultats non disponibles.', result); return result;
@@ -128,27 +199,26 @@ export class CloudflareRelay {
       need(this.env.REMOTE_ASSETS_ENABLED !== 'false', 'NOT_FOUND');
       return encodeAsset(await this.asset(id, assetId, true));
     }
-    if (method === 'castVote') {
-      need(isPublicPollId(body.actionId), 'INVALID_REQUEST');
-      need(typeof body.choiceId === 'string', 'INVALID_CHOICE');
-      need(body.actionId !== id && body.actionId !== body.choiceId, 'INVALID_REQUEST');
-      // INSERT conditionnel + trigger constituent la transaction critique entière.
-      // Le SELECT suivant sert uniquement à expliquer l'absence d'insertion/retry.
-      const out = await this.db.batch([
-        this.sql(`INSERT OR IGNORE INTO ballots(poll_id,action_id,choice_id)
-          SELECT poll_id,?,? FROM polls WHERE poll_id=? AND status='published'
-          AND EXISTS(SELECT 1 FROM json_each(definition,'$.choices') WHERE json_extract(value,'$.id')=?)
-          AND NOT EXISTS(SELECT 1 FROM ballots WHERE poll_id=? AND action_id=?)`,
-          body.actionId, body.choiceId, id, body.choiceId, id, body.actionId),
-        this.sql('SELECT choice_id FROM ballots WHERE poll_id=? AND action_id=?', id, body.actionId),
-      ]);
-      const existing = out[1].results[0];
-      if (!existing) { const row = await this.publicRow(id); need(row.status !== 'closed', 'POLL_CLOSED'); throw new RelayError('INVALID_CHOICE'); }
-      need(existing.choice_id === body.choiceId, 'IDEMPOTENCY_CONFLICT');
-      const view = await this.projection(id);
-      return { accepted: true, alreadyAccepted: out[0].meta.changes === 0, remoteRef: view.remoteRef, status: view.status, locked: view.locked, results: view.results };
+    if (method === 'castVote') return this.vote(id,body);
+    const row = await this.admin(id, capability, body.expectedRevision, !['getMissingAssets', 'verifyAdmin', 'getParticipations'].includes(method));
+    if (method === 'getParticipations') { need(row.status !== 'draft', 'NOT_FOUND'); return this.participations(row,cursor); }
+    if (['updateCommentStatus','deleteComment'].includes(method)) {
+      need(isPublicPollId(body.commentId) && Number.isSafeInteger(body.expectedCommentRevision) && body.expectedCommentRevision >= 1, 'INVALID_REQUEST');
+      const comment = await this.sql('SELECT * FROM comments WHERE poll_id=? AND comment_id=?',id,body.commentId).first(); need(comment,'NOT_FOUND');
+      need(comment.revision === body.expectedCommentRevision,'REVISION_CONFLICT');
+      const deleting = method === 'deleteComment', guard = crypto.randomUUID();
+      if (!deleting) need(['visible','hidden'].includes(body.moderationStatus) && participationRules(JSON.parse(row.definition)).commentVisibility === 'public_with_results','INVALID_COMMENT');
+      try { await this.mutate(row,[
+        this.sql('INSERT INTO mutation_guards VALUES(?,CASE WHEN EXISTS(SELECT 1 FROM comments WHERE poll_id=? AND comment_id=? AND revision=?) THEN 1 ELSE 0 END)',guard,id,body.commentId,body.expectedCommentRevision),
+        deleting ? this.sql('DELETE FROM comments WHERE poll_id=? AND comment_id=?',id,body.commentId) : this.sql('UPDATE comments SET moderation_status=?,revision=revision+1 WHERE poll_id=? AND comment_id=?',body.moderationStatus,id,body.commentId),
+        this.sql('DELETE FROM mutation_guards WHERE id=?',guard),
+      ]); } catch (error) {
+        if (error.code !== 'RELAY_UNAVAILABLE') throw error;
+        const current = await this.sql('SELECT revision FROM comments WHERE poll_id=? AND comment_id=?',id,body.commentId).first();
+        need(current,'NOT_FOUND'); need(current.revision === body.expectedCommentRevision,'REVISION_CONFLICT'); throw error;
+      }
+      return { remoteRef: this.ref(row), commentId: body.commentId, ...(deleting ? { deleted: true } : { moderationStatus: body.moderationStatus, revision: comment.revision + 1 }) };
     }
-    const row = await this.admin(id, capability, body.expectedRevision, !['getMissingAssets', 'verifyAdmin'].includes(method));
     if (method === 'verifyAdmin') { need(row.status !== 'draft', 'NOT_FOUND'); return this.projection(id); }
     if (method === 'deletePoll') {
       need(row.status !== 'draft', 'NOT_FOUND');

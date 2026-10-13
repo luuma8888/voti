@@ -14,6 +14,7 @@ import { browserQrScenario, browserPosterScenario, qrChoiceStage } from './brows
 import { adminQrScenario } from './browser-admin-qr.mjs';
 import { browserStudioScenario, browserStudioPdfScenario, browserStudioWorkspace } from './browser-studio.mjs';
 import { wrangler } from './relay-local.mjs';
+import { browserParticipationScenario,browserParticipationPdf,remoteParticipationStage } from './browser-participation.mjs';
 
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
@@ -398,7 +399,17 @@ try {
   await command('Page.setLifecycleEventsEnabled', { enabled: true }, sessionId);
   await command('Emulation.setDeviceMetricsOverride', { width: 1200, height: 820, deviceScaleFactor: 1, mobile: false }, sessionId);
   await navigateReady(sessionId, url);
-  if(process.argv.includes('--studio-workspace')) {
+  if(process.argv.includes('--participation')) {
+    let checks=0;for(const width of [320,360,1200]){await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<500},sessionId);checks+=await evaluate(sessionId,`(${browserParticipationScenario.toString()})()`);}
+    const files=[];await mkdir(resolve(ROOT,'.browser-tests/participation-pdfs'),{recursive:true});
+    for(const [mode,identities]of [['anonymous',false],['identified',false],['identified',true]]){
+      const file=await evaluate(sessionId,`(${browserParticipationPdf.toString()})(${JSON.stringify(mode)},${identities})`);const {base64,...metadata}=file;files.push(metadata);await writeFile(resolve(ROOT,'.browser-tests/participation-pdfs',file.name),Buffer.from(base64,'base64'));
+    }
+    await writeFile(resolve(ROOT,'.browser-tests/participation-pdfs/plans.json'),JSON.stringify(files));
+    if(runtimeErrors.length)throw new Error(`${runtimeErrors.length} exceptions participation.`);
+    if(requests.some(url=>/^https?:/.test(url)))throw new Error('Requête externe participation offline.');
+    console.log(`Participation Chromium : ${checks} contrôles réussis, 3 PDF détaillés générés.`);
+  } else if(process.argv.includes('--studio-workspace')) {
     const checks=await studioWorkspaceChecks(sessionId);
     if(runtimeErrors.length)throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
     if(requests.some(url=>/^https?:/.test(url)))throw new Error('Requête externe depuis le Studio local.');
@@ -557,6 +568,7 @@ try {
   await navigateReady(sessionId, offlineUrl);
   if (!await evaluate(sessionId, 'document.documentElement.dataset.theme === "nature"')) throw new Error('Préférence de thème perdue au rechargement offline.');
   if (requests.some(item => /^https?:/.test(item))) throw new Error('Requête HTTP inattendue pendant les tests file://.');
+  const participationChecks = await evaluate(sessionId, `(${browserParticipationScenario.toString()})()`);
   const fileAssetChecks = await evaluate(sessionId, `(${browserAssetScenario.toString()})()`);
   const qrChecks = {checks:await evaluate(sessionId, `(${browserQrScenario.toString()})()`)};
   for(const width of [320,360,1200]) {
@@ -845,11 +857,24 @@ try {
     if(await localBallotCount(id)!==0)throw new Error('Bulletins conservés après suppression');relayChecks++;
     if(relayRequests.some(r=>/voti-admin-v1\.|admin\/import/.test(new URL(r.url).pathname+new URL(r.url).search)))throw new Error('Secret dans URL HTTP');relayChecks++;
     await command('Target.disposeBrowserContext',{browserContextId:transfers.browserContextId});
+    const named=await evaluate(sessionId,`(${remoteParticipationStage.toString()})('create')`);
+    await navigateReady(voter.sessionId,servedUrl+'?v05='+crypto.randomUUID()+'#/p/'+named.id+'/choice/'+named.choiceId);
+    relayChecks+=await evaluate(voter.sessionId,`(${remoteParticipationStage.toString()})('fields')`);
+    if(await localBallotCount(named.id)!==0)throw new Error('QR identified crée un vote avant confirmation');relayChecks++;
+    await navigateReady(voter.sessionId,servedUrl+'?v05-refresh='+crypto.randomUUID()+'#/p/'+named.id+'/choice/'+named.choiceId);
+    relayChecks+=await evaluate(voter.sessionId,`(${remoteParticipationStage.toString()})('fields')`);
+    if(await localBallotCount(named.id)!==0)throw new Error('Refresh identified crée un vote');relayChecks++;
+    relayChecks+=await evaluate(voter.sessionId,`(${remoteParticipationStage.toString()})('vote')`);
+    if(await localBallotCount(named.id)!==1)throw new Error('Vote identified double');relayChecks++;
+    await navigateReady(sessionId,servedUrl+'?v05-admin='+crypto.randomUUID()+'#poll/'+named.id);
+    relayChecks+=await evaluate(sessionId,`(${remoteParticipationStage.toString()})('admin')`);
+    await navigateReady(voter.sessionId,servedUrl+'?v05-results='+crypto.randomUUID()+'#/p/'+named.id+'/results');
+    relayChecks+=await evaluate(voter.sessionId,`(${remoteParticipationStage.toString()})('public')`);
     await command('Target.disposeBrowserContext', { browserContextId:context.browserContextId });
   }
   if (runtimeErrors.length) throw new Error(`${runtimeErrors.length} exceptions JavaScript navigateur.`);
   if (requests.some(item => /^https?:/.test(item) && !['http://127.0.0.1:4173', ...((process.env.VOTI_TEST_RELAY === '1' || process.env.VOTI_TEST_FREE_PILOT === '1') ? ['http://127.0.0.1:8787'] : [])].includes(new URL(item).origin))) throw new Error('Requête réseau externe inattendue.');
-  console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks + relayChecks + dialogChecks + qrChecks.checks} contrôles réussis (mode local, QR/PDF, dialogues, graphiques, images, thèmes, clavier, responsive, offline, /voti/${process.env.VOTI_TEST_RELAY ? ', HTTP multi-contextes' : ''}).`);
+  console.log(`Navigateur Chromium : ${count + 13 + smoke + mobileChecks + contrastChecks + desktopNavigation + responsiveChecks + fileAssetChecks + httpAssetChecks + relayChecks + dialogChecks + qrChecks.checks + participationChecks} contrôles réussis (mode local, participation/commentaires, QR/PDF, dialogues, graphiques, images, thèmes, clavier, responsive, offline, /voti/${process.env.VOTI_TEST_RELAY ? ', HTTP multi-contextes' : ''}).`);
   }
 } catch (error) {
   console.error(`Tests navigateur ÉCHEC : ${error.message}`); process.exitCode = 1;

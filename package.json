@@ -23,6 +23,8 @@
     "test:poster-studio": "node scripts/test-posters.mjs --studio",
     "test:poster-polish": "node scripts/test-posters.mjs --polish",
     "test:poster-images": "node scripts/test-posters.mjs --images",
+    "test:participation": "node scripts/browser-test.mjs --participation",
+    "test:comments": "node scripts/test-posters.mjs --participation",
     "audit:bundle": "node scripts/audit-bundle.mjs"
   },
   "devDependencies": {

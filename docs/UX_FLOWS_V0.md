@@ -253,3 +253,27 @@ Observer :
 - compréhension de « secret » ;
 - compréhension de la confirmation ;
 - compréhension du seuil de résultats.
+
+## Participation enrichie v0.5 — locale avant audit/déploiement
+
+Création : étape des règles → Participation Anonyme/Identifiée (non vérifiée),
+Vote + commentaire facultatif/Vote simple, Privés/Publics avec résultats après
+approbation. Nouveaux défauts anonymous/optional/private ; anciens sondages inchangés.
+
+Vote normal : choix → confirmation avec commentaire facultatif et, si identified,
+nom/pseudonyme obligatoire → Oui, je confirme. QR choix : même écran directement,
+Autre choix retourne à la liste. Aucun envoi au scan/navigation/refresh/saisie.
+Notices personnelles visibles. Contenu figé pour retry après premier envoi ; aucun
+faux succès ni vote local distant de secours. Succès durable avec état du commentaire.
+
+Gestion : Commentaires / Participations & commentaires, regroupés par choix,
+lecture admin avant seuil ; public_with_results : Afficher/Masquer/Supprimer,
+privés : lecture et suppression seulement. Suppression avec dialogue v0.3E,
+irréversible, aucun changement des quantités de votes. Pas d'édition du texte.
+Résultats : commentaires visibles sous leur choix uniquement au seuil (+ fermeture
+si closed), jamais de nom public. Aucune section vide/pending/counter sous seuil.
+
+PDF : Synthèse inchangée ; Rapport peut inclure les commentaires approuvés publics.
+Identités seulement admin identified et opt-in OFF par défaut, avertissement explicite.
+Les règles de résultats ne sont jamais contournées. Aucune identité vérifiée ni unicité
+par personne prétendue. Voir `COMMENTS_AND_IDENTITY_V0.md`.

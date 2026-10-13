@@ -49,7 +49,7 @@ export async function limitRoute(env, name, id, assetId, capability, newPublicat
     binding = env.CREATION_LIMITER; key = `${env.RELAY_ID}:creation`; code = 'CREATION_RATE_LIMITED';
   } else if (name === 'getAsset') {
     binding = env.ASSET_LIMITER; key = `${id}:${assetId}`;
-  } else if (!['getPoll', 'getResults', 'castVote'].includes(name)) {
+  } else if (!['getPoll', 'getResults', 'getComments', 'castVote'].includes(name)) {
     key = await capabilityDigest(env.RELAY_ID, id, capability);
   }
   need(binding?.limit, 'RELAY_UNAVAILABLE');

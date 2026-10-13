@@ -23,11 +23,11 @@ export default {
       const url = new URL(request.url); need(!url.search, 'INVALID_REQUEST');
       let selected;
       for (const [name, [verb, path]] of Object.entries(HTTP_ROUTES)) {
-        const match = url.pathname.match(new RegExp(`^/api/v1/${path.replace(':id', '([a-f0-9-]+)').replace(':asset', '(sha256-[a-f0-9]{64})')}$`));
-        if (request.method === verb && match) { selected = { name, id: match[1], assetId: match[2] }; break; }
+        const match = url.pathname.match(new RegExp(`^/api/v1/${path.replace(':id', '([a-f0-9-]+)').replace(':asset', '(sha256-[a-f0-9]{64})').replace(':cursor', '(start|[a-f0-9-]+)')}$`));
+        if (request.method === verb && match) { selected = { name, id: match[1], assetId: path.includes(':asset') ? match[2] : undefined, cursor: path.includes(':cursor') ? match[2] : undefined }; break; }
       }
       need(selected, 'NOT_FOUND');
-      const { name, id, assetId } = selected;
+      const { name, id, assetId, cursor } = selected;
       const capability = request.headers.get('Authorization')?.replace(/^Bearer /, '');
       const service = new CloudflareRelay(env);
       // Limiter avant lecture du corps et toute validation coûteuse (y compris Siteverify).
@@ -41,7 +41,7 @@ export default {
         if (existing) await service.admin(existing.poll_id, capability, body.expectedRevision);
         else await verifyHuman(request, env, token);
       }
-      const result = await service.execute(name, id, body, capability, assetId);
+      const result = await service.execute(name, id, body, capability, assetId, cursor);
       // Scheduled est le seul mécanisme automatique : aucun GC sur GET ou vote.
       if (name === 'getAsset') {
         // Cache privé navigateur court : suppression/retrait vérifié avant chaque réponse réseau.

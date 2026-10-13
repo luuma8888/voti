@@ -10,12 +10,14 @@ import jsQR from 'jsqr';
 const studio=process.argv.includes('--studio');
 const polish=process.argv.includes('--polish');
 const images=process.argv.includes('--images');
-const root=resolve(images?'.browser-tests/image-pdfs':polish?'.browser-tests/polish-pdfs':studio?'.browser-tests/studio-pdfs':'.browser-tests/pdfs');
+const participation=process.argv.includes('--participation');
+const root=resolve(participation?'.browser-tests/participation-pdfs':images?'.browser-tests/image-pdfs':polish?'.browser-tests/polish-pdfs':studio?'.browser-tests/studio-pdfs':'.browser-tests/pdfs');
 const UPNG=UPNGModule.default;
 const files=JSON.parse(await readFile(resolve(root,'plans.json'),'utf8'));
 let checks=0, decoded=0;
 const assert=(value,message)=>{if(!value)throw new Error(message);checks++;};
-assert(new Set(files.map(f=>f.theme)).size>=(images?3:studio||polish?4:5),'Affiches générées avec des palettes variées');
+assert(new Set(files.map(f=>f.theme)).size>=(participation?2:images?3:studio||polish?4:5),'Affiches générées avec des palettes variées');
+if(participation){assert(files.length===3,'Trois rapports participation');assert(files.every(f=>f.pages>=2),'Commentaires paginés');}
 if(images){assert(files.length===3,'Trois PDF de zones d’images');assert(files[0].images.flat().some(i=>i.imageKey==='main'&&i.width>2000),'Image principale pleine largeur dans le PDF');}
 if(polish){assert(files.length===7,'Sept scénarios polish');assert(files.filter(f=>f.kind==='poster'&&f.layout==='cards'&&f.mode==='choices'&&f.pages===1).length===2,'Trois choix sur une page : 3 et 2+1');}
 if(studio){assert(new Set(files.filter(f=>f.kind==='poster').map(f=>f.layout)).size===4,'Quatre layouts PDF');assert(files.filter(f=>f.kind==='results').length===5,'PDF résultats Synthèse/Rapport');assert(new Set(files.filter(f=>f.kind==='results').map(f=>f.theme)).size===5,'Cinq palettes résultats');}

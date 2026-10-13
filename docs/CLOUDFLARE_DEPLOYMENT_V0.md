@@ -1,5 +1,14 @@
 # Voti — préparation du déploiement Cloudflare
 
+> **v0.5 — production contrôlée autorisée :** sauvegarde D1 locale confidentielle
+> réalisée, migration additive `0003_participation_comments.sql` appliquée puis
+> Worker compatible déployé (version `9ea6d58d-0ced-4a76-b7a1-0b5262ad5748`).
+> Compatibilité v0.4C confirmée avant publication du frontend : vote simple
+> accepté, aucun commentaire ni Participation rétroactifs. Frontend en cours
+> de publication ; recette humaine v0.5 restante. Le profil Free sans R2 reste
+> inchangé. Voir `CODEX_PARTICIPATION_V0_5_REPORT.md` pour la progression exacte.
+> Aucun ordre dans ce guide ne vaut autorisation générale d'un autre déploiement.
+
 > **Mise à jour v0.3D :** le Gate A a permis de créer D1 UE, le sous-domaine
 > workers.dev et Turnstile. Lu’uma a validé un pilote **Workers Free uniquement,
 > sans R2 ni images distantes**. Les exemples R2 ci-dessous sont historiques et

@@ -110,7 +110,7 @@ export async function browserAssetScenario() {
   click('Continuer'); click('Continuer'); click('Créer le brouillon');
   await until(() => stored().polls.length === 1 && location.hash.startsWith('#poll/'), 'création illustrée');
   const id = stored().polls[0].id, first = stored().polls[0].definition.pollImageAssetId;
-  assert(stored().schemaVersion === 2 && !!stored().polls[0].definition.choices[0].imageRef, 'Références sémantiques v2');
+  assert(stored().schemaVersion === 3 && !!stored().polls[0].definition.choices[0].imageRef, 'Références images préservées dans le snapshot v3');
   assert(!/base64|data:image|byteLength/.test(localStorage.getItem(key)), 'Aucun blob/base64 en localStorage');
   await go('#home', 'Mes sondages');
   await until(() => document.querySelector('.image-thumbnail img')?.naturalWidth > 0, 'vignette');

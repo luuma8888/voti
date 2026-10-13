@@ -169,3 +169,23 @@ de production. [Tests Turnstile officiels](https://developers.cloudflare.com/tur
 
 Avant tout déploiement, suivre `CLOUDFLARE_DEPLOYMENT_V0.md`. Aucune ressource
 distante, secret distant, widget ou configuration Pages n'est modifié ici.
+
+## Participation v0.5
+
+Anonymous : aucune Participation, aucun nom/pseudo/participationId technique,
+pas d'identifiant de personne stable. Commentaire texte brut et actionId aléatoire
+par confirmation ; reçu SHA-256 contextualisé par action, pas un profil de votant.
+Un texte peut volontairement révéler son auteur : notice visible et modération,
+aucune promesse d'anonymisation du contenu ni d'anonymat réseau.
+
+Identified : nom/pseudonyme déclaré, **non vérifié**, 1–60 caractères Unicode,
+accessible seulement à l'administration et à son PDF explicitement opt-in (OFF par défaut).
+Deux noms identiques admis, aucun compte ni garantie une personne = un vote.
+Commentaires facultatifs 300 caractères, privés par défaut ; seuls approuvés publics
+avec résultats publiables. Sous seuil, aucune existence/counter/projection publique.
+Pas de logs applicatifs volontaires des noms/textes/corps de soumission.
+
+Rétention = sondage, aucune expiration publiée/fermée. DeleteComment supprime le
+texte sans supprimer le vote/reçu ; DeletePoll cascade toutes ces nouvelles données.
+Backup local contient les noms/commentaires locaux ; ne pas le partager publiquement.
+PDF exportés/copies téléchargées peuvent survivre à toute suppression serveur.

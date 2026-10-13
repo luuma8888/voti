@@ -9,6 +9,7 @@ import { createAdminCapability, createVoteActionId } from '../shared/relay.js';
 import { draft } from '../tests/fixtures.js';
 import { makeAsset } from '../shared/assets.js';
 import { pngFixture } from '../tests/image-fixtures.js';
+import { participationChecks } from './participation-checks.mjs';
 
 // Profil local indépendant, sans binding R2, sans credentials et sans ressource distante.
 const baseUrl = 'http://127.0.0.1:8787', relayId = 'voti-free-test';
@@ -19,6 +20,10 @@ const check = value => { assert.ok(value); checks++; };
 const rejected = async (promise, code) => { await assert.rejects(promise, { code }); checks++; };
 const adapter = () => new HttpRelayAdapter({ relayId, baseUrl });
 const token = () => `voti-local-test.${Date.now()}.${crypto.randomUUID()}`;
+async function sql(command) {
+  const proc=wrangler(['d1','execute',relayId,...args,'--local',...persist,'--json','--command',command],{stdio:['ignore','pipe','pipe']});
+  let out='';proc.stdout.on('data',c=>out+=c);proc.stderr.resume();assert.equal((await once(proc,'exit'))[0],0,'SQL local de participation refusé.');return JSON.parse(out);
+}
 try {
   const migration = wrangler(['d1', 'migrations', 'apply', relayId, ...args, '--local', ...persist], { stdio: ['ignore', 'pipe', 'pipe'] });
   migration.stdout.resume(); migration.stderr.resume(); check((await once(migration, 'exit'))[0] === 0);
@@ -29,6 +34,7 @@ try {
     if (child.exitCode !== null || Date.now() > deadline) throw new Error('Worker gratuit local non prêt.');
     await new Promise(resolve => setTimeout(resolve, 100));
   }
+  checks+=await participationChecks({adapter:adapter(),sql});
   const state = draft(), poll = state.polls[0];
   const store = new MemoryRemoteConnectionAdapter(), creator = new RelayClient(adapter(), store);
   const voter = new RelayClient(adapter(), new MemoryRemoteConnectionAdapter());

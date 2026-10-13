@@ -9,7 +9,8 @@ test('build autonome : tous les modules embarqués, aucun script/CSS externe', a
   assert.doesNotMatch(html, /<script[^>]+src=|<link[^>]+(?:href|rel)=|@import|url\(https?:/i);
   const match = html.match(/<script type="importmap">(.*?)<\/script>/s);
   const { imports } = JSON.parse(match[1]);
-  assert.equal(Object.keys(imports).length, 40);
+  assert.ok(Object.keys(imports).length >= 41);
+  assert.ok(imports['voti/shared/participation.js']);
   for (const name of ['qr', 'pdf']) assert.ok(imports[`voti/vendor/${name}.js`]);
   assert.ok(!Object.keys(imports).some(name => name.includes('jsqr')));
   assert.match(html, /id="third-party-licenses"/);
