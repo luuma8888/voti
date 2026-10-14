@@ -183,6 +183,13 @@ legend { font-weight:700; margin-bottom:12px; }
 .question-block .image-poll { display:flex; width:100%; max-width:none; height:clamp(220px,38vw,380px); margin:10px 0 0; background:var(--soft); }
 .question-block img { object-fit:contain; }
 .choice-summary { padding:0; list-style:none; }
+.admin-comment-count { display:inline-flex; align-items:center; gap:4px; color:var(--ink); white-space:nowrap; }
+.management-lock-notice { margin-bottom:18px; }
+.management-answers { margin:16px 0; padding:16px; border:1px solid var(--line); border-radius:14px; background:var(--soft); min-width:0; }
+.management-answers h2 { margin:0 0 12px; font-size:18px; }
+.management-answers .choice-summary { margin:0; }
+.management-answers .choice-summary:not(.illustrated) { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr)); gap:8px; }
+.management-answers .choice-summary:not(.illustrated) li { padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface); font-weight:600; overflow-wrap:anywhere; }
 .choice-summary:not(.illustrated) li { padding:8px 0; }
 .illustrated { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
 .illustrated legend { grid-column:1/-1; }

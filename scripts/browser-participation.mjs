@@ -1,6 +1,6 @@
 /** Scénario exécuté dans le vrai HTML autonome, exclusivement données fictives. */
 export async function browserParticipationScenario() {
-  const {createPoll,publishPoll}=await import('voti/shared/poll-engine.js');
+  const {createPoll,publishPoll,castVote}=await import('voti/shared/poll-engine.js');
   const {emptyState}=await import('voti/shared/model.js');
   const key='voti.local.v1';let checks=0;
   const assert=(v,m)=>{if(!v)throw new Error('Participation : '+m);checks++;};
@@ -14,6 +14,8 @@ export async function browserParticipationScenario() {
     let initial=createPoll(emptyState(),{question:'Sondage fictif '+mode,choices:['Été 😊','Forêt'],participationIdentityMode:mode,commentVisibility:'public_with_results',resultRules:{minimumResponses:1}});
     initial=publishPoll(initial,initial.polls[0].id);const pollId=initial.polls[0].id;
     localStorage.setItem(key,JSON.stringify(initial));window.dispatchEvent(new StorageEvent('storage',{key}));await go('#home','Mes sondages');
+    await wait(()=>document.querySelector(`[data-poll-id="${pollId}"]`));
+    assert(!document.querySelector('[data-testid=admin-comment-count]'),'zéro commentaire : compteur absent');
     await go('#vote/'+pollId,'Choisis une réponse');document.querySelector('.vote-choices input').click();click('Continuer');
     await wait(()=>document.querySelector('[data-testid=vote-comment]'));
     assert(stored().ballots.length===0,'confirmation avant saisie sans vote');
@@ -34,14 +36,31 @@ export async function browserParticipationScenario() {
     assert(stored().ballots.length===1&&stored().comments.length===1,'double clic : une soumission complète');
     assert(stored().participations.length===(mode==='identified'?1:0),'aucune Participation anonyme');
     window.dispatchEvent(new StorageEvent('storage',{key}));await new Promise(requestAnimationFrame);assert(text().includes('Ton vote a bien été enregistré'),'succès durable');
+    await go('#home','Mes sondages');assert(document.querySelector('[data-testid=admin-comment-count]')?.dataset.count==='1','accueil créateur : un commentaire');
     await go('#poll/'+pollId,'Ouvrir le vote');await wait(()=>document.querySelector('[data-comment-action=visible]'));
+    const answers=document.querySelector('.management-answers'),notice=document.querySelector('.management-lock-notice');
+    assert(answers?.querySelector('h2').textContent==='Réponses proposées','réponses titrées');
+    assert(!answers.contains(notice)&&notice.compareDocumentPosition(answers)&Node.DOCUMENT_POSITION_FOLLOWING,'message de verrouillage séparé');
+    for(const theme of ['pop','nature','douceur','dark','minimal']){
+      document.documentElement.dataset.theme=theme;
+      assert(document.documentElement.scrollWidth<=innerWidth,'gestion sans débordement '+theme);
+      assert(getComputedStyle(answers).borderTopStyle==='solid'&&getComputedStyle(answers).backgroundColor!==getComputedStyle(answers.parentElement).backgroundColor,'bloc visuellement distinct '+theme);
+    }
     assert(text().includes(comment)&&!window.votiXss,'admin : texte brut sans XSS');
     document.querySelector('[data-comment-action=visible]').click();await wait(()=>stored().comments[0].moderationStatus==='visible');
     await go('#results/'+pollId,'Les résultats');assert(text().includes(comment),'commentaire approuvé public');
+    assert(!document.querySelector('[data-testid=admin-comment-count]'),'aucun compteur administratif dans les résultats');
     assert(!text().includes('Emma 😊 العربية')&&!window.votiXss,'identité jamais dans résultats publics');
     const pdf=document.querySelector('.results-pdf');pdf.open=true;
     const identity=[...pdf.querySelectorAll('input[type=checkbox]')].find(c=>(c.labels?.[0]?.textContent??'').includes('identités'));
     assert(mode==='identified'?identity&&!identity.checked:!identity,'PDF identités OFF par défaut, seulement admin identified');
+    if(identity){
+      const presentation=[...pdf.querySelectorAll('select')].find(c=>c.querySelector('option[value=report]'));
+      presentation.value='report';presentation.dispatchEvent(new Event('change',{bubbles:true}));
+      const warning=[...pdf.querySelectorAll('p')].find(p=>p.textContent.startsWith('Ce PDF contiendra'));
+      assert(warning.hidden,'identités OFF : avertissement absent');identity.click();assert(!warning.hidden,'identités ON : avertissement immédiatement visible');
+      identity.click();assert(warning.hidden,'désactivation : avertissement retiré');
+    }
     await go('#poll/'+pollId,'Ouvrir le vote');await wait(()=>document.querySelector('[data-comment-action=delete]'));
     document.querySelector('[data-comment-action=delete]').click();await wait(()=>document.querySelector('dialog[open]'));
     assert(document.querySelector('dialog').textContent.includes('irréversible'),'suppression dialogue explicite');
@@ -49,6 +68,11 @@ export async function browserParticipationScenario() {
     document.querySelector('[data-comment-action=delete]').click();await wait(()=>document.querySelector('dialog[open]'));
     const remove=[...document.querySelectorAll('dialog button')].find(b=>b.textContent==='Supprimer définitivement');remove.click();remove.click();await wait(()=>stored().comments.length===0);
     assert(stored().ballots.length===1,'suppression commentaire garde vote');
+    await go('#home','Mes sondages');assert(!document.querySelector('[data-testid=admin-comment-count]'),'commentaire supprimé : compteur absent');
+    let several=stored();
+    for(let i=0;i<3;i++)several=await castVote(several,{id:crypto.randomUUID(),pollId,choiceId:several.polls[0].definition.choices[0].id,comment:'Fictif '+i,...(mode==='identified'?{displayName:'Fictif'}:{})});
+    localStorage.setItem(key,JSON.stringify(several));window.dispatchEvent(new StorageEvent('storage',{key}));
+    await wait(()=>document.querySelector('[data-testid=admin-comment-count]')?.dataset.count==='3');assert(true,'plusieurs commentaires : nombre exact');
   }
   document.documentElement.dataset.theme=localStorage.getItem('voti.theme')||'pop';return checks;
 }

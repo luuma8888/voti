@@ -25,6 +25,7 @@ import { PosterRepository } from './poster-storage.js';
 import { posterStudio, resultsPdfPanel } from './poster-studio.js';
 import { participationRules, administrativeEntries, moderateComment, publicComments } from '../shared/participation.js';
 import { submissionFields, commentsAdministration, IDENTITY_NOTICE } from './participation-ui.js';
+import { localCommentCount, remoteCommentCount, canReadRemoteComments } from './admin-comment-count.js';
 
 // Avant stockage, rendu, appel du relais ou traitement asynchrone.
 let pendingAdminPayload = consumeAdminFragment(location, history);
@@ -289,6 +290,26 @@ async function transact(node, operation, after = () => render(), staged = []) {
 }
 
 function home() {
+  let active = true, queue = Promise.resolve();
+  const counts = new Map();
+  disposeView = () => { active = false; };
+  function commentBadge(target, id) {
+    const show = count => {
+      if (!active || !target.isConnected || !(count > 0)) return;
+      target.append(el('span', `💬 ${count}`, { class: 'admin-comment-count',
+        'data-testid': 'admin-comment-count', 'data-count': String(count),
+        'aria-label': `${count} commentaire${count > 1 ? 's' : ''} accessibles à l’administration` }));
+    };
+    if (!bindings.has(id)) { show(localCommentCount(state, id)); return; }
+    const connection = bindings.get(id);
+    if (!relay || !canReadRemoteComments(connection, RELAY_CONFIG.relayId)) return;
+    if (!counts.has(id)) {
+      // File bornée à une lecture à la fois, réutilisée lors des recherches/tris.
+      const task = queue.then(() => active ? remoteCommentCount(cursor => relay.getParticipations(id, cursor), () => active) : null).catch(() => null);
+      counts.set(id, task); queue = task;
+    }
+    counts.get(id).then(show);
+  }
   heading('Mes sondages');
   const title = app.lastElementChild;
   const entries = summarizePolls(state);
@@ -345,6 +366,7 @@ function home() {
       const poll = getPoll(state, entry.id);
       if (poll.definition.pollImageAssetId) row.append(images.show(poll.definition.pollImageAssetId, { size: 'thumbnail' }));
       row.append(info, controls); item.append(row); list.append(item);
+      commentBadge(metadata, entry.id);
     }
     if (entries.length && !visible.length) list.append(append(el('li', null, { class: 'empty-state' }),
       el('p', 'Aucun sondage ne correspond à cette recherche.'), button('Réinitialiser la recherche', () => {
@@ -362,8 +384,11 @@ function home() {
   const recovered = [...bindings.values()].filter(c => c.adminCapability && !state.polls.some(p => p.id === c.pollId));
   if (recovered.length) {
     const section = append(el('section', null, { class: 'admin-key-panel' }), el('h2', 'Administrations en ligne retrouvées'));
-    for (const item of recovered) section.append(actions(link(remoteViews.get(item.pollId)?.definition.question || 'Sondage en ligne', `#poll/${item.pollId}`)));
     app.append(section);
+    for (const item of recovered) {
+      const row = actions(link(remoteViews.get(item.pollId)?.definition.question || 'Sondage en ligne', `#poll/${item.pollId}`));
+      section.append(row); commentBadge(row, item.pollId);
+    }
   }
 }
 
@@ -416,8 +441,9 @@ function management(id) {
   const card = el('section', null, { class: 'card', 'data-accent': poll.style.themeId });
   card.append(questionBlock(poll));
   append(card, el('span', statusLabel(poll), { class: `badge status-${poll.status}` }), el('span',contextLabel(id),{class:'badge context-badge'}),
-    el('p', poll.lockedAt ? 'Le premier vote a verrouillé la question, les choix et les règles. Vous pouvez encore changer l’apparence.' : 'Vous pouvez modifier la question, les choix et les règles avant le premier vote.'),
-    choiceSummary(poll.definition.choices));
+    el('p', poll.lockedAt ? 'Le premier vote a verrouillé la question, les choix et les règles. Vous pouvez encore changer l’apparence.' : 'Vous pouvez modifier la question, les choix et les règles avant le premier vote.', { class: 'management-lock-notice' }),
+    append(el('section', null, { class: 'management-answers', 'aria-label': 'Réponses proposées' }),
+      el('h2', 'Réponses proposées'), choiceSummary(poll.definition.choices)));
   const controls = [];
   if (poll.status === 'draft') {
     const publish = button('Publier dans ce navigateur', () => transact(publish, current => publishPoll(current, id)), 'primary');

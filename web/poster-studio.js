@@ -182,7 +182,9 @@ export function resultsPdfPanel(poll,result,{repository,pollAssets,refreshPoll,e
     check('Inclure aussi les images affiche-only de ce Studio',false,v=>usePosterMedia=v));
   if(poll.definition.commentVisibility==='public_with_results')extras.append(check('Inclure les commentaires visibles',false,v=>includeComments=v));
   if(admin&&poll.definition.participationIdentityMode==='identified'){
-    extras.append(check('Inclure les identités des participants',false,v=>includeIdentities=v),node('p','Ce PDF contiendra les noms ou pseudonymes associés aux réponses.','privacy-notice'));
+    const warning=node('p','Ce PDF contiendra les noms ou pseudonymes associés aux réponses.','privacy-notice');
+    warning.hidden=true;warning.setAttribute('aria-live','polite');
+    extras.append(check('Inclure les identités des participants',false,v=>{includeIdentities=v;warning.hidden=!v;}),warning);
   }
   box.append(extras);
   const download=button('Télécharger les résultats en PDF',async()=>{
