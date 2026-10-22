@@ -1,5 +1,41 @@
 # UX_FLOWS_V0.md — Voti
 
+## Parcours v0.6 — modes libre et Espace
+
+Le mode libre et son Studio/QR/PDF/commentaires restent indépendants, sans compte ni
+unicité par personne. L’accueil donne une zone distincte « Espaces & groupes » et
+« Présenter ma Carte Voti », sans forcer un Espace.
+
+Gestion Espace : capacité admin/créateur séparée → groupes/membres/cartes/invitations
+selon rôle → brouillon distant → réglages/audience → publication/snapshot → gestion.
+Un créateur limité ne gère pas les membres ni les groupes d’un autre périmètre.
+Un Espace archivé désactive cartes/créateurs, conserve l’historique, reste lisible
+par son administrateur ; pas de réactivation ou suppression totale dans cette version.
+
+Sondage d’abord : QR → Présente ta Carte Voti → caméra ou photo QR traitée localement
+→ vérification relais → choix/commentaire → confirmation → vote atomique → Merci !
+→ carte et identité oubliées. Carte d’abord : QR carte → Mon espace → sondage → même
+parcours. Aucun secret de carte gardé dans localStorage/IndexedDB/sessionStorage.
+Expiration mémoire cinq minutes, Terminer et départ de page ; pas de Rester connecté.
+
+QR choix contrôlé valide : après carte, confirmation directe. « Autre choix »
+normalise la route et ouvre la liste. Aucun vote au scan/navigation. Identifié :
+nom de carte automatique, explication visible ; anonyme : aucun champ nom.
+Déjà participé est individuel ; sur succès le formulaire et le profil sont détruits,
+« Participant suivant » remet le téléphone dans un état neutre.
+
+Résultats privés : QR → carte → audience et seuil/règle vérifiés par le relais.
+Administrateur anonyme : X/Y et commentaires, aucune liste de votants/non-votants.
+Identifié : Tous / A participé / À relancer et réponses/commentaires liés.
+PDF conserve les options v0.5, noms jamais publics ni automatiquement exportés.
+
+Suppression libre : appareil / en ligne / partout, confirmations stylisées.
+Le retrait local reste possible même relais absent ou distant déjà supprimé. Un
+nettoyage partiel n’empêche pas de retirer la copie ; message de reprise explicite.
+Sauvegarde permet aussi de retirer les designs locaux laissés après suppression
+distante. Les fichiers PDF/QR déjà téléchargés restent sur leurs appareils.
+Voir `MEMBER_CARDS_V0.md` : cartes/PDF sont secrets, pas des comptes classiques.
+
 ## 1. Principes
 
 - mobile-first ;

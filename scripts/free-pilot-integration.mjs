@@ -10,6 +10,7 @@ import { draft } from '../tests/fixtures.js';
 import { makeAsset } from '../shared/assets.js';
 import { pngFixture } from '../tests/image-fixtures.js';
 import { participationChecks } from './participation-checks.mjs';
+import {spacesChecks} from './spaces-checks.mjs';
 
 // Profil local indépendant, sans binding R2, sans credentials et sans ressource distante.
 const baseUrl = 'http://127.0.0.1:8787', relayId = 'voti-free-test';
@@ -34,6 +35,8 @@ try {
     if (child.exitCode !== null || Date.now() > deadline) throw new Error('Worker gratuit local non prêt.');
     await new Promise(resolve => setTimeout(resolve, 100));
   }
+  if(process.argv.includes('--spaces'))checks+=await spacesChecks({adapter:adapter(),sql});
+  if(!process.argv.includes('--spaces-browser-only')){
   checks+=await participationChecks({adapter:adapter(),sql});
   const state = draft(), poll = state.polls[0];
   const store = new MemoryRemoteConnectionAdapter(), creator = new RelayClient(adapter(), store);
@@ -67,14 +70,15 @@ try {
   check((await fetch(`${baseUrl}/__scheduled?cron=17+*+*+*+*`)).ok);
   await creator.getPoll(poll.id); await creator.closePoll(poll.id); check((await voter.getPoll(poll.id)).status === 'closed');
   await creator.deletePoll(poll.id); await rejected(voter.getPoll(poll.id), 'NOT_FOUND');
-  if (process.argv.includes('--browser')) {
-    const browser = spawn(process.execPath, ['scripts/browser-test.mjs'], { stdio: 'inherit', env: { ...localEnv,
+  }
+  if (process.argv.includes('--browser')||process.argv.includes('--spaces-browser')) {
+    const browser = spawn(process.execPath, ['scripts/browser-test.mjs',...(process.argv.includes('--spaces-browser')?['--spaces']:[])], { stdio: 'inherit', env: { ...localEnv,
       VOTI_RELAY_URL: baseUrl, VOTI_RELAY_ID: relayId, VOTI_TURNSTILE_MODE: 'local-test',
       VOTI_REMOTE_ASSETS_ENABLED: 'false', VOTI_TEST_FREE_PILOT: '1', VOTI_TEST_PERSIST: persist[1] } });
     check((await once(browser, 'exit'))[0] === 0);
   }
   console.log(`Pilote gratuit local : ${checks} contrôles réussis (HTTP/D1 sans R2).`);
-} catch (error) { console.error(`Pilote gratuit local ÉCHEC : ${error.code || error.message}`); process.exitCode = 1; }
+} catch (error) { console.error(`Pilote gratuit local ÉCHEC : ${error.code || error.message}${error.testOperation?' ('+error.testOperation+')':''}`); process.exitCode = 1; }
 finally {
   if (child && child.exitCode === null) {
     const exit = once(child, 'exit'); child.kill('SIGTERM');

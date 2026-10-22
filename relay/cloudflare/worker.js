@@ -2,11 +2,13 @@ import { RelayError, relayEnsure as need } from '../../shared/relay.js';
 import { HTTP_ROUTES, readBoundedJson } from '../../shared/relay-wire.js';
 import { CloudflareRelay, cleanup } from './service.js';
 import { verifyHuman, limitRoute } from './abuse.js';
+import { SPACE_COMMAND_FIELDS } from '../../shared/space-wire.js';
 
 const statuses = { NOT_FOUND: 404, INVALID_CAPABILITY: 403, REVISION_CONFLICT: 409, POLL_CLOSED: 409,
   POLL_LOCKED: 409, RESULTS_LOCKED: 423, IDEMPOTENCY_CONFLICT: 409, PUBLICATION_CONFLICT: 409,
   PAYLOAD_TOO_LARGE: 413, RATE_LIMITED: 429, CREATION_RATE_LIMITED: 429, RELAY_UNAVAILABLE: 503,
   HUMAN_VERIFICATION_REQUIRED: 403, HUMAN_VERIFICATION_FAILED: 403, REMOTE_ASSETS_DISABLED: 422 };
+Object.assign(statuses,{ALREADY_PARTICIPATED:409,NOT_ELIGIBLE:403,MEMBER_CARD_REQUIRED:403,ACCESS_DENIED:403,INVITATION_EXPIRED:410,INVITATION_EXHAUSTED:409});
 export default {
   async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin');
@@ -21,6 +23,15 @@ export default {
     }
     try {
       const url = new URL(request.url); need(!url.search, 'INVALID_REQUEST');
+      const spaceRoute=url.pathname.match(/^\/api\/v1\/spaces\/([a-zA-Z]+)$/);
+      if(spaceRoute&&request.method==='POST'){
+        const command=spaceRoute[1];need(Object.hasOwn(SPACE_COMMAND_FIELDS,command),'NOT_FOUND');
+        const credential=request.headers.get('Authorization')?.replace(/^Bearer /,''),service=new CloudflareRelay(env);
+        await limitRoute(env,`space:${command}`,'spaces',undefined,credential,command==='createSpace');
+        const body=await readBoundedJson(request);need(body&&Object.keys(body).every(k=>['input','humanVerificationToken'].includes(k)),'INVALID_REQUEST');
+        if(command==='createSpace')await verifyHuman(request,env,body.humanVerificationToken);
+        const result=await service.spaces.command(command,body.input,credential);return Response.json(result,{headers});
+      }
       let selected;
       for (const [name, [verb, path]] of Object.entries(HTTP_ROUTES)) {
         const match = url.pathname.match(new RegExp(`^/api/v1/${path.replace(':id', '([a-f0-9-]+)').replace(':asset', '(sha256-[a-f0-9]{64})').replace(':cursor', '(start|[a-f0-9-]+)')}$`));

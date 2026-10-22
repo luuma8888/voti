@@ -5,6 +5,8 @@ import { assetReferences, contentId, metadata, validateReferences } from '../../
 import { decodeAsset, encodeAsset } from '../../shared/relay-wire.js';
 import { validateServerImage } from './image-validation.js';
 import { participationRules, normalizeSubmission, submissionDigest } from '../../shared/participation.js';
+import { groupResultsAvailable } from '../../shared/spaces.js';
+import { SpacesService } from './spaces-service.js';
 
 const NOW = () => Math.floor(Date.now() / 1000);
 const fields = {
@@ -21,13 +23,14 @@ export async function capabilityDigest(relayId, pollId, capability) {
   return contentId(new TextEncoder().encode(`voti-capability-v1\n${relayId}\n${pollId}\n${capability}`));
 }
 export class CloudflareRelay {
-  constructor(env) { this.env = env; this.db = env.DB; }
+  constructor(env) { this.env = env; this.db = env.DB; this.spaces = new SpacesService(this); }
   sql(query, ...args) { return this.db.prepare(query).bind(...args); }
   ref(row) { return remoteRef(this.env.RELAY_ID, row.poll_id, row.revision); }
   async row(id) { return this.sql('SELECT * FROM polls WHERE poll_id=?', id).first(); }
   async publicRow(id) { const row = await this.row(id); need(row && row.status !== 'draft', 'NOT_FOUND'); return row; }
   async admin(id, capability, expected, mutation = true) {
     const row = await this.row(id); need(row, 'NOT_FOUND');
+    if(JSON.parse(row.access_rules).audience==='context')return this.spaces.adminPoll(row,capability,expected,mutation);
     const digest = await capabilityDigest(this.env.RELAY_ID, id, capability);
     // Workers Web Crypto fournit la comparaison constante des octets.
     need(crypto.subtle.timingSafeEqual(new TextEncoder().encode(digest), new TextEncoder().encode(row.capability_hash)), 'INVALID_CAPABILITY');
@@ -40,14 +43,20 @@ export class CloudflareRelay {
   }
   /** Guard et mutations dans le même batch D1 transactionnel. Aucun await entre SQL. */
   async mutate(row, statements) {
-    const guard = crypto.randomUUID();
+    const guard = crypto.randomUUID(), staffGuard = crypto.randomUUID();
     try {
       return await this.db.batch([
         this.sql(`INSERT INTO mutation_guards VALUES(?, CASE WHEN EXISTS(
           SELECT 1 FROM polls WHERE poll_id=? AND revision=? AND capability_hash=?
           AND (status!='draft' OR EXISTS(SELECT 1 FROM publications WHERE poll_id=? AND expires_at>unixepoch()))
         ) THEN 1 ELSE 0 END)`, guard, row.poll_id, row.revision, row.capability_hash, row.poll_id),
-        ...statements, this.sql('DELETE FROM mutation_guards WHERE id=?', guard),
+        ...(row.staffAccessId ? [this.sql(`INSERT INTO mutation_guards VALUES(?,CASE WHEN EXISTS(
+          SELECT 1 FROM space_access a JOIN spaces s USING(space_id) JOIN poll_audiences p USING(space_id)
+          WHERE p.poll_id=? AND a.access_id=? AND a.credential_digest=? AND a.status='active' AND (s.status='active' OR a.role='admin')
+          AND (a.role='admin' OR (a.role='creator' AND a.group_scopes IS NULL) OR (a.role='creator' AND p.mode='groups' AND NOT EXISTS(
+            SELECT 1 FROM poll_audience_groups g WHERE g.poll_id=p.poll_id AND g.group_id NOT IN (SELECT value FROM json_each(a.group_scopes)))))
+          ) THEN 1 ELSE 0 END)`,staffGuard,row.poll_id,row.staffAccessId,row.staffDigest)] : []),
+        ...statements, this.sql('DELETE FROM mutation_guards WHERE id IN (?,?)', guard,staffGuard),
       ]);
     } catch {
       const current = await this.row(row.poll_id);
@@ -62,19 +71,23 @@ export class CloudflareRelay {
   bump(id, extra = '', args = []) {
     return this.sql(`UPDATE polls SET revision=revision+1+abs(random()%1000000)${extra} WHERE poll_id=?`, ...args, id);
   }
-  async projection(id) {
+  async projection(id, authorized = false) {
     // Un seul SELECT : statut/règles/révision et agrégats correspondent au même instant.
     const row = await this.sql(`SELECT p.*, (SELECT COUNT(*) FROM ballots WHERE poll_id=p.poll_id) total,
+      (SELECT count(*) FROM poll_member_eligibility WHERE poll_id=p.poll_id) eligible,
+      (SELECT coalesce(sum(consumed),0) FROM poll_member_eligibility WHERE poll_id=p.poll_id) consumed,
       (SELECT json_group_object(choice_id,n) FROM (SELECT choice_id,COUNT(*) n FROM ballots WHERE poll_id=p.poll_id GROUP BY choice_id)) counts
       FROM polls p WHERE poll_id=? AND status!='draft'`, id).first();
     need(row, 'NOT_FOUND');
+    const grouped=JSON.parse(row.access_rules).audience==='context';need(!grouped||authorized,'MEMBER_CARD_REQUIRED');
+    need(!grouped||row.total===row.consumed,'RELAY_UNAVAILABLE');
     const definition = JSON.parse(row.definition), rules = JSON.parse(row.result_rules);
-    const available = row.total >= rules.minimumResponses && (rules.releaseMode === 'threshold' || row.status === 'closed');
+    const available = grouped?groupResultsAvailable(row.status,rules,row.consumed,row.eligible):row.total >= rules.minimumResponses && (rules.releaseMode === 'threshold' || row.status === 'closed');
     let results = { available: false, minimumResponses: rules.minimumResponses, releaseMode: rules.releaseMode,
       ...(rules.showResponseCountBeforeRelease ? { totalBallots: row.total } : {}) };
     if (available) {
       const counts = JSON.parse(row.counts || '{}');
-      results = { available: true, totalBallots: row.total, choices: definition.choices.map(c => ({ id: c.id, label: c.label,
+      results = { available: true, totalBallots: row.total, ...(grouped?{eligibleTotal:row.eligible}:{}), choices: definition.choices.map(c => ({ id: c.id, label: c.label,
         count: counts[c.id] || 0, percentage: (counts[c.id] || 0) / row.total * 100 })) };
       if (participationRules(definition).commentVisibility === 'public_with_results') {
         const comments = await this.comments(id, null);
@@ -107,6 +120,7 @@ export class CloudflareRelay {
     need(isPublicPollId(body.actionId), 'INVALID_REQUEST');
     need(typeof body.choiceId === 'string', 'INVALID_CHOICE');
     const row = await this.publicRow(id), definition = JSON.parse(row.definition);
+    need(JSON.parse(row.access_rules).audience==='public','MEMBER_CARD_REQUIRED');
     need(body.actionId !== id && !definition.choices.some(c => c.id === body.actionId), 'INVALID_REQUEST');
     let submission;
     try { submission = normalizeSubmission(definition, body); }
@@ -126,7 +140,7 @@ export class CloudflareRelay {
         guard,id,row.semantic_hash,id,body.actionId,body.choiceId,digest,body.choiceId,id,body.actionId),
       this.sql('INSERT INTO mutation_guards SELECT ?,1 WHERE NOT EXISTS(SELECT 1 FROM ballots WHERE poll_id=? AND action_id=?)', fresh,id,body.actionId),
     ];
-    if (participationId) statements.push(this.sql('INSERT INTO participations SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM mutation_guards WHERE id=?)', participationId,id,submission.displayName,fresh));
+    if (participationId) statements.push(this.sql('INSERT INTO participations(participation_id,poll_id,display_name) SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM mutation_guards WHERE id=?)', participationId,id,submission.displayName,fresh));
     const insertIndex = statements.length;
     statements.push(this.sql('INSERT INTO ballots(poll_id,action_id,choice_id,participation_id,submission_digest) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM mutation_guards WHERE id=?)', id,body.actionId,body.choiceId,participationId,digest,fresh));
     if (submission.comment) statements.push(this.sql("INSERT INTO comments(comment_id,poll_id,action_id,choice_id,text,moderation_status,revision,participation_id) SELECT ?,?,?,?,?,'pending',1,? WHERE EXISTS(SELECT 1 FROM mutation_guards WHERE id=?)", crypto.randomUUID(),id,body.actionId,body.choiceId,submission.comment,participationId,fresh));
@@ -144,7 +158,7 @@ export class CloudflareRelay {
   }
   async asset(id, assetId, publicOnly = false) {
     const row = await this.sql(`SELECT a.* FROM asset_links a JOIN polls p USING(poll_id) WHERE a.poll_id=? AND a.asset_id=?
-      ${publicOnly ? "AND p.status!='draft' AND EXISTS(SELECT 1 FROM asset_refs r WHERE r.poll_id=a.poll_id AND r.asset_id=a.asset_id)" : ''}`, id, assetId).first();
+      ${publicOnly ? "AND p.status!='draft' AND json_extract(p.access_rules,'$.audience')='public' AND EXISTS(SELECT 1 FROM asset_refs r WHERE r.poll_id=a.poll_id AND r.asset_id=a.asset_id)" : ''}`, id, assetId).first();
     need(row, publicOnly ? 'NOT_FOUND' : 'ASSET_MISSING');
     const obj = await this.env.ASSETS.get(row.object_key); need(obj, 'ASSET_MISSING');
     const meta = JSON.parse(row.metadata);
@@ -219,7 +233,7 @@ export class CloudflareRelay {
       }
       return { remoteRef: this.ref(row), commentId: body.commentId, ...(deleting ? { deleted: true } : { moderationStatus: body.moderationStatus, revision: comment.revision + 1 }) };
     }
-    if (method === 'verifyAdmin') { need(row.status !== 'draft', 'NOT_FOUND'); return this.projection(id); }
+    if (method === 'verifyAdmin') { need(row.status !== 'draft', 'NOT_FOUND'); return this.projection(id,Boolean(row.staffAccessId)); }
     if (method === 'deletePoll') {
       need(row.status !== 'draft', 'NOT_FOUND');
       // Garde + bulletins + cascades/liens/garbage dans UN batch. Aucune dépendance R2.
@@ -275,13 +289,14 @@ export class CloudflareRelay {
     const definition = JSON.parse(row.definition), accessRules = JSON.parse(row.access_rules);
     let statements;
     if (method === 'publishPoll') {
+      if(accessRules.audience==='context')return (await this.spaces.publish(row)).poll;
       need(row.status === 'draft', 'PUBLICATION_CONFLICT'); await this.references(id, definition);
       statements = [this.bump(id, ",status='published',published_at=?", [NOW()]), this.sql('DELETE FROM publications WHERE poll_id=?', id)];
     } else {
       need(row.status !== 'draft', 'NOT_FOUND');
       if (method === 'updateDefinition') {
         need(!row.locked, 'POLL_LOCKED'); need(row.status !== 'closed', 'POLL_CLOSED');
-        try { validateDefinition(body.definition); validateRules(body.resultRules); } catch { throw new RelayError('INVALID_DEFINITION'); }
+        try { validateDefinition(body.definition); validateRules(body.resultRules,accessRules.audience==='context'); } catch { throw new RelayError('INVALID_DEFINITION'); }
         need(!body.definition.choices.some(c => c.id === id), 'INVALID_DEFINITION');
         await this.references(id, body.definition);
         const hash = await semanticHash({ definition: body.definition, resultRules: body.resultRules, accessRules });
@@ -294,13 +309,14 @@ export class CloudflareRelay {
       }
     }
     statements.push(this.sql('DELETE FROM asset_links WHERE poll_id=? AND asset_id NOT IN (SELECT asset_id FROM asset_refs WHERE poll_id=?)', id, id));
-    await this.mutate(row, statements); return this.projection(id);
+    await this.mutate(row, statements); return this.projection(id,Boolean(row.staffAccessId));
   }
 }
 
 /** GC borné, rejouable : D1 délie d'abord, R2 efface ensuite. Pas de suppression par préfixe. */
 export async function cleanup(env) {
   const db = env.DB;
+  await db.prepare('DELETE FROM invitations WHERE invitation_id IN (SELECT invitation_id FROM invitations WHERE closed=1 OR expires_at<=unixepoch() ORDER BY expires_at,invitation_id LIMIT 25)').run();
   const removed = await db.prepare("DELETE FROM polls WHERE status='draft' AND poll_id IN (SELECT poll_id FROM publications WHERE expires_at<=unixepoch() ORDER BY expires_at,poll_id LIMIT 25)").run();
   const { results } = await db.prepare('SELECT object_key FROM r2_garbage WHERE delete_after<=unixepoch() ORDER BY delete_after,object_key LIMIT 100').all();
   const summary = { preparations: removed?.meta?.changes || 0, assets: 0, failures: 0 };

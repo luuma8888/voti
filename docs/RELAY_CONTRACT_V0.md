@@ -1,5 +1,82 @@
 # Voti — contrat de relais Internet v0
 
+## Extension v0.6 — contrat fournisseur-neutre Espaces
+
+RelayAdapter expose `spaceCommand({command,input,credential,humanVerificationToken?})`
+(la base refuse tant qu’une implémentation ne la fournit). HttpRelayAdapter fournit
+le transport : POST `/api/v1/spaces/<command>`, JSON `{input,humanVerificationToken?}`,
+credential seulement en `Authorization: Bearer`. CORS exact/no cookies/no-store,
+timeout AbortController et validation des réponses liées au relayId/pollId/spaceId.
+La simulation InMemory historique conserve le contrat libre v0.3A ; v0.6 est éprouvée
+sur le vrai Worker/D1 local, pas par une simulation mémoire des Espaces.
+
+| Commande | Champs exacts de input |
+| --- | --- |
+| createSpace | `spaceId`, `name`, `expectedRevision` |
+| getSpace | `spaceId` |
+| renameSpace | `spaceId`, `name`, `expectedRevision` |
+| archiveSpace | `spaceId`, `expectedRevision` |
+| createGroup | `spaceId`, `groupId`, `name`, `expectedRevision` |
+| renameGroup | `spaceId`, `groupId`, `name`, `expectedRevision` |
+| archiveGroup | `spaceId`, `groupId`, `expectedRevision` |
+| createMember | `spaceId`, `memberId`, `displayName`, `groupIds`, `memberCredential`, `expectedRevision` |
+| updateMember | `spaceId`, `memberId`, `displayName`, `groupIds`, `expectedRevision` |
+| revokeMember | `spaceId`, `memberId`, `expectedRevision` |
+| rotateMemberCard | `spaceId`, `memberId`, `memberCredential`, `expectedRevision` |
+| revokeMemberCard | `spaceId`, `memberId`, `expectedRevision` |
+| createAccess | `spaceId`, `accessId`, `role`, `groupIds`, `staffCredential`, `expectedRevision` |
+| revokeAccess | `spaceId`, `accessId`, `expectedRevision` |
+| createInvitation | `spaceId`, `invitationId`, `groupIds`, `maxUses`, `expiresInDays`, `invitationCredential`, `expectedRevision` |
+| closeInvitation | `spaceId`, `invitationId`, `expectedRevision` |
+| acceptInvitation | `memberId`, `displayName`, `memberCredential` |
+| getMemberHome | objet vide |
+| prepareSpacePublication | `spaceId`, `poll`, `pollAudience`, `expectedRevision` |
+| publishSpacePoll | `pollId`, `expectedRevision` |
+| getSpacePoll | `pollId` |
+| getMemberPoll | `pollId` |
+| updateSpacePoll | `pollId`, `definition`, `resultRules`, `pollAudience`, `expectedRevision` |
+| getMemberResults | `pollId` |
+| getMemberComments | `pollId`, `cursor` |
+| castMemberVote | `pollId`, `actionId`, `choiceId`, `comment`, `expectedDefinitionHash` |
+| getPollAttendance | `pollId` |
+| getSpaceComments | `pollId`, `cursor` |
+
+Credentials : staff pour gestion, member pour participant, invitation pour acceptation.
+Création Espace uniquement : staff généré côté client et Turnstile + limite globale.
+Les corps restent bornés à 65 536 octets ; réponse privée Espace bornée à 600 000.
+Les champs additionnels sont refusés ; aucun endpoint raw ballots ajouté.
+Les autres méthodes poll existantes (style, close, delete, comments/admin/moderation)
+acceptent une capacité staff autorisée pour un poll Espace. La publication contrôlée
+utilise le même snapshot transactionnel, même si le commit générique est appelé.
+
+Enveloppes : `kind=space|member|mutation|prepared|acceptedInvitation|poll|memberPoll|
+results|comments|vote|attendance` ; whitelist des clés et bornes. getMemberPoll ajoute
+seulement le statut individuel alreadyParticipated. Espace créateur sans membres/
+invitations/accès de gestion ; attendance anonyme members=null, identified avec roster.
+Projections publiques sans nom/carte/digest, aucune liste brute de bulletins.
+
+Révision Space monotone + expectedRevision pour mutations de gestion ; révision poll
+existante avec incréments aléatoires, CAS avant publication/édition/admin. Premier vote
+verrouille au relais. Le snapshot ne change pas après publication. Audience et résultat
+respectent le plancher de confidentialité ; vote membre + commentaire + lien identifié
+éventuel sont atomiques. Retry actionId identique sans doublon ; un nouvel actionId ne
+contourne pas la consommation du membre. ActionId différent après consommation :
+ALREADY_PARTICIPATED, sans choix révélé.
+
+`expectedDefinitionHash` est le SHA-256 canonical de définition/accessRules/resultRules
+réellement affichés au votant (pas la révision, qui change aussi lors des autres votes).
+Le relais refuse tout mismatch avant écriture avec REVISION_CONFLICT. L’UI recharge
+et demande une nouvelle confirmation, sans vote ni association silencieuse à un mode
+identified qu’un créateur aurait modifié pendant la saisie. Aucun hash membre ajouté
+au bulletin ; c’est l’empreinte commune du sondage.
+
+Codes ajoutés : ALREADY_PARTICIPATED, NOT_ELIGIBLE, MEMBER_CARD_REQUIRED, ACCESS_DENIED,
+INVITATION_EXPIRED, INVITATION_EXHAUSTED. Codes historiques structurés conservés,
+notamment REVISION_CONFLICT/POLL_LOCKED/RESULTS_LOCKED/INVALID_CAPABILITY/PAYLOAD_TOO_LARGE.
+Les types/schema/snapshot et limites sont détaillés dans SPACES_GROUPS_V0.md,
+MEMBER_CARDS_V0.md et GROUP_VOTING_PRIVACY_V0.md. Aucune mutation de production v0.6.
+
+
 ## Extensions normatives v0.3C
 
 Les sections historiques v0.3A ci-dessous décrivent la fondation du contrat.

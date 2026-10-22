@@ -1,5 +1,20 @@
 # QR et affiches Voti — contrat v0.4A, parcours étendu v0.4B
 
+## Extension v0.6 — cartes et routes contrôlées
+
+Routes publiques vote/choix/résultats inchangées. Un sondage Espace exige une Carte
+Voti active et le snapshot/audience correspondant avant de fournir sa définition
+ou ses résultats. QR choix : après carte, confirmation directe, jamais de vote au scan.
+QR résultats n’est pas une autorisation privée en lui-même.
+
+Cartes : `#/member/<credential>` ; invitations : `#/invite/<credential>`. Fragment
+retiré immédiatement avant fetch ; token seulement en mémoire et Authorization.
+QR imprimés secrets, pas de nom en payload ; ne pas les mettre sur une affiche publique.
+Le centre de partage d’un sondage Espace conserve QR/PNG/SVG/Studio, sans proposer de
+transfert via la clé admin libre : l’accès de gestion Espace utilise son propre fichier
+SECRET. Les médias des affiches restent sur l’appareil ; pas d’activation R2.
+Voir `MEMBER_CARDS_V0.md` pour scan caméra/photo local et huit cartes par page A4.
+
 ## Routes et portée
 
 Base publique centralisée : `https://luuma8888.github.io/voti/`.

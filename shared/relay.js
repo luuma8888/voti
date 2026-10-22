@@ -7,6 +7,8 @@ export const RELAY_ERROR_CODES = Object.freeze([
   'HUMAN_VERIFICATION_REQUIRED', 'HUMAN_VERIFICATION_FAILED', 'CREATION_RATE_LIMITED',
   'CAPABILITY_CONFLICT', 'REMOTE_ASSETS_DISABLED',
   'INVALID_COMMENT', 'INVALID_PARTICIPATION',
+  'ALREADY_PARTICIPATED', 'NOT_ELIGIBLE', 'MEMBER_CARD_REQUIRED', 'ACCESS_DENIED',
+  'INVITATION_EXPIRED', 'INVITATION_EXHAUSTED',
 ]);
 
 export class RelayError extends Error {
@@ -73,4 +75,5 @@ export class RelayAdapter {
   async getParticipations(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
   async updateCommentStatus(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
   async deleteComment(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
+  async spaceCommand(_request) { throw new RelayError('RELAY_UNAVAILABLE'); }
 }

@@ -184,6 +184,11 @@ legend { font-weight:700; margin-bottom:12px; }
 .question-block img { object-fit:contain; }
 .choice-summary { padding:0; list-style:none; }
 .admin-comment-count { display:inline-flex; align-items:center; gap:4px; color:var(--ink); white-space:nowrap; }
+.member-card-qr { display:block; width:min(100%,320px); height:auto; margin:16px auto; background:white; }
+.member-row { padding:16px 0; border-top:1px solid var(--line); }
+.space-group-options label { display:flex; align-items:center; gap:10px; min-height:44px; }
+body[data-voti-role="member"] .main-nav { visibility:hidden; pointer-events:none; }
+.member-scanner video { width:100%; max-height:45vh; object-fit:contain; border-radius:12px; }
 .management-lock-notice { margin-bottom:18px; }
 .management-answers { margin:16px 0; padding:16px; border:1px solid var(--line); border-radius:14px; background:var(--soft); min-width:0; }
 .management-answers h2 { margin:0 0 12px; font-size:18px; }

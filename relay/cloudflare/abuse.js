@@ -1,6 +1,7 @@
 import { RelayError, relayEnsure as need } from '../../shared/relay.js';
 import { readBoundedJson } from '../../shared/relay-wire.js';
 import { capabilityDigest } from './service.js';
+import {isSpaceCredential,spaceCredentialDigest} from '../../shared/spaces.js';
 
 const SITEVERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const testTokens = new Map(); // Simulation éphémère locale uniquement, jamais D1.
@@ -50,7 +51,8 @@ export async function limitRoute(env, name, id, assetId, capability, newPublicat
   } else if (name === 'getAsset') {
     binding = env.ASSET_LIMITER; key = `${id}:${assetId}`;
   } else if (!['getPoll', 'getResults', 'getComments', 'castVote'].includes(name)) {
-    key = await capabilityDigest(env.RELAY_ID, id, capability);
+    const kind=['staff','member','invitation'].find(kind=>isSpaceCredential(capability,kind));
+    key = kind ? `${id}:${name}:${await spaceCredentialDigest(env.RELAY_ID,kind,capability)}` : await capabilityDigest(env.RELAY_ID, id, capability);
   }
   need(binding?.limit, 'RELAY_UNAVAILABLE');
   need((await binding.limit({ key })).success, code);

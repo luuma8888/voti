@@ -10,13 +10,16 @@ export const ANONYMOUS_NOTICE = 'Ton commentaire est anonyme. N’écris pas ton
 export const IDENTITY_NOTICE = 'Voti ne vérifie pas cette identité. Deux personnes peuvent utiliser le même nom ou pseudonyme.';
 export const IDENTITY_LINK_NOTICE = 'Ton nom ou pseudonyme est associé à ta réponse. N’ajoute pas d’autres informations personnelles inutiles.';
 
-export function submissionFields(definition, session) {
+export function submissionFields(definition, session, {memberIdentity=null}={}) {
   const rules = participationRules(definition), box = node('div',undefined,{class:'submission-fields'});
   const controls = [];
   if (rules.participationIdentityMode === 'identified') {
+    if(memberIdentity!==null){session.displayName=memberIdentity;box.append(node('p','Ce sondage est identifié. Ta réponse sera associée à ta Carte Voti.',{class:'privacy-notice'}),node('p',IDENTITY_NOTICE,{class:'help'}));}
+    else {
     const input = node('input',undefined,{type:'text',autocomplete:'off',required:'','data-testid':'display-name','aria-describedby':'identity-notice'});
     input.value = session.displayName ?? ''; input.addEventListener('input',()=>{session.displayName=input.value;input.setCustomValidity('');}); controls.push(input);
     box.append(labeled('Ton nom ou pseudonyme',input),node('p',IDENTITY_NOTICE,{class:'help',id:'identity-notice'}),node('p',IDENTITY_LINK_NOTICE,{class:'help'}));
+    }
   }
   if (rules.commentMode === 'optional') {
     const input = node('textarea',undefined,{rows:3,'data-testid':'vote-comment','aria-describedby':'comment-notice comment-count'});

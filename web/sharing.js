@@ -37,6 +37,7 @@ export function sharingPanel(poll, { baseUrl, getAdminKey, error, notify, openSt
     const entry=control('',()=>operation?show(operation,entry):openStudio());entry.className='share-shortcut';entry.append(illustration(kind),node('strong',title),node('span',description));shortcuts.append(entry);
     if(operation){entry.setAttribute('aria-controls',operation.id);entry.setAttribute('aria-expanded','false');}else entry.dataset.action='studio';
   }
+  if(typeof getAdminKey!=='function')return panel;
   const secret = section('Transférer l’administration — SECRET'); secret.classList.add('secret-transfer');
   secret.append(secretWarning());
   const display = node('div', null, 'secret-qr'); display.hidden = true;

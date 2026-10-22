@@ -1,5 +1,21 @@
 # Voti
 
+## v0.6 — Espaces & groupes (développement local, non publié)
+
+Mode libre v0.5.1 préservé ; zone distincte Espaces, groupes, rôles, cartes membre
+temporaires, snapshots et une participation par membre. Pas de comptes enfant
+classiques ni de garantie d’identité civile ; séparation applicative anonyme, pas E2E.
+Documentation : `docs/SPACES_GROUPS_V0.md`, `docs/MEMBER_CARDS_V0.md`,
+`docs/GROUP_VOTING_PRIVACY_V0.md`, rapport `docs/CODEX_SPACES_GROUPS_V0_6_REPORT.md`.
+
+Commandes supplémentaires : `npm run test:spaces` (vrais Worker/D1 locaux + Chromium)
+et `npm run test:member-cards` (après test:spaces, Poppler 300 dpi et QR redécodés).
+jsQR 1.4.0 déjà utilisé en tests devient une dépendance runtime Apache-2.0 : lecture
+de cartes locale sans scanner/CDN/service externe ; licence intégrée au HTML.
+La migration additive 0004 préserve les colonnes historiques. Aucun déploiement
+Cloudflare/Pages dans ce lot ; migration/Worker avant frontend lors d’un futur accord.
+Le backup JSON général reste limité au mode libre, sans cartes/accès Espaces/designs.
+
 v0.5 participation/commentaires : **pilote publié et validé humainement par Lu’uma**.
 Nouveaux sondages anonymes avec commentaire facultatif privé par défaut ; identité
 déclarée optionnelle, jamais vérifiée. Pas de compte ni d'unicité par personne.

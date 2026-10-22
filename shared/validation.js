@@ -1,5 +1,6 @@
 import { SCHEMA_VERSION, THEMES, recalculateStats, semanticHash } from './model.js';
 import { definitionVersion, participationRules, normalizeSubmission, normalizedText, submissionDigest, MAX_COMMENT_LENGTH, MAX_DISPLAY_NAME_LENGTH } from './participation.js';
+import { validatePollAudience, GROUP_RELEASE_MODES } from './spaces.js';
 
 export function ensure(condition, message) {
   if (!condition) throw new Error(message);
@@ -29,7 +30,7 @@ export function isAssetId(value) {
 }
 
 export function validateDefinition(definition, version = definitionVersion(definition ?? {})) {
-  ensure([1, 2, 3].includes(version), 'Version de définition inconnue.');
+  ensure([1, 2, 3, 4].includes(version), 'Version de définition inconnue.');
   object(definition, ['question', 'description', 'mode', 'privacy', 'choices', ...(version >= 2 ? ['pollImageAssetId'] : []),
     ...(version >= 3 ? ['participationIdentityMode', 'commentMode', 'commentVisibility'] : [])], 'Définition');
   if (version >= 2) ensure(definition.pollImageAssetId === null || isAssetId(definition.pollImageAssetId), 'Référence image du sondage invalide.');
@@ -56,10 +57,10 @@ export function validateDefinition(definition, version = definitionVersion(defin
   }
 }
 
-export function validateRules(rules) {
+export function validateRules(rules, group = false) {
   object(rules, ['minimumResponses', 'releaseMode', 'releaseAt', 'manualReleased', 'showResponseCountBeforeRelease'], 'Règles de résultats');
   ensure(Number.isSafeInteger(rules.minimumResponses) && rules.minimumResponses >= 1 && rules.minimumResponses <= 100000, 'Le minimum doit être un entier entre 1 et 100 000.');
-  ensure(['threshold', 'closed'].includes(rules.releaseMode), 'Mode de publication non disponible.');
+  ensure((group?GROUP_RELEASE_MODES:['threshold','closed']).includes(rules.releaseMode), 'Mode de publication non disponible.');
   ensure(rules.releaseAt === null && rules.manualReleased === false, 'Publication manuelle ou datée non disponible.');
   ensure(typeof rules.showResponseCountBeforeRelease === 'boolean', 'Visibilité du compteur invalide.');
 }
@@ -72,8 +73,8 @@ export function validateStyle(style) {
 export function validatePoll(poll, version = poll?.schemaVersion) {
   object(poll, ['id', 'schemaVersion', 'contextId', 'status', 'createdAt', 'publishedAt', 'closedAt', 'lockedAt', 'definitionHash', 'definition', 'style', 'accessRules', 'resultRules', 'stats'], 'Sondage');
   ensure(isUuid(poll.id), 'Identifiant du sondage invalide.');
-  ensure([1, 2, 3].includes(version) && poll.schemaVersion === version, 'Version du sondage inconnue.');
-  ensure(poll.contextId === null, 'Les contextes ne sont pas disponibles.');
+  ensure([1, 2, 3, 4].includes(version) && poll.schemaVersion === version, 'Version du sondage inconnue.');
+  ensure(version===4 ? isUuid(poll.contextId) : poll.contextId === null, 'Contexte invalide.');
   ensure(['draft', 'published', 'closed'].includes(poll.status), 'État du sondage invalide.');
   date(poll.createdAt, 'Création', false);
   for (const field of ['publishedAt', 'closedAt', 'lockedAt']) {
@@ -87,14 +88,22 @@ export function validatePoll(poll, version = poll?.schemaVersion) {
   ensure(poll.lockedAt === null ? poll.definitionHash === null : /^[a-f0-9]{64}$/.test(poll.definitionHash), 'Empreinte de verrouillage invalide.');
   validateDefinition(poll.definition, version);
   validateStyle(poll.style);
-  validateRules(poll.resultRules);
-  object(poll.accessRules, ['audience', 'requiresAccount', 'allowDirectChoiceQr'], 'Accès');
-  ensure(poll.accessRules.audience === 'public' && poll.accessRules.requiresAccount === false && poll.accessRules.allowDirectChoiceQr === false, 'Règles d’accès non disponibles.');
+  validateRules(poll.resultRules,version===4);
+  validateAccess(poll.accessRules);
+  ensure(version===4 ? poll.accessRules.audience==='context'&&poll.contextId===poll.accessRules.pollAudience.spaceId : poll.accessRules.audience==='public','Audience incompatible avec le schéma.');
+  ensure(version===4 || ['threshold','closed'].includes(poll.resultRules.releaseMode),'Les modes tout le monde nécessitent un Espace.');
   object(poll.stats, ['totalBallots', 'countsByChoice'], 'Statistiques');
   ensure(Number.isSafeInteger(poll.stats.totalBallots) && poll.stats.totalBallots >= 0, 'Statistiques invalides.');
   const counts = poll.stats.countsByChoice;
   ensure(counts && typeof counts === 'object' && !Array.isArray(counts), 'Comptes invalides.');
   ensure(Object.keys(counts).length === poll.definition.choices.length && poll.definition.choices.every(choice => Number.isSafeInteger(counts[choice.id]) && counts[choice.id] >= 0), 'Comptes par choix invalides.');
+}
+
+export function validateAccess(access) {
+  object(access,['audience','requiresAccount','allowDirectChoiceQr',...(access?.audience==='context'?['pollAudience']:[])],'Accès');
+  ensure(access.requiresAccount===false&&access.allowDirectChoiceQr===false,'Règles d’accès non disponibles.');
+  ensure(['public','context'].includes(access.audience),'Audience inconnue.');
+  if(access.audience==='context')validatePollAudience(access.pollAudience);
 }
 
 /** Valide l'intégralité de l'état, vérifie les empreintes, recalcule les caches. */
@@ -111,7 +120,7 @@ export async function validateState(input, version = input?.schemaVersion ?? SCH
   };
   const polls = new Map();
   for (const poll of state.polls) {
-    ensure(version < 3 ? poll.schemaVersion === version : [2, 3].includes(poll.schemaVersion), 'Version de sondage incompatible.');
+    ensure(version < 3 ? poll.schemaVersion === version : [2, 3].includes(poll.schemaVersion), 'Le snapshot local est réservé aux sondages libres v2/v3.');
     validatePoll(poll);
     reserve(poll.id);
     polls.set(poll.id, poll);

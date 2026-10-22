@@ -25,15 +25,18 @@
     "test:poster-images": "node scripts/test-posters.mjs --images",
     "test:participation": "node scripts/browser-test.mjs --participation",
     "test:comments": "node scripts/test-posters.mjs --participation",
+    "test:spaces": "node scripts/free-pilot-integration.mjs --spaces --spaces-browser",
+    "test:member-cards": "node scripts/test-member-cards.mjs",
+    "test:spaces-migration": "node scripts/spaces-migration-checks.mjs",
     "audit:bundle": "node scripts/audit-bundle.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.2",
-    "jsqr": "1.4.0",
     "node": "22.23.3",
     "wrangler": "4.149.0"
   },
   "dependencies": {
+    "jsqr": "1.4.0",
     "pdf-lib": "1.17.1",
     "qrcode-generator": "2.0.4"
   }

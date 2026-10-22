@@ -1,5 +1,43 @@
 # DATA_MODEL_V0.md — Voti
 
+## Extension actuelle v0.6 — Espaces (prioritaire sur les limites historiques ci-dessous)
+
+Le snapshot local/libre reste **version 3**, avec sauvegardes historiques compatibles.
+Un sondage contrôlé distant est validé explicitement comme **Poll schemaVersion 4** :
+`contextId=spaceId`, `accessRules.audience=context`, `requiresAccount=false`, champ
+réservé `allowDirectChoiceQr=false`, et `pollAudience={spaceId,mode,groupIds,resultsAudience}`.
+`mode=space|groups`, `resultsAudience=poll_audience|admins_only`. Un Poll v4 n’est pas
+insérable dans le snapshot local libre, ni importé silencieusement par son backup.
+
+PollDefinition conserve les champs v0.5 (anonymous/identified, commentaires) ; aucune
+réécriture des définitions/hashes historiques. Le hash SHA-256 canonical existant
+couvre définition + accessRules (donc audience) + resultRules, jamais style/credential.
+Les règles contrôlées ajoutent `all_eligible` / `all_eligible_or_closed`, seulement
+pour context ; le plancher minimumResponses reste obligatoire. L’audience de vote et
+le snapshot sont figés à la publication ; le reste sémantique au premier vote.
+
+Migration additive `0004_spaces_groups_members.sql`, sans modification de 0001/0002/0003 :
+spaces, groups, space_members, group_memberships, space_access, member_credentials,
+invitations, poll_audiences, poll_audience_groups, poll_member_eligibility,
+member_participations et garde technique controlled_vote_guards.
+
+**Ne pas ajouter de colonne à participations** : le Worker v0.5 utilise un INSERT
+sans liste de colonnes. `member_participations(participation_id,poll_id,member_id)`
+matérialise seulement le lien identifié, UNIQUE(poll_id,member_id), FK et immutabilité.
+Les trois colonnes historiques Participation restent compatibles. Le code Worker
+v0.6 utilise désormais des listes de colonnes explicites.
+
+Anonyme : zéro Participation et zéro member_participations ; participation_id NULL
+dans ballot/commentaire. Registre d’éligibilité uniquement poll_id/member_id/consumed,
+sans actionId, digest de soumission ni temps. Identifié : nom de carte copié dans
+Participation à l’acceptation, liaison au membre séparée, pas de nom demandé au client.
+Admin anonyme = X/Y uniquement, identifié = roster. Audience résultats = noms masqués.
+
+Digests SHA-256 des credentials serveur, types member/staff/invitation distincts.
+Cartes brutes et projection participant en mémoire temporaire client ; seuls les
+accès de gestion résident dans `voti.spaces.access.v1`, hors backup général.
+Voir `SPACES_GROUPS_V0.md`, `MEMBER_CARDS_V0.md`, `GROUP_VOTING_PRIVACY_V0.md`.
+
 ## 1. Principes
 
 Pour la fondation locale, `LOCAL_MVP_DECISIONS.md` précise les arbitrages faisant autorité.

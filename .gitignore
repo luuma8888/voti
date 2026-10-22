@@ -13,3 +13,5 @@ coverage/
 VOTI_AUDIT_*.zip
 # Les transferts d'administration sont secrets, jamais des sources du projet.
 voti-admin-*.json
+voti-space-access-*.json
+voti-member-cards*.pdf

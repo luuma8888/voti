@@ -15,6 +15,7 @@ import { adminQrScenario } from './browser-admin-qr.mjs';
 import { browserStudioScenario, browserStudioPdfScenario, browserStudioWorkspace } from './browser-studio.mjs';
 import { wrangler } from './relay-local.mjs';
 import { browserParticipationScenario,browserParticipationPdf,remoteParticipationStage } from './browser-participation.mjs';
+import {browserSpacesStage} from './browser-spaces.mjs';
 
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
@@ -81,8 +82,9 @@ async function evaluate(session, expression) {
 }
 
 async function navigateReady(session, destination) {
-  await navigateAndWait(command, events, session, destination);
-  await evaluate(session, `(${waitForApplication.toString()})(${JSON.stringify(destination)})`);
+  const expected=new URL(destination);if(/^#\/member\//.test(expected.hash))expected.hash='/member';if(/^#\/invite\//.test(expected.hash))expected.hash='invite';
+  await navigateAndWait(command, events, session, destination,15000,expected.href);
+  await evaluate(session, `(${waitForApplication.toString()})(${JSON.stringify(expected.href)})`);
 }
 /** Observation indépendante des bulletins dans D1 local, jamais sur la production. */
 async function localBallotCount(id) {
@@ -399,7 +401,35 @@ try {
   await command('Page.setLifecycleEventsEnabled', { enabled: true }, sessionId);
   await command('Emulation.setDeviceMetricsOverride', { width: 1200, height: 820, deviceScaleFactor: 1, mobile: false }, sessionId);
   await navigateReady(sessionId, url);
-  if(process.argv.includes('--participation')) {
+  if(process.argv.includes('--spaces')) {
+    if(!process.env.VOTI_TEST_FREE_PILOT)throw new Error('La recette cartes exige le Worker local sans R2.');
+    await command('Page.addScriptToEvaluateOnNewDocument',{source:`window.__spaceNetwork={leaked:false,votes:0};const originalFetch=window.fetch;window.fetch=function(input,init){const url=String(input?.url||input);if(/voti-(member|staff|invitation)-v1/.test(url)||/voti-(member|invitation)-v1/.test(location.hash))window.__spaceNetwork.leaked=true;if(url.includes('/spaces/castMemberVote'))window.__spaceNetwork.votes++;return originalFetch.call(this,input,init);};`},sessionId);
+    await startDevServer();const servedUrl='http://127.0.0.1:4173/voti/';let checks=0;
+    const stage=(fixture,name)=>evaluate(sessionId,`(${browserSpacesStage.toString()})(${JSON.stringify(fixture)},${JSON.stringify(name)})`);
+    for(const width of [320,360,1200]){
+      await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<500},sessionId);
+      await navigateReady(sessionId,servedUrl+'?spaces='+crypto.randomUUID()+'#home');checks+=await stage(null,'adminUi');const fixture=await stage(null,'setup');
+      await navigateReady(sessionId,servedUrl+'?member='+crypto.randomUUID()+'#/member/'+fixture.cards[0].credential);checks+=await stage(fixture,'home');
+      checks+=await stage(fixture,'attemptManagement');await navigateReady(sessionId,servedUrl+'?member-again='+crypto.randomUUID()+'#/member/'+fixture.cards[0].credential);checks+=await stage(fixture,'home');
+      checks+=await stage(fixture,'qr');if(await localBallotCount(fixture.polls[0].id)!==0)throw new Error('Le scan a créé un bulletin D1.');checks++;
+      if(await evaluate(sessionId,'window.__spaceNetwork.votes')!==0)throw new Error('Vote réseau avant confirmation.');checks++;
+      checks+=await stage(fixture,'vote');if(await localBallotCount(fixture.polls[0].id)!==1)throw new Error('Double clic : cardinalité D1 incorrecte.');checks++;
+      checks+=await stage(fixture,'photo');if(await localBallotCount(fixture.polls[0].id)!==1)throw new Error('Carte B : vote avant confirmation.');checks++;
+      checks+=await stage(fixture,'vote');if(await localBallotCount(fixture.polls[0].id)!==2)throw new Error('Téléphone partagé : second vote absent.');checks++;
+      await navigateReady(sessionId,servedUrl+'?identified='+crypto.randomUUID()+'#/member/'+fixture.cards[0].credential);checks+=await stage(fixture,'identified');
+      if(await localBallotCount(fixture.polls[1].id)!==1)throw new Error('Vote identifié carte absent.');checks++;
+      if(await evaluate(sessionId,'window.__spaceNetwork.leaked'))throw new Error('Secret de carte encore présent au fetch.');checks++;
+      if(width===360){const pdf=await stage(fixture,'pdf');await mkdir(resolve(ROOT,'.browser-tests/member-cards'),{recursive:true});await writeFile(resolve(ROOT,'.browser-tests/member-cards/cards.pdf'),Buffer.from(pdf.base64,'base64'));await writeFile(resolve(ROOT,'.browser-tests/member-cards/expected.json'),JSON.stringify(pdf.cards));}
+      await navigateReady(sessionId,servedUrl+'?consent='+crypto.randomUUID()+'#/member/'+fixture.cards[0].credential);checks+=await stage(fixture,'privacyRace');if(await localBallotCount(fixture.polls[2].id)!==0)throw new Error('Une identité a été associée sans consentement renouvelé.');checks++;
+      checks+=await stage(fixture,'privacyConfirm');if(await localBallotCount(fixture.polls[2].id)!==1)throw new Error('Confirmation renouvelée non enregistrée.');checks++;
+      await navigateReady(sessionId,servedUrl+'?expiry='+crypto.randomUUID()+'#/member/'+fixture.cards[1].credential);checks+=await stage(fixture,'expiry');
+      await navigateReady(sessionId,servedUrl+'?bad-card='+crypto.randomUUID()+'#/member/voti-member-v1.'+'0'.repeat(64));checks+=await stage(fixture,'badCard');
+      await navigateReady(sessionId,servedUrl+'?deletion='+crypto.randomUUID()+'#home');const before=relayRequests.length;checks+=await stage(fixture,'localDeletion');if(relayRequests.length!==before)throw new Error('La suppression locale a appelé le relais.');checks++;
+    }
+    if(runtimeErrors.length)throw new Error(`${runtimeErrors.length} exceptions Espaces.`);
+    if(requests.some(url=>/^https?:/.test(url)&&!url.startsWith('http://127.0.0.1:')))throw new Error('Requête externe dans la recette cartes.');
+    console.log(`Espaces Chromium : ${checks} contrôles réussis, appareil partagé 320/360/1200, cartes/scan photo/QR/identité/suppression ; PDF de 9 cartes généré.`);
+  } else if(process.argv.includes('--participation')) {
     let checks=0;for(const width of [320,360,1200]){await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<500},sessionId);checks+=await evaluate(sessionId,`(${browserParticipationScenario.toString()})()`);}
     const files=[];await mkdir(resolve(ROOT,'.browser-tests/participation-pdfs'),{recursive:true});
     for(const [mode,identities]of [['anonymous',false],['identified',false],['identified',true]]){

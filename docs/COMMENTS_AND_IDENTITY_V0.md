@@ -1,5 +1,17 @@
 # Commentaires et identité déclarée — v0.5
 
+## Extension v0.6 — cartes membre et groupes
+
+La modération et les limites v0.5 restent inchangées. Anonyme contrôlé : commentaire
+sans participation ni lien membre, administration agrégée X/Y sans roster nominatif.
+Identifié contrôlé : nom issu de la carte, Participation reliée au membre via une
+table identifiée séparée ; aucune saisie de nom redemandée. Noms jamais publics.
+Le seuil/audience est appliqué au relais ; commentaires pending/hidden/private et
+leur existence ne sont pas révélés aux résultats de l’audience. Admin les voit comme
+avant sous seuil. Suppression commentaire n’enlève pas la consommation ni le bulletin.
+La révocation d’un membre conserve l’historique ; supprimer le poll cascade sur ses
+commentaires/participations/liaisons/snapshot. Voir GROUP_VOTING_PRIVACY_V0.md.
+
 ## Vote
 
 Choix → commentaire facultatif / nom requis si identified → confirmation.

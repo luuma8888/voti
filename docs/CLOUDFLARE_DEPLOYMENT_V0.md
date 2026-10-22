@@ -1,5 +1,34 @@
 # Voti — préparation du déploiement Cloudflare
 
+## Prochain déploiement v0.6 — NON effectué
+
+Le lot v0.6 n’autorise aucun déploiement ni mutation de production. Après audit et
+nouveau feu vert, prévoir sauvegarde D1 privée ignorée → migration **0004 uniquement**
+→ Worker compatible → contrôles anciens sondages/libre/identified → frontend en dernier.
+Les nouvelles requêtes Worker utilisent les tables 0004 même pour calculer la
+projection : ne pas déployer ce Worker avant la migration. Ne pas publier le frontend
+Espaces tant que le backend correspondant n’est pas prêt.
+
+**Retour arrière : une fois des sondages privés Espace publiés, ne jamais revenir au
+Worker v0.5.** Il ne connaît pas les contrôles d’audience context et pourrait rendre
+leurs définitions accessibles via les anciennes routes publiques. Une correction/
+version de repli doit conserver les gardes v0.6, quitte à désactiver les nouvelles
+créations. La compatibilité de migration garantit les sondages libres historiques,
+pas la sécurité d’un ancien Worker placé devant de nouvelles données privées.
+
+0004 ne change aucune colonne de Participation/Ballot/Comment historique : l’INSERT
+sans colonnes du Worker v0.5 continue à fonctionner pendant l’intervalle migration/
+Worker. Ne jamais remplacer ce choix par ALTER participations ADD COLUMN sans plan
+de compatibilité explicite. Aucun recalcul de hash ou conversion de sondage historique.
+
+Conserver Workers Free, bindings/quotas existants, Turnstile uniquement création,
+REMOTE_ASSETS_ENABLED=false et absence de R2. Une création d’Espace utilise le même
+challenge et la même limite globale que les publications libres. Confirmer coûts/
+limites du plan avant exposition ; aucun upgrade automatique.
+Recette future : vrais téléphones/cartes et profil collectif sans accès administrateur,
+vérification 1 vote par membre, confidentialité et émission/impression des cartes.
+Les tests présents sont intégralement locaux et ne remplacent pas cette recette.
+
 > **v0.5 — production contrôlée autorisée :** sauvegarde D1 locale confidentielle
 > réalisée, migration additive `0003_participation_comments.sql` appliquée puis
 > Worker compatible déployé (version `9ea6d58d-0ced-4a76-b7a1-0b5262ad5748`).

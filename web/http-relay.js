@@ -1,8 +1,21 @@
 import { RelayAdapter, RelayError, RELAY_ERROR_CODES, relayEnsure as need, isPublicPollId } from '../shared/relay.js';
 import { HTTP_ROUTES, encodeAsset, decodeAsset, readBoundedJson, validateRelayResponse } from '../shared/relay-wire.js';
+import {validateSpaceCommand,validateSpaceResponse} from '../shared/space-wire.js';
 
 /** Transport fetch uniquement ; pas de DOM, cookies, retry automatique ou état métier. */
 export class HttpRelayAdapter extends RelayAdapter {
+  async spaceCommand({command,input,credential,humanVerificationToken}) {
+    const data=validateSpaceCommand(command,input),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),this.timeoutMs);
+    try{
+      const response=await this.fetchImpl.call(globalThis,`${this.baseUrl}/api/v1/spaces/${command}`,{
+        method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:`Bearer ${credential}`},
+        body:JSON.stringify({input:data,...(humanVerificationToken?{humanVerificationToken}:{})}),credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal});
+      const value=await readBoundedJson(response,600000);
+      if(!response.ok){need(value?.error&&RELAY_ERROR_CODES.includes(value.error.code),'RELAY_UNAVAILABLE');throw new RelayError(value.error.code);}
+      const checked=validateSpaceResponse(value,this.relayId,input.pollId??input.poll?.id??null);
+      if(input.spaceId&&checked.spaceId)need(checked.spaceId===input.spaceId,'RELAY_UNAVAILABLE');return checked;
+    }catch(error){if(error instanceof RelayError)throw error;throw new RelayError('RELAY_UNAVAILABLE');}finally{clearTimeout(timer);}
+  }
   constructor({ relayId, baseUrl, timeoutMs = 15000, fetchImpl = globalThis.fetch }) {
     super(relayId);
     const url = new URL(baseUrl);

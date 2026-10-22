@@ -26,9 +26,16 @@ import { posterStudio, resultsPdfPanel } from './poster-studio.js';
 import { participationRules, administrativeEntries, moderateComment, publicComments } from '../shared/participation.js';
 import { submissionFields, commentsAdministration, IDENTITY_NOTICE } from './participation-ui.js';
 import { localCommentCount, remoteCommentCount, canReadRemoteComments } from './admin-comment-count.js';
+import {SpacesUI} from './spaces-ui.js';
+import {consumeMemberFragment,isSpaceCredential} from '../shared/spaces.js';
+import {removeFromDevice} from './local-deletion.js';
 
 // Avant stockage, rendu, appel du relais ou traitement asynchrone.
 let pendingAdminPayload = consumeAdminFragment(location, history);
+let initialMember=null,initialInvitation=null;
+try{initialMember=consumeMemberFragment(location,history);}catch{/* URL déjà expurgée ; aucune carte invalide conservée. */}
+function consumeInvitation(){const match=location.hash.match(/^#\/invite\/(.*)$/);if(!match)return null;history.replaceState(null,'',location.pathname+location.search+'#invite');return isSpaceCredential(match[1],'invitation')?match[1]:null;}
+initialInvitation=consumeInvitation();
 
 const connections = new LocalStorageRemoteConnectionAdapter(localStorage, navigator.locks);
 const relay = RELAY_CONFIG ? new RelayClient(new HttpRelayAdapter(RELAY_CONFIG), connections) : null;
@@ -107,6 +114,8 @@ const assets = new IndexedDBAssetAdapter();
 const posterAssets = new IndexedDBAssetAdapter(indexedDB, assetDatabaseName() + ':poster');
 const posters = new PosterRepository(localStorage, posterAssets, navigator.locks);
 const contexts = new PollContexts(localStorage);
+const spacesUI=new SpacesUI({app,adapter:RELAY_CONFIG?new HttpRelayAdapter(RELAY_CONFIG):null,config:RELAY_CONFIG,error:showError,notify,clearError,confirmAction,posters,assets,memberCredential:initialMember,invitationCredential:initialInvitation});
+initialMember=null;initialInvitation=null;
 function contextLabel(id){try{return contexts.label(id,bindings.get(id));}catch{return bindings.has(id)?'En ligne':'Local · repères indisponibles';}}
 const images = new ImageViews(assets);
 let repository;
@@ -156,13 +165,20 @@ function showError(error) {
     HUMAN_VERIFICATION_FAILED: 'La vérification a expiré ou a échoué. Réessayez la publication.',
     CREATION_RATE_LIMITED: 'Trop de publications démarrent en ce moment. Réessayez dans une minute.',
     RATE_LIMITED: 'Le relais reçoit trop de demandes. Réessayez dans une minute.',
-    INVALID_CAPABILITY: 'Cette clé ne permet pas d’administrer ce sondage.',
+    INVALID_CAPABILITY: 'Cette clé ou Carte Voti est invalide, révoquée ou ne donne pas cet accès.',
+    INVALID_REQUEST:'Cette action contient des informations invalides. Vérifie les champs.',
+    INVALID_DEFINITION:'La définition ou son audience est invalide. Vérifie les réponses et la présence de membres éligibles.',
+    PAYLOAD_TOO_LARGE:'Les données dépassent les limites de cette version.',
     INVALID_COMMENT: 'Commentaire invalide : 300 caractères maximum. Vérifiez aussi que les commentaires sont autorisés.',
     INVALID_PARTICIPATION: 'Indique ton nom ou pseudonyme : entre 1 et 60 caractères.',
     IDEMPOTENCY_CONFLICT: 'Cette confirmation a déjà été utilisée avec un contenu différent. Aucun nouveau vote n’a été enregistré.',
     REVISION_CONFLICT: 'Cette donnée a changé dans un autre onglet ou appareil. Actualise avant de recommencer : rien n’a été écrasé.',
     RELAY_UNAVAILABLE: 'Le relais est momentanément indisponible. Le mode local reste utilisable.',
     CAPABILITY_CONFLICT: 'Une autre clé est déjà conservée. Son remplacement nécessite votre confirmation.',
+    MEMBER_CARD_REQUIRED:'Présente ta Carte Voti pour accéder à ce sondage.',
+    ALREADY_PARTICIPATED:'Cette carte a déjà participé. Aucun nouveau vote n’a été enregistré.',
+    NOT_ELIGIBLE:'Cette carte n’est pas éligible à ce sondage.',ACCESS_DENIED:'Cet accès ne permet pas cette action.',
+    INVITATION_EXPIRED:'Cette invitation a expiré ou a été fermée.',INVITATION_EXHAUSTED:'Cette invitation n’accepte plus de nouveaux membres.',
     REMOTE_ASSETS_DISABLED: REMOTE_IMAGES_MESSAGE };
   message.textContent = french[error.code] || error.message || String(error); message.hidden = false;
 }
@@ -322,6 +338,7 @@ function home() {
   }
   app.append(append(el('div', null, { class: 'library-heading' }), title, link('+ Nouveau sondage', '#new', 'primary new-poll')),
     el('p', `${entries.length} sondage${entries.length > 1 ? 's' : ''} · ${entries.filter(entry => entry.status === 'published').length} ouverts · ${entries.filter(entry => entry.available).length} résultats disponibles`, { class: 'library-summary' }));
+  app.append(actions(link('Espaces & groupes','#spaces'),link('Présenter ma Carte Voti','#member')));
   if (!entries.length) app.append(append(el('div', null, { class: 'empty-state empty-library' }),
     el('img', null, { src: document.getElementById('brand-mascot').src, alt: '', width: '88', height: '79', class: 'mascot' }),
     el('p', 'Votre premier sondage commence ici. Posez une question et proposez quelques choix.')));
@@ -432,6 +449,9 @@ function backup() {
   app.append(panel, advanced, actions(link('Retour à l’accueil', '#home')));
   if (relay) app.append(adminKeyImport());
   if (bindings.size) panel.append(el('p', 'Les votes en ligne et les capacités créateur ne sont pas inclus dans cette sauvegarde locale. Ne comptez pas sur ce fichier pour récupérer l’administration distante.', { class: 'help' }));
+  panel.append(el('p','Les Espaces, cartes, accès de gestion et designs d’affiches ne sont pas inclus dans cette sauvegarde du mode libre.',{class:'help'}));
+  try{const ids=Object.keys(posters.read().designs);if(ids.length){const designs=append(el('section',null,{class:'card'}),el('h2','Affiches de cet appareil'));for(const id of ids){const name=state.polls.find(p=>p.id===id)?.definition.question||`Affiche locale · ${id}`;const remove=button('Retirer ce design et ses médias locaux',async()=>{remove.disabled=true;try{await posters.remove(id);render();notify('Design local retiré. Aucun effet sur le sondage en ligne.');}catch(error){showError(error);remove.disabled=false;}});designs.append(el('p',name),remove);}app.append(designs);}}
+  catch(error){showError(error);}
 }
 
 function statusLabel(poll) { return { draft: 'Brouillon', published: 'Vote ouvert', closed: 'Sondage fermé' }[poll.status]; }
@@ -491,6 +511,16 @@ function management(id) {
     }
   }
   app.append(card);
+  const forget=deviceDeletionButton(id);card.append(actions(forget));
+  if(bindings.get(id)?.adminCapability){
+    const everywhere=button('Supprimer partout',async()=>{
+      if(everywhere.disabled)return;
+      if(!await confirmAction({trigger:everywhere,title:'Supprimer partout ?',description:'Le sondage et ses votes seront supprimés en ligne, puis la copie et le design de cet appareil seront retirés. Cette action est irréversible.',actionLabel:'Supprimer partout',danger:true}))return;
+      everywhere.disabled=true;let remoteDeleted=false;
+      try{await relay.deletePoll(id);remoteDeleted=true;const warnings=await deleteFromDevice(id);navigate('#home');notify('Sondage supprimé en ligne et de cet appareil.'+localCleanupMessage(warnings));}
+      catch(error){showError(new Error(remoteDeleted?'Sondage supprimé en ligne. La suppression locale n’a pas terminé : utilise « Supprimer de cet appareil » pour reprendre.':'La suppression en ligne n’est pas confirmée. Tu peux toujours supprimer la copie de cet appareil.',{cause:error}));everywhere.disabled=false;}
+    },'danger');card.append(actions(everywhere));
+  }
   const participation = participationRules(poll.definition);
   if (participation.commentMode === 'optional' || participation.participationIdentityMode === 'identified') {
     const panel = commentsAdministration(poll, {
@@ -514,6 +544,21 @@ function management(id) {
   }
   app.append(el('p', bindings.has(id) ? `${participation.participationIdentityMode==='identified' ? IDENTITY_NOTICE : 'Aucun nom demandé.'} Le relais peut voir les connexions réseau. Une personne peut voter plusieurs fois.` : 'Les autres appareils n’ont pas accès aux données de ce navigateur tant que le sondage n’est pas publié en ligne.', { class: 'help' }));
 }
+
+function deviceDeletionButton(id){
+  const forget=button('Supprimer de cet appareil',async()=>{
+    if(forget.disabled)return;
+    if(!await confirmAction({trigger:forget,title:'Supprimer de cet appareil ?',description:'La copie locale, ses votes locaux, le design et ses images inutilisées seront retirés. Le sondage en ligne reste inchangé. Une clé conservée uniquement ici sera perdue : exporte-la avant si nécessaire.',actionLabel:'Supprimer de cet appareil',danger:true}))return;
+    forget.disabled=true;
+    try{const warnings=await deleteFromDevice(id);navigate('#home');notify('Sondage retiré de cet appareil. Aucun sondage distant supprimé.'+localCleanupMessage(warnings));}catch(error){showError(error);forget.disabled=false;}
+  },'danger');return forget;
+}
+
+async function deleteFromDevice(id){
+  const result=await removeFromDevice({repository,posters,connections,contexts,remoteViews,connection:bindings.get(id),pollId:id});state=result.state;
+  return result.warnings;
+}
+function localCleanupMessage(warnings){return warnings.length?` Nettoyage local à reprendre : ${warnings.join(', ')}. Les designs restants peuvent être retirés dans Sauvegarde.`:'';}
 
 function makeEditor(id) {
   if (id) {
@@ -811,6 +856,8 @@ function appearance() {
 async function render() {
   const detected = consumeAdminFragment(location, history);
   if (detected !== null) pendingAdminPayload = detected;
+  try{const member=consumeMemberFragment(location,history);if(member)spacesUI.setMember(member);}catch{spacesUI.clearMember();}
+  const invitation=consumeInvitation();if(invitation)spacesUI.invitation=invitation;
   if (!state) return;
   const sequence = ++renderSequence;
   if(disposeView){const dispose=disposeView;disposeView=null;dispose();}
@@ -821,6 +868,7 @@ async function render() {
   if (nextRoute !== '#admin-transfer') pendingAdminPayload = null;
   if (nextRoute !== route) { editor = null; voteSession = null; voteOutcome = null; clearError(); notify(''); route = nextRoute; }
   try {
+    if(spacesUI.ownsRoute(nextRoute)){if(await spacesUI.handleRoute(nextRoute))return;}else spacesUI.leaveRoute();
     const [view, id, extra, choiceId, ...tail] = nextRoute.replace(/^#\//, '#').slice(1).split('/');
     if (view === 'admin-transfer' && !id) {
       document.title = 'Transfert d’administration · Voti';
@@ -844,11 +892,15 @@ async function render() {
         bindings = new Map((await connections.list()).map(c => [c.pollId, c]));
         remoteImages = new ImageViews({ get: assetId => relay.getAsset(id, assetId) });
       } catch (error) {
+        if(error.code==='MEMBER_CARD_REQUIRED'&&view==='p'){spacesUI.cardPrompt(id,extra,extra==='choice'?choiceId:null);return;}
         if (error.code === 'NOT_FOUND' && view === 'poll' && bindings.get(id)?.adminCapability && !bindings.get(id).lastKnownRemoteState && state.polls.some(p => p.id === id)) {
           heading('Publication en attente');
           const resume = button('Reprendre la publication', () => remoteAction(resume, () => publishOnline(id)));
           const discard = button('Abandonner la préparation', () => remoteAction(discard, () => relay.discardPublication(id)), 'danger');
           app.append(el('p', 'Aucun vote local ne sera ajouté pendant cette préparation.'), actions(resume, discard)); return;
+        }
+        if(view==='poll'&&bindings.has(id)){
+          heading('Sondage en ligne inaccessible');app.append(el('p',error.code==='NOT_FOUND'?'Le sondage en ligne est introuvable. Sa copie peut être retirée de cet appareil.':'Le relais ne répond pas. La suppression locale reste possible, sans effet serveur.'),actions(deviceDeletionButton(id),link('Accueil','#home')));return;
         }
         throw error;
       }
@@ -876,7 +928,7 @@ async function render() {
     else if (view === 'share' && id) share(id);
     else if (view === 'poster' && id) studio(id);
     else throw new Error('Ce lien local n’est pas reconnu.');
-  } catch (error) { app.replaceChildren(); heading('Impossible d’ouvrir cette page'); app.append(el('p', error.code === 'NOT_FOUND' ? 'Ce sondage est introuvable. Il a peut-être été supprimé.' : error.message), actions(link('Accueil', '#home'))); }
+  } catch (error) {if(sequence!==renderSequence||error.name==='AbortError')return;app.replaceChildren(); heading('Impossible d’ouvrir cette page'); app.append(el('p', error.code === 'NOT_FOUND' ? 'Ce sondage est introuvable. Il a peut-être été supprimé.' : error.message), actions(link('Accueil', '#home'))); }
   finally { if (sequence === renderSequence) app.setAttribute('aria-busy', 'false'); }
 }
 

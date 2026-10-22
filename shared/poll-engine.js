@@ -31,9 +31,9 @@ export function updateSemantics(state, id, definition, resultRules) {
   ensure(poll.lockedAt === null, 'Le premier vote a verrouillé la question, les choix et les règles.');
   ensure(poll.status !== 'closed', 'Un sondage fermé ne peut plus être modifié sur le fond.');
   validateDefinition(definition);
-  validateRules(resultRules);
+  validateRules(resultRules,poll.schemaVersion===4);
   poll.definition = structuredClone(definition);
-  poll.schemaVersion = definitionVersion(definition);
+  poll.schemaVersion = poll.schemaVersion===4 ? 4 : definitionVersion(definition);
   poll.resultRules = structuredClone(resultRules);
   poll.stats = recalculateStats(poll, next.ballots);
   return next;
@@ -71,6 +71,7 @@ export async function castVote(state, input, now = () => new Date().toISOString(
   ensure(Object.keys(input).every(k => ['id', 'pollId', 'choiceId', 'comment', 'displayName'].includes(k)), 'Champs de vote non autorisés.');
   ensure(isUuid(id), 'Identifiant de bulletin invalide.');
   const source = getPoll(state, pollId);
+  ensure(source.accessRules.audience==='public','Un sondage d’Espace exige le relais et une Carte Voti.');
   const submission = normalizeSubmission(source.definition, input);
   const digest = await submissionDigest(pollId, id, choiceId, submission);
   const existing = state.ballots.find(ballot => ballot.id === id);

@@ -218,7 +218,9 @@ export function authorizedResults(poll,result) {
   ensure(['published','closed'].includes(poll.status),'Sondage non publié.');
   const total=result.totalBallots;
   ensure(Number.isSafeInteger(total)&&total>0&&total>=poll.resultRules.minimumResponses,'Total de résultats incohérent.');
-  ensure(poll.resultRules.releaseMode==='threshold'||(poll.resultRules.releaseMode==='closed'&&poll.status==='closed'),'Les résultats ne sont pas encore disponibles.');
+  const group=poll.accessRules.audience==='context',all=group&&Number.isSafeInteger(result.eligibleTotal)&&total===result.eligibleTotal;
+  ensure(poll.resultRules.releaseMode==='threshold'||(poll.resultRules.releaseMode==='closed'&&poll.status==='closed')||
+    (poll.resultRules.releaseMode==='all_eligible'&&all)||(group&&poll.resultRules.releaseMode==='all_eligible_or_closed'&&(all||poll.status==='closed')),'Les résultats ne sont pas encore disponibles.');
   ensure(Array.isArray(result.choices)&&result.choices.length===poll.definition.choices.length,'Résultats incomplets.');
   const seen=new Set();let sum=0;
   const choices=result.choices.map(c=>{

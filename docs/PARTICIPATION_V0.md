@@ -1,5 +1,16 @@
 # Participation v0.5
 
+## Extension v0.6 — vote contrôlé
+
+Le mode libre conserve ce contrat. En Espace, une Carte Voti remplace la saisie de
+nom en identified ; le serveur utilise le nom du membre, pas un texte proposé par
+le navigateur. Anonymous ne crée toujours aucune Participation, ni liaison membre.
+`member_participations` est une table séparée exclusivement identified, pour garder
+les trois colonnes historiques de Participation et la compatibilité du Worker v0.5.
+Éligibilité figée/consommée dans une autre table ; la carte est oubliée après vote.
+Pas de compte enfant, pas d’identité vérifiée. Une soumission par membre éligible,
+pas une garantie d’identité civile. Voir SPACES_GROUPS_V0.md / GROUP_VOTING_PRIVACY_V0.md.
+
 Ce lot est développé et testé localement. Il n'est pas déployé en production.
 
 ## Règles

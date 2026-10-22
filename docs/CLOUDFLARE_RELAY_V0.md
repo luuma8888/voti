@@ -1,5 +1,34 @@
 # Voti — relais Cloudflare v0.3C
 
+## Extension v0.6 locale — Espaces / cartes / snapshot
+
+Le Worker est conservé, avec un `SpacesService` dédié et le transport fournisseur-neutre
+`spaceCommand`. Migration 0004 additive ; 0001–0003 inchangées. Aucune ressource,
+migration, binding ni déploiement de production effectué pour ce lot.
+Le profil pilote sans R2 demeure inchangé ; aucun média contrôlé n’est uploadé.
+
+Tables Espace/groupes/membres/accès/credentials/invitations/audiences/snapshot +
+member_participations réservé à identified. Les tables Participation/Ballot/Comment
+historiques gardent leurs colonnes : compatibilité du Worker v0.5 après migration.
+Le hash des credentials est standard SHA-256 ; jamais de credential brut en D1.
+
+Vote contrôlé : batch D1 transactionnel, revalidation carte/éligibilité/hash/statut,
+consommation et soumission atomiques. CHECK, UNIQUE et triggers plus garde transitoire
+non nominative, nettoyée dans le batch. Anonyme sans Participation ni liaison membre.
+La publication fige l’union des membres actifs dans la transaction, pas côté client.
+
+Création d’Espace : Turnstile et bucket global de création existants, pas un nouveau
+quota par capacité. Autres opérations : limiter edge par type de commande et digest
+de credential, sans IP persistée ; vote membre jamais soumis à Turnstile.
+Le cron nettoie aussi 25 invitations fermées/expirées ; pas de cleanup sur GET normal.
+
+Projections et transactions bornées : 200 membres/sondages, 20 groupes/accès,
+40 invitations. Validation des groupes via un SELECT borné plutôt qu’un N+1 ; listes
+privées par requêtes agrégées. Le budget Free courant est de
+[50 requêtes D1 par invocation](https://developers.cloudflare.com/d1/platform/limits/).
+La liaison identifiée séparée évite toute rupture d’INSERT de l’ancien Worker.
+Voir `RELAY_CONTRACT_V0.md`, `SPACES_GROUPS_V0.md`, `GROUP_VOTING_PRIVACY_V0.md`.
+
 Cette implémentation est testée avec Worker, D1 et R2 **locaux**. Elle n'est pas
 déployée. `VOTI_RELAY_V0_3C_SPEC.md` autorise ce lot au-delà des exclusions des
 anciennes fondations. `RelayAdapter` reste le contrat indépendant du fournisseur.

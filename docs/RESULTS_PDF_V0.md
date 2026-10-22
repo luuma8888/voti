@@ -1,5 +1,18 @@
 # PDF détaillé des résultats — v0.4B
 
+## Compatibilité v0.6 — résultats contrôlés
+
+Le renderer utilise seulement une projection autorisée par le relais. Pour un
+sondage Espace, `eligibleTotal` accompagne uniquement des résultats disponibles ;
+les modes all_eligible et all_eligible_or_closed utilisent ce snapshot et conservent
+minimumResponses. Jamais de recomposition depuis des bulletins publics.
+Résultats admins_only : pas d’export pour un participant. Synthèse sans identité ;
+Rapport avec commentaires visibles sur option ; identités réservées à la gestion
+identified, OFF par défaut, avertissement conditionnel v0.5.1 inchangé.
+Les médias du Studio restent locaux, aucun R2. Les identités de carte ne sont jamais
+automatiquement inscrites dans une affiche ni un PDF public ; les cartes A4 utilisent
+un export SECRET distinct (`MEMBER_CARDS_V0.md`).
+
 ## Autorité et confidentialité
 
 La vue Résultats propose **Télécharger les résultats en PDF** dans une section

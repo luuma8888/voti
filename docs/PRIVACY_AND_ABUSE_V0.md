@@ -1,5 +1,34 @@
 # Voti — confidentialité, anti-abus et rétention v0.3C
 
+## Extension v0.6 — confidentialité des Espaces
+
+Les passages historiques « aucune garantie une personne = un vote » concernent le
+mode libre. Le mode Espace garantit une consommation par **membre éligible**, pas une
+identité civile vérifiée ; une carte copiée et des membres doublons restent possibles.
+Pas d’e-mail/mot de passe enfant, cookies, session persistante ou tracking ajouté.
+
+Le registre nominatif de consommation est séparé des bulletins/commentaires anonymes.
+Zéro Participation ou member_participations en anonyme ; aucun memberId/actionId commun
+entre ce registre et le bulletin. Administration anonyme agrégée X/Y uniquement.
+Identifié : Participation + liaison séparée au membre, nom serveur automatique ; noms
+jamais exposés aux résultats de l’audience. Carte/profil client oubliés après vote.
+
+Réserve : l’émetteur conservant une carte peut utiliser son propre accès participant
+pour ce membre ; un opérateur D1 peut lire le registre interne. La séparation ne
+garantit ni anonymat cryptographique ni invisibilité des connexions/logs hébergeur.
+Voir `GROUP_VOTING_PRIVACY_V0.md` pour petits groupes, corrélations et cartes volées.
+
+Aucun token carte/capacité/nom/commentaire volontairement loggé par Voti. Le rate
+limiting utilise les primitives edge et des digests de credentials, jamais une base
+d’IP. Création Espace protégée par Turnstile + limite globale indépendante des clés.
+Les invitations sont bornées, fermables et expirent 1–30 jours ; nettoyage cron de 25.
+
+Rétention : snapshots/votes/commentaires de sondages publiés sans expiration automatique,
+préparations 24 h, suppression poll cascade sur données associées. Révocation membre
+ne réécrit pas son historique ni le dénominateur. Espace archivable, pas de suppression
+totale dans ce lot. Les cartes/QR/PDF et fichiers de gestion exportés sont secrets et
+restent à effacer par leur détenteur. Le backup général local libre ne les inclut pas.
+
 > Mise à jour v0.3D : pilote contrôlé **Workers Free + D1 EU + Turnstile, sans R2**
 > publié et recette textuelle confirmée par Lu’uma. Logs/traces applicatifs non
 > activés, aucun secret dans le build/rapport. Les garanties applicatives

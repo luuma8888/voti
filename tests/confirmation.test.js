@@ -9,14 +9,14 @@ test('confirmation : module UI importable sans DOM, aucune dépendance métier',
   assert.doesNotMatch(source, /\bfrom\b|\bfetch\s*\(|localStorage|IndexedDB|\bwindow\.[\w]+\s*=/);
 });
 
-test('application : aucune alerte/confirmation native, trois parcours attendent le dialogue', async () => {
+test('application : aucune alerte/confirmation native, cinq parcours attendent le dialogue', async () => {
   for (const file of await readdir(new URL('../web/', import.meta.url))) {
     if (!file.endsWith('.js')) continue;
     const source = await readFile(new URL(`../web/${file}`, import.meta.url), 'utf8');
     assert.doesNotMatch(source, /\b(?:window\.)?(?:alert|confirm)\s*\(/, file);
   }
   const app = await readFile(new URL('../web/app.js', import.meta.url), 'utf8');
-  assert.equal([...app.matchAll(/await confirmAction\(/g)].length, 3);
+  assert.equal([...app.matchAll(/await confirmAction\(/g)].length, 5);
   for (const label of ['Remplacer la clé', 'Fermer le sondage', 'Supprimer définitivement']) {
     assert.ok(app.includes(`actionLabel: '${label}'`));
   }

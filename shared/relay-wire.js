@@ -1,5 +1,5 @@
 import { RelayError, relayEnsure as need, remoteRef } from './relay.js';
-import { object, validateDefinition, validateStyle, validateRules, isUuid } from './validation.js';
+import { object, validateDefinition, validateStyle, validateRules, validateAccess, isUuid } from './validation.js';
 import { normalizedText, MAX_COMMENT_LENGTH, MAX_DISPLAY_NAME_LENGTH } from './participation.js';
 import { ASSET_KEYS, metadata, validateAsset } from './assets.js';
 import { encodeBase64 } from './backup.js';
@@ -49,9 +49,10 @@ export function validateProjection(value) {
   need(value && typeof value.available === 'boolean', 'RELAY_UNAVAILABLE');
   if (!value.available) {
     object(value, ['available', 'minimumResponses', 'releaseMode', ...('totalBallots' in value ? ['totalBallots'] : [])], 'Résultats');
-    need(Number.isSafeInteger(value.minimumResponses) && value.minimumResponses > 0 && ['threshold', 'closed'].includes(value.releaseMode), 'RELAY_UNAVAILABLE');
+    need(Number.isSafeInteger(value.minimumResponses) && value.minimumResponses > 0 && ['threshold', 'closed','all_eligible','all_eligible_or_closed'].includes(value.releaseMode), 'RELAY_UNAVAILABLE');
   } else {
-    object(value, ['available', 'totalBallots', 'choices', ...('comments' in value ? ['comments'] : [])], 'Résultats');
+    object(value, ['available', 'totalBallots', 'choices', ...('eligibleTotal' in value?['eligibleTotal']:[]), ...('comments' in value ? ['comments'] : [])], 'Résultats');
+    if('eligibleTotal' in value)need(Number.isSafeInteger(value.eligibleTotal)&&value.eligibleTotal>=value.totalBallots,'RELAY_UNAVAILABLE');
     if ('comments' in value) validateCommentPage(value.comments);
     need(Array.isArray(value.choices) && value.choices.length >= 2 && value.choices.length <= 6, 'RELAY_UNAVAILABLE');
     for (const choice of value.choices) {
@@ -98,9 +99,8 @@ export function validateRelayResponse(method, value, relayId, pollId) {
     need(value.accepted === true && typeof value.alreadyAccepted === 'boolean', 'RELAY_UNAVAILABLE'); validateProjection(value.results);
   } else {
     object(value, ['remoteRef', 'status', 'locked', 'definitionHash', 'definition', 'style', 'accessRules', 'resultRules', 'results'], 'Sondage');
-    validateDefinition(value.definition); validateStyle(value.style); validateRules(value.resultRules);
-    object(value.accessRules, ['audience', 'requiresAccount', 'allowDirectChoiceQr'], 'Accès');
-    need(value.accessRules.audience === 'public' && value.accessRules.requiresAccount === false && value.accessRules.allowDirectChoiceQr === false, 'RELAY_UNAVAILABLE');
+    validateDefinition(value.definition); validateStyle(value.style); validateRules(value.resultRules,value.accessRules?.audience==='context');
+    validateAccess(value.accessRules);
     need(value.locked ? /^[a-f0-9]{64}$/.test(value.definitionHash) : value.definitionHash === null, 'RELAY_UNAVAILABLE');
     validateProjection(value.results);
     need(value.results.available || value.resultRules.showResponseCountBeforeRelease || !('totalBallots' in value.results), 'RELAY_UNAVAILABLE');
