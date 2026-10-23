@@ -313,3 +313,23 @@ PDF : Synthèse inchangée ; Rapport peut inclure les commentaires approuvés pu
 Identités seulement admin identified et opt-in OFF par défaut, avertissement explicite.
 Les règles de résultats ne sont jamais contournées. Aucune identité vérifiée ni unicité
 par personne prétendue. Voir `COMMENTS_AND_IDENTITY_V0.md`.
+
+## Ajustements locaux v0.6.1 après recette Espaces
+
+- Groupes existants en cartes, ajout séparé ; membres avec cases proches de leur libellé
+  et message « Modifications non enregistrées » jusqu'à Enregistrer le membre.
+- Création Espace : Pas à pas (question/réponses → participants → résultats →
+  vérification), ou Création rapide, avec mêmes champs/validations et saisies conservées.
+- Vote simple désactive la visibilité des commentaires, aussi dans le mode libre.
+- Gestion : vote, QR/partage, résultats sont des boutons séparés ; état des résultats
+  lisible directement. Le minimum reste obligatoire après fermeture/participation de tous.
+- Participant : « À toi de participer » ; pseudo de la carte reconnu avant vote,
+  uniquement dans la session mémoire existante, oublié après succès ou fin de parcours.
+- Résultats admins_only : « Résultats réservés à l'administration », sans données admin.
+  Pour les autres modes, conditions expliquées sans révéler de compteur masqué.
+- Invitation : groupes/usages/durée récapitulés avant confirmation ; lien/QR secret
+  partageables pendant l'écran, indisponibilité après sortie annoncée ; retour SPA corrigé.
+- Carte : statut révoqué visible, révocation désactivée après succès, régénération possible.
+  PDF individuel et lot mémoire explicitement distingués, fichiers nommés sans credential.
+- Scanner : cadre et guidage rapproche/agrandis/stabilise, analyse locale bornée,
+  pistes vidéo libérées à la sortie. Aucune validation physique v0.6.1 revendiquée.

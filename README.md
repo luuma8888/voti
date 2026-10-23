@@ -1,6 +1,11 @@
 # Voti
 
-## v0.6 — Espaces & groupes (développement local, non publié)
+## v0.6 — Espaces & groupes
+
+v0.6 publiée et validée humainement ; historique dans le rapport de déploiement.
+Le lot **v0.6.1 UX** reste strictement local, non publié : création guidée/rapide,
+clarification des résultats, groupes/membres, cartes/invitations et scanner.
+Voir [le rapport v0.6.1](docs/CODEX_V0_6_1_UX_REPORT.md).
 
 Mode libre v0.5.1 préservé ; zone distincte Espaces, groupes, rôles, cartes membre
 temporaires, snapshots et une participation par membre. Pas de comptes enfant
@@ -12,8 +17,8 @@ Commandes supplémentaires : `npm run test:spaces` (vrais Worker/D1 locaux + Chr
 et `npm run test:member-cards` (après test:spaces, Poppler 300 dpi et QR redécodés).
 jsQR 1.4.0 déjà utilisé en tests devient une dépendance runtime Apache-2.0 : lecture
 de cartes locale sans scanner/CDN/service externe ; licence intégrée au HTML.
-La migration additive 0004 préserve les colonnes historiques. Aucun déploiement
-Cloudflare/Pages dans ce lot ; migration/Worker avant frontend lors d’un futur accord.
+La migration additive 0004 préserve les colonnes historiques. Elle est déjà appliquée
+avec v0.6 ; v0.6.1 ne modifie ni migration ni Worker et n'est pas déployée.
 Le backup JSON général reste limité au mode libre, sans cartes/accès Espaces/designs.
 
 v0.5 participation/commentaires : **pilote publié et validé humainement par Lu’uma**.

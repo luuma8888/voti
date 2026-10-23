@@ -16,6 +16,7 @@ import { browserStudioScenario, browserStudioPdfScenario, browserStudioWorkspace
 import { wrangler } from './relay-local.mjs';
 import { browserParticipationScenario,browserParticipationPdf,remoteParticipationStage } from './browser-participation.mjs';
 import {browserSpacesStage} from './browser-spaces.mjs';
+import {browserSpacesUx,browserScannerUx} from './browser-spaces-ux.mjs';
 
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
@@ -401,7 +402,9 @@ try {
   await command('Page.setLifecycleEventsEnabled', { enabled: true }, sessionId);
   await command('Emulation.setDeviceMetricsOverride', { width: 1200, height: 820, deviceScaleFactor: 1, mobile: false }, sessionId);
   await navigateReady(sessionId, url);
-  if(process.argv.includes('--spaces')) {
+  if(process.argv.includes('--member-scanner')) {
+    await startDevServer();await navigateReady(sessionId,'http://127.0.0.1:4173/voti/');const checks=await evaluate(sessionId,`(${browserScannerUx.toString()})('voti-member-v1.'+'a'.repeat(64))`);if(runtimeErrors.length)throw new Error('Exceptions scanner.');if(requests.some(url=>/^https?:/.test(url)&&!url.startsWith('http://127.0.0.1:4173/')))throw new Error('Réseau scanner.');console.log(`Scanner Chromium local : ${checks} contrôles réussis.`);
+  } else if(process.argv.includes('--spaces')) {
     if(!process.env.VOTI_TEST_FREE_PILOT)throw new Error('La recette cartes exige le Worker local sans R2.');
     await command('Page.addScriptToEvaluateOnNewDocument',{source:`window.__spaceNetwork={leaked:false,votes:0};const originalFetch=window.fetch;window.fetch=function(input,init){const url=String(input?.url||input);if(/voti-(member|staff|invitation)-v1/.test(url)||/voti-(member|invitation)-v1/.test(location.hash))window.__spaceNetwork.leaked=true;if(url.includes('/spaces/castMemberVote'))window.__spaceNetwork.votes++;return originalFetch.call(this,input,init);};`},sessionId);
     await startDevServer();const servedUrl='http://127.0.0.1:4173/voti/';let checks=0;
@@ -424,6 +427,10 @@ try {
       checks+=await stage(fixture,'privacyConfirm');if(await localBallotCount(fixture.polls[2].id)!==1)throw new Error('Confirmation renouvelée non enregistrée.');checks++;
       await navigateReady(sessionId,servedUrl+'?expiry='+crypto.randomUUID()+'#/member/'+fixture.cards[1].credential);checks+=await stage(fixture,'expiry');
       await navigateReady(sessionId,servedUrl+'?bad-card='+crypto.randomUUID()+'#/member/voti-member-v1.'+'0'.repeat(64));checks+=await stage(fixture,'badCard');
+      await navigateReady(sessionId,servedUrl+'?ux='+crypto.randomUUID()+'#home');checks+=await evaluate(sessionId,`(${browserSpacesUx.toString()})(${JSON.stringify(fixture)})`);
+      if(width===360)checks+=await evaluate(sessionId,`(${browserScannerUx.toString()})(${JSON.stringify(fixture.cards[1].credential)})`);
+      await evaluate(sessionId,`location.hash=${JSON.stringify('#space/'+fixture.spaceId)}`);await evaluate(sessionId,`new Promise((resolve,reject)=>{const started=Date.now();const check=()=>{if(document.querySelector('.member-row'))return resolve();if(Date.now()-started>10000)return reject(new Error('Capture UI indisponible'));requestAnimationFrame(check);};check();})`);
+      await mkdir(resolve(ROOT,'.browser-tests/spaces-ux'),{recursive:true});const screenshot=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:true},sessionId);await writeFile(resolve(ROOT,`.browser-tests/spaces-ux/${width}.png`),Buffer.from(screenshot.data,'base64'));
       await navigateReady(sessionId,servedUrl+'?deletion='+crypto.randomUUID()+'#home');const before=relayRequests.length;checks+=await stage(fixture,'localDeletion');if(relayRequests.length!==before)throw new Error('La suppression locale a appelé le relais.');checks++;
     }
     if(runtimeErrors.length)throw new Error(`${runtimeErrors.length} exceptions Espaces.`);

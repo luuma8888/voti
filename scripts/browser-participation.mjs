@@ -10,6 +10,10 @@ export async function browserParticipationScenario() {
   const click=label=>{const b=[...document.querySelectorAll('#app button,#app a')].find(b=>b.textContent===label);if(!b)throw new Error('Participation : bouton absent '+label);b.click();return b;};
   const input=(target,value)=>{target.value=value;target.dispatchEvent(new Event('input',{bubbles:true}));};
   const go=async(hash,label)=>{location.hash=hash;await wait(()=>text().includes(label)&&document.getElementById('app').getAttribute('aria-busy')==='false');};
+  await go('#new','Que veux-tu demander ?');input(document.querySelector('#app textarea'),'Question libre fictive');click('Continuer');await wait(()=>text().includes('Quelles réponses proposes-tu ?'));
+  [...document.querySelectorAll('#app .choice-row input[type=text]')].forEach((i,n)=>input(i,n?'Non':'Oui'));click('Continuer');await wait(()=>document.querySelector('[data-testid=commentMode]'));
+  const modeControl=document.querySelector('[data-testid=commentMode]'),visibility=document.querySelector('[data-testid=commentVisibility]');modeControl.value='disabled';modeControl.dispatchEvent(new Event('change',{bubbles:true}));assert(visibility.disabled,'mode libre : Vote simple désactive la visibilité');
+  modeControl.value='optional';modeControl.dispatchEvent(new Event('change',{bubbles:true}));assert(!visibility.disabled,'mode libre : commentaire facultatif réactive la visibilité');await go('#home','Mes sondages');
   for(const mode of ['anonymous','identified']) {
     let initial=createPoll(emptyState(),{question:'Sondage fictif '+mode,choices:['Été 😊','Forêt'],participationIdentityMode:mode,commentVisibility:'public_with_results',resultRules:{minimumResponses:1}});
     initial=publishPoll(initial,initial.polls[0].id);const pollId=initial.polls[0].id;

@@ -12,6 +12,7 @@ export async function browserSpacesStage(fixture,stage){
     set('Nom ou pseudonyme du nouveau membre','Membre UI fictif');const box=[...app.querySelectorAll('section')].find(n=>n.querySelector('h2')?.textContent==='Membres & Cartes Voti');box.querySelector('input[type=checkbox]').click();click('Créer le membre et sa carte');await wait(()=>text().includes('Carte Voti créée'));
     ok(Boolean(app.querySelector('.member-card-qr')),'création membre et QR par UI');ok(app.querySelector('.member-card-qr').getBoundingClientRect().width<=innerWidth,'carte mobile bornée');click('Retour à l’Espace');await wait(()=>text().includes('Sondages de l’Espace'));
     const details=[...app.querySelectorAll('details')].find(n=>n.querySelector('summary')?.textContent==='Créer un sondage dans cet Espace');details.open=true;
+    click('Création rapide');
     set('Question','Sondage créé dans l’UI');set('Réponses','Oui\nNon');set('Minimum de confidentialité obligatoire','1');click('Créer le brouillon');await wait(()=>text().includes('Publier pour les membres'));
     set('Modifier la question','Question UI modifiée');set('Réponses (2 à 6, une par ligne)','Forêt\nCinéma\nSport');click('Enregistrer les règles');await wait(()=>app.querySelector('h1')?.textContent==='Question UI modifiée'&&app.querySelectorAll('.management-answer-list li').length===3);
     ok(app.querySelectorAll('.management-answer-list li').length===3,'édition réelle des choix avant verrouillage');click('Publier pour les membres');await wait(()=>text().includes('0 participations sur 1'));ok(!text().includes('À relancer'),'admin anonyme : aucune liste nominative');
@@ -51,6 +52,7 @@ export async function browserSpacesStage(fixture,stage){
     location.hash=`#/p/${fixture.polls[0].id}/choice/${fixture.polls[0].definition.choices[0].id}`;
     await wait(()=>text().includes('Tu choisis : Forêt'));
     ok(!app.querySelector('.vote-choices'),'confirmation directe QR');ok(!app.querySelector('[data-testid=display-name]'),'aucune identité anonyme');
+    ok(app.querySelector('.recognized-member')?.textContent.includes('A fictif'),'pseudo de la carte reconnu en mémoire avant vote');
     ok(app.querySelector('[data-testid=vote-comment]'),'commentaire facultatif');ok(text().includes('N’écris pas ton nom'),'notice anonyme');
     for(const theme of ['pop','nature','douceur','dark','minimal']){document.documentElement.dataset.theme=theme;ok(document.documentElement.scrollWidth<=innerWidth,'aucun débordement '+theme);for(const b of app.querySelectorAll('button'))ok(b.getBoundingClientRect().height>=44,'cible tactile');}
     return checks;
@@ -89,6 +91,7 @@ export async function browserSpacesStage(fixture,stage){
   }
   if(stage==='pdf'){
     const {memberCardsPdf}=await import('voti/web/member-cards.js');const cards=[...fixture.cards];while(cards.length<9)cards.push({...cards[0],displayName:'Pseudo fictif étendu '+cards.length});
+    cards[8]={...cards[8],displayName:[...'Étoile fictive 😊 été '.repeat(4)].slice(0,60).join(''),spaceName:[...'Espace fictif Nature et découvertes — édition été '.repeat(3)].slice(0,100).join('')};
     const blob=await memberCardsPdf(cards,location.origin+location.pathname),bytes=new Uint8Array(await blob.arrayBuffer());let raw='';for(const byte of bytes)raw+=String.fromCharCode(byte);return{base64:btoa(raw),cards:cards.map(c=>({url:location.origin+location.pathname+'#/member/'+c.credential}))};
   }
   if(stage==='localDeletion'){

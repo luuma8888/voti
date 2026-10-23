@@ -21,7 +21,7 @@ seulement le même site, sans query, et traite caméra/photo localement.
 
 - Sondage d’abord : QR sondage → Présente ta Carte Voti → caméra ou photo de carte
   → éligibilité → choix/confirmation → succès → identité oubliée.
-- Carte d’abord : QR carte → Mon espace → À voter / Déjà participé / Fermé /
+- Carte d’abord : QR carte → Mon espace → À toi de participer / Déjà participé / Fermé /
   Résultats disponibles → sondage → succès → identité oubliée.
 - QR choix : carte si nécessaire → confirmation directe avec commentaire facultatif ;
   aucune soumission au scan. En identifié, le serveur fournit le nom du membre.
@@ -48,6 +48,21 @@ cartes dans le navigateur. Perte avant téléchargement : régénérer, pas réc
 un ancien secret depuis le serveur. Rechargement d’une invitation acceptée ne
 reconstitue pas sa carte : demander une régénération à l’administrateur si perdue.
 
+### Clarifications locales v0.6.1
+
+Avant le vote, « Carte reconnue : nom/pseudonyme » rassure sur la carte lue. Ce texte
+provient seulement du profil en mémoire ; il n'est pas ajouté à la soumission anonyme.
+Succès, Terminer, sortie du parcours et expiration effacent toujours ce profil.
+
+L'écran d'émission distingue **cette carte** et **le lot disponible pendant cette visite**.
+Le lot énumère ses membres ; ce n'est jamais la promesse de récupérer toutes les cartes
+depuis le serveur. Les PDF sont nommés d'après l'Espace et le membre ou le nombre de
+cartes du lot, sans credential. Huit cartes par A4, QR opaque et zone de silence conservés.
+Les noms peuvent apparaître dans ces fichiers : ils restent des documents secrets.
+
+Après révocation, le statut « Carte révoquée » est visible et le bouton de révocation
+est désactivé ; la régénération reste proposée. Les règles serveur sont inchangées.
+
 Révoquer carte : accès futur interdit, membre et votes conservés. Régénérer : ancienne
 carte invalide, nouveau digest, même membre et même consommation déjà acquise.
 Révoquer membre : carte et affiliations actives retirées, historique/snapshot conservés.
@@ -66,8 +81,11 @@ déjà conservés**. La carte ne confère pas de droits de gestion ; Voti n’es
 verrouillage kiosque protégeant les capacités d’un propriétaire ayant prêté son
 profil administrateur. Fermer les PDF/QR secrets après impression/transfert.
 
-Recette automatisée locale uniquement ; caméra réelle, papier et compréhension
-par des enfants restent à valider humainement avant exposition de v0.6.
+La recette humaine v0.6 est consignée dans le rapport de déploiement v0.6.
+Les changements v0.6.1 sont testés localement ; leur ergonomie réelle reste à valider.
 La lecture vidéo est arrêtée en quittant le scanner ; une caméra indisponible laisse
 le choix d’une photo. Le scanner système du téléphone reste une alternative pour
 le parcours carte d’abord, sans intégrer de service de décodage distant à Voti.
+Le scanner v0.6.1 alterne analyse bornée du cadre entier et de son centre (1 280 px
+maximum), avec guidage pour rapprocher/agrandir/stabiliser. Caméra simulée et photos
+de fixtures ne constituent pas une validation de caméra téléphone réelle.

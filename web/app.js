@@ -623,7 +623,8 @@ function edit(id) {
       ['commentMode','Commentaire',[['optional','Vote + commentaire facultatif'],['disabled','Vote simple']]],
       ['commentVisibility','Visibilité des commentaires',[['private','Privés — seulement pour le créateur'],['public_with_results','Publics avec les résultats, après approbation']]],
     ]) {const control=el('select',null,{'data-testid':key});for(const [value,name]of options)control.append(el('option',name,{value}));control.value=editor.participation[key];
-      control.addEventListener('change',()=>{editor.participation[key]=control.value;editor.participationChanged=true;});participation.append(field(label,control));}
+      if(key==='commentVisibility')control.disabled=editor.participation.commentMode==='disabled';
+      control.addEventListener('change',()=>{editor.participation[key]=control.value;editor.participationChanged=true;const visibility=participation.querySelector('[data-testid=commentVisibility]');if(visibility)visibility.disabled=editor.participation.commentMode==='disabled';});participation.append(field(label,control));}
     participation.append(el('p',IDENTITY_NOTICE,{class:'help'}),el('p','Ces règles seront verrouillées au premier vote. Le commentaire reste toujours facultatif.',{class:'help'}));form.append(participation);
     const minimum = el('input', null, { type: 'number', min: '1', max: '100000', step: '1', required: '' });
     minimum.value = editor.rules.minimumResponses;

@@ -96,6 +96,15 @@ export async function spacesChecks({adapter,sql}) {
   const all=await groupThree({release:'all_eligible',minimum:3});for(const m of members.slice(0,3))await vote(all,m);
   ok((await call('getMemberResults',{pollId:all.id},members[2].card)).results.totalBallots===3);
   const high=await groupThree({release:'all_eligible_or_closed',minimum:5});await vote(high,members[0]);let highView=await currentPoll(high);await adapter.closePoll({pollId:high.id,adminCapability:staff,expectedRevision:highView.remoteRef.revision});ok(!(await currentPoll(high)).results.available,'fermer sous plancher ne publie rien');
+  // Réserve humaine v0.6 : snapshot 1 et minimum 2, même après tous/fermeture.
+  await call('updateMember',{spaceId,memberId:members[0].memberId,displayName:'Emma fictive',groupIds:[groups[0],groups[1],groups[2]],expectedRevision:await fresh()});
+  for(const release of ['all_eligible','closed','all_eligible_or_closed']){
+    const single=await prepare({audienceGroup:groups[2],release,minimum:2}),id=single.poll.id;await call('publishSpacePoll',{pollId:id,expectedRevision:0});
+    ok((await call('getPollAttendance',{pollId:id})).eligible===1,'snapshot exact : un membre');await vote(single.poll,members[0]);
+    ok(!(await currentPoll(single.poll)).results.available,'1/1 ne contourne pas minimum 2');const before=await currentPoll(single.poll);await adapter.closePoll({pollId:id,adminCapability:staff,expectedRevision:before.remoteRef.revision});
+    ok(!(await currentPoll(single.poll)).results.available,'fermeture à 1/1 ne contourne pas minimum 2');
+    const stored=(await rows(`SELECT (SELECT count(*) FROM ballots WHERE poll_id='${id}') ballots,(SELECT count(*) FROM poll_member_eligibility WHERE poll_id='${id}' AND consumed=1) consumed,(SELECT count(*) FROM participations WHERE poll_id='${id}') identities`))[0];assert.deepEqual(stored,{ballots:1,consumed:1,identities:0});checks++;
+  }
   const restricted=await groupThree({resultsAudience:'admins_only'});await vote(restricted,members[0]);
   ok(!(await call('getMemberPoll',{pollId:restricted.id},members[0].card)).poll.results.available);await reject(call('getMemberResults',{pollId:restricted.id},members[0].card),'ACCESS_DENIED');ok((await currentPoll(restricted)).results.available);
   const consent=await groupThree(),beforeConsent=await currentPoll(consent),oldHash=await semanticHash(beforeConsent);

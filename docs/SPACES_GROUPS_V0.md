@@ -34,6 +34,19 @@ groupes sélectionnés. Un créateur limité doit sélectionner des groupes auto
 La publication fige les membres actifs éligibles, sans doublon multi-groupe.
 Les nouveaux membres/mutations de groupe ne changent pas ce snapshot.
 
+### Interface locale v0.6.1
+
+La création propose « Pas à pas » (question/réponses, participants, résultats,
+récapitulatif) et « Création rapide ». Ce sont les mêmes champs, conservés en mémoire
+en passant d'un mode/étape à l'autre, et la même construction/validation de brouillon.
+Le brouillon n'est enregistré au relais qu'avec « Créer le brouillon ».
+En Vote simple, la visibilité des commentaires est désactivée, sans réécrire sa valeur.
+
+Groupes existants et ajout d'un groupe sont séparés. Les membres sont présentés en
+cartes ; un changement de nom ou d'affiliation est signalé comme non enregistré.
+Il faut explicitement « Enregistrer le membre ». Aucun groupe n'est inventé.
+Les liens de gestion vote/partage/résultats sont des actions distinctes.
+
 Le déplacement d’un brouillon déjà créé vers un autre Espace n’est pas implémenté :
 abandon explicite et recréation dans le bon Espace. Un transfert nécessiterait une
 autorisation distincte sur source et destination ; aucune délégation inter-Espaces
@@ -69,6 +82,13 @@ Révoquer un membre non-votant conserve Y et peut empêcher `all_eligible` : auc
 réduction automatique du seuil/snapshot. Choisir explicitement une règle adaptée
 avant le premier vote. L’administration anonyme voit X/Y, jamais une liste nominative.
 
+L'écran de gestion indique l'état des résultats sans changer l'autorisation serveur.
+Le participant voit un message spécifique si les résultats sont réservés à
+l'administration. Sans compteur autorisé, les messages exposent les conditions
+(minimum et participation de tous/fermeture), pas un décompte caché ni une déduction.
+« Quand tous ont participé, ou dès la fermeture » remplace le raccourci « OU clôture » ;
+le minimum de confidentialité reste obligatoire dans les deux cas.
+
 ## Invitations et bornes
 
 Invitations individuelles : maximum une utilisation. Invitations de groupe : 1–200
@@ -76,6 +96,14 @@ utilisations, fermeture explicite, expiration choisie 1–30 jours. L’acceptat
 atomiquement le membre, ses affiliations et sa carte. Retry du même dossier idempotent.
 Les secrets d’invitation ne sont pas récupérables depuis leur digest ; distribuer le
 QR lors de la création, sinon créer une nouvelle invitation.
+
+v0.6.1 : un récapitulatif puis une confirmation indiquent les groupes ciblés, le
+maximum d'usages et la durée. Sans groupe, il est écrit explicitement que le membre
+sera dans l'Espace uniquement. Après création, le QR SVG et le lien SECRET peuvent
+être téléchargés/copiés pendant cet écran ; leur indisponibilité ultérieure est annoncée.
+« Retour à l'Espace » fonctionne aussi lorsque l'URL cible est déjà la route courante.
+Les exports de gestion distinguent Espace, Administrateur/Créateur et périmètre dans
+leur nom de fichier, jamais la capacité.
 
 Bornes techniques v0.6 par Espace : 200 membres (y compris révoqués), 20 groupes
 (y compris archivés), 20 accès de gestion, 40 invitations non nettoyées, 200 sondages.
