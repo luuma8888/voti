@@ -374,3 +374,12 @@ thème est uniquement dans la carte en mémoire. Ni coffre de credentials ni nou
 persistance participant. Les galeries des futurs packs prédéfinis sont masquées
 tant que les vrais assets intégrés ne sont pas fournis ; aucune image personnelle
 pour les membres/groupes. Voir `MEMBER_VISUALS_V0.md`.
+
+## Identités visuelles prédéfinies — intégration locale
+
+Fiche membre/groupe → Choisir une illustration → Tous/Créatures/Enfants/Adultes
+(membres), grille icon → aperçu medium au focus/survol/tap → Choisir → Enregistrer
+le membre/groupe. Fermer/Escape annule ; Aucune illustration puis validation efface
+le choix. Images large verticales pour les humains sur fiche/carte ; groupes en
+petites vignettes sur carte. Aucun upload ou image personnelle. Le choix reste
+facultatif. Voir `MEMBER_VISUALS_V0.md` pour les conditions offline et de déploiement.

@@ -196,3 +196,16 @@ sans écraser les séries précédentes. Après `npm run test:space-ui`,
 `npm run test:card-polish` vérifie les PDF individuels/lot et leurs QR à 300 dpi.
 Les [packs visuels membres/groupes](docs/MEMBER_VISUALS_V0.md) sont préparés avec
 manifestes vides : aucun upload personnel, asset factice ou migration ajouté.
+
+### Pack d'identités visuelles intégré (local avant audit/déploiement)
+
+132 membres + 36 groupes, WebP originaux optimisés en trois tailles, choix facultatif
+avec filtres et aperçu. Uniquement des IDs de catalogue sont persistés via la
+migration additive locale 0005 ; aucun upload. Voir [la documentation des visuels](docs/MEMBER_VISUALS_V0.md).
+Le dossier `byluuma/` sert aux transferts privés et est ignoré par Git/audit.
+
+**Offline :** conserver `index.html` avec `web/assets/voti-visuals/` ; le HTML seul
+ne contient pas les nouvelles images. `npm run dev` sert aussi le pack sous /voti/.
+Aucun CDN ou service worker ajouté. `npm run test:visual-identities` teste le Worker/D1
+local, les sélecteurs et produit les captures ; `npm run test:visual-pdf` redécode
+les PDF illustrés à 300 dpi. Rapport : `docs/CODEX_V0_6_2_VISUAL_IDENTITIES_REPORT.md`.

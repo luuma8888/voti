@@ -5,7 +5,7 @@ import {memberCardModel} from './member-card-model.js';
 function lines(context,text,width){const result=[];let line='';for(const character of String(text)){if(context.measureText(line+character).width>width&&line){result.push(line);line='';}line+=character;}if(line)result.push(line);return result;}
 
 export function cardQrGeometry(model,baseUrl){const matrix=createQrMatrix(buildMemberUrl(baseUrl,model.credential)),scale=Math.max(4,Math.floor(400/matrix.size)),size=matrix.size*scale;if(size>400)throw new Error('Le lien est trop long pour une carte A4 lisible.');return{matrix,scale,size,x:Math.round(model.groups.length||model.memberVisual?1120-size-40:(1120-size)/2),y:300};}
-async function image(ctx,preset,x,y,size){if(!preset)return;const img=new Image();await new Promise((yes,no)=>{img.onload=yes;img.onerror=()=>no(new Error('Illustration intégrée indisponible.'));img.src=preset.src;});ctx.drawImage(img,x,y,size,size);img.src='';}
+async function image(ctx,preset,tier,x,y,width,height=width){if(!preset)return;const img=new Image();await new Promise((yes,no)=>{img.onload=yes;img.onerror=()=>no(new Error('Illustration intégrée indisponible.'));img.src=preset[tier];});const scale=Math.min(width/img.naturalWidth,height/img.naturalHeight),w=img.naturalWidth*scale,h=img.naturalHeight*scale;ctx.drawImage(img,x+(width-w)/2,y+(height-h)/2,w,h);img.src='';}
 export async function drawMemberCard(ctx,model,baseUrl,x=0,y=0){
   const c=model.colors;ctx.save();ctx.translate(x,y);ctx.textAlign='left';ctx.fillStyle=c.background;ctx.strokeStyle=c.line;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(0,0,1120,760,26);ctx.fill();ctx.stroke();
   ctx.fillStyle=c.soft;ctx.beginPath();ctx.roundRect(18,18,1084,64,14);ctx.fill();ctx.fillStyle=c.accent;ctx.font='bold 32px system-ui';ctx.fillText('Voti',40,62);ctx.font='26px system-ui';ctx.textAlign='right';ctx.fillText(model.label,1080,61);ctx.textAlign='left';
@@ -13,9 +13,9 @@ export async function drawMemberCard(ctx,model,baseUrl,x=0,y=0){
   ctx.fillStyle=c.ink;for(const[i,line]of lines(ctx,model.memberDisplayName,1030).slice(0,3).entries())ctx.fillText(line,45,145+i*(font+4));
   let spaceFont=28;ctx.font=`${spaceFont}px system-ui`;while(lines(ctx,model.spaceName,1030).length>2&&spaceFont>18)ctx.font=`${--spaceFont}px system-ui`;
   ctx.fillStyle=c.muted;for(const[i,line]of lines(ctx,model.spaceName,1030).slice(0,2).entries())ctx.fillText(line,45,260+i*32);
-  await image(ctx,model.memberVisual,45,350,180);
-  let gy=360;const gx=model.memberVisual?250:45,gw=model.memberVisual?370:570;ctx.font='28px system-ui';ctx.fillStyle=c.ink;
-  for(const group of model.groups.slice(0,3)){await image(ctx,group.visual,gx,gy-27,56);const offset=group.visual?68:0,all=lines(ctx,group.name,gw-offset),text=all.slice(0,2);if(all.length>2){while(ctx.measureText(text[1]+'…').width>gw-offset)text[1]=text[1].slice(0,-1);text[1]+='…';}for(const[i,line]of text.entries())ctx.fillText(line,gx+offset,gy+i*32);gy+=Math.max(70,text.length*32+14);}
+  await image(ctx,model.memberVisual,'large',45,330,220,330);
+  let gy=360;const gx=model.memberVisual?285:45,gw=model.memberVisual?330:570;ctx.font='28px system-ui';ctx.fillStyle=c.ink;
+  for(const group of model.groups.slice(0,3)){await image(ctx,group.visual,'icon',gx,gy-27,56);const offset=group.visual?68:0,all=lines(ctx,group.name,gw-offset),text=all.slice(0,2);if(all.length>2){while(ctx.measureText(text[1]+'…').width>gw-offset)text[1]=text[1].slice(0,-1);text[1]+='…';}for(const[i,line]of text.entries())ctx.fillText(line,gx+offset,gy+i*32);gy+=Math.max(70,text.length*32+14);}
   if(model.groups.length>3){const count=model.groups.length-3;ctx.fillStyle=c.muted;ctx.font='25px system-ui';ctx.fillText('Et '+count+' autre'+(count>1?'s groupes':' groupe'),gx,gy);}
   const qr=cardQrGeometry(model,baseUrl);drawQr(ctx,qr.matrix,qr.x,qr.y,qr.scale);
   ctx.fillStyle=c.ink;ctx.font='bold 29px system-ui';ctx.textAlign='center';ctx.fillText(model.instruction,560,735);ctx.restore();

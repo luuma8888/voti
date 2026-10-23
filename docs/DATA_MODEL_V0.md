@@ -374,3 +374,12 @@ Migration D1 additive `0003_participation_comments.sql`. Tables séparées, FK/c
 batch transactionnel et gardes de soumission. Aucune migration déjà appliquée modifiée.
 BackupVersion 1 conservée avec snapshotVersion 3 explicite et données locales sensibles.
 Voir `PARTICIPATION_V0.md` et `COMMENTS_AND_IDENTITY_V0.md`.
+
+## Identités visuelles prédéfinies — extension locale v0.6.2
+
+Migration additive 0005 (non appliquée en production) : `space_members.visual_id`
+et `groups.visual_id`, TEXT nullable. NULL par défaut, aucun choix automatique.
+Seul l'ID stable du catalogue fourni est stocké, jamais image, URL ou blob. Aucun
+champ ajouté à PollDefinition, ballot, commentaire, participation ou snapshot.
+Modification de profil via CAS/rôles existants, indépendamment de l'historique
+anonyme. Voir `MEMBER_VISUALS_V0.md` et le rapport d'intégration dédié.

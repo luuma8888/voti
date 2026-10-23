@@ -1,67 +1,78 @@
-# Identités visuelles intégrées — préparation locale v0.6.2
+# Identités visuelles prédéfinies Voti
 
-## Décision produit
+## Politique produit
 
-Membres : créatures/animaux originaux 2D, carrés, transparents et lisibles en petite
-vignette. Groupes : lieux fantasy carrés dans le même langage graphique. Les vrais
-packs seront fournis séparément. Aucun personnage sous licence, image personnelle,
-upload, URL distante, R2, stockage d’image ou base64 utilisateur. Les éventuelles
-images de sondages appartiennent à un autre lot et ne sont pas concernées.
+Membres et groupes utilisent exclusivement les illustrations intégrées : aucune
+image personnelle, URL utilisateur, import, upload, R2, blob D1, base64 d'image ou
+synchronisation binaire. L'absence d'illustration est un vrai choix, sans placeholder.
+Une illustration n'est pas une preuve d'identité. Les images de sondage relèvent
+ d'un autre modèle, inchangé par ce lot.
 
-## Manifestes et build offline
+## Source et variantes
 
-`web/assets/member-visuals/manifest.json` et `group-visuals/manifest.json` contiennent
-actuellement des tableaux `entries` vides : aucune galerie factice ou vide affichée.
-Exemple documentaire d’une future entrée (ne pas l’ajouter avant le vrai fichier) :
+`web/assets/voti-visuals/assets-manifest.json` est le JSON original fourni :
+132 membres (60 creature, 36 child, 36 adult), 36 groupes, 3 WebP chacun.
+Les 504 fichiers sont copiés sans recompression ; empreintes de référence dans
+`docs/audit/VOTI_VISUAL_CHECKSUMS.sha256`. Les documents de transfert et ZIP restent
+hors runtime, dans byluuma ignoré. Le résidu de feuille exclu n'est pas intégré.
 
-```json
-{"id":"member_fox_01","type":"member","label":"Renard étoilé","file":"renard-etoile.webp","optionalTags":["créature"]}
-```
+- icon 128×128 : grilles et listes de 40 px ; humains déjà cadrés visage/haut du corps.
+- medium : aperçu ; humains 256×384, autres 256×256.
+- large : fiches et cartes ; humains 384×576, autres 512×512.
 
-Même format avec `group_crystal_cave_01`, type `group`. Les IDs sont stables et
-indépendants des noms de fichiers. `scripts/visual-assets.mjs` vérifie type, ID,
-unicité, label, nom de fichier local PNG/WebP sans chemin/URL, limite 300 Ko,
-64–1024 px carrés. Le build lit seulement ces fichiers du dépôt et embarque leurs
-octets dans le HTML, sans fetch runtime. Ce base64 compilé est un asset de Voti,
-jamais une image utilisateur. Ne pas recycler ou renommer un ID déjà distribué.
+Le build valide inventaire, types, chemins, dimensions et empreintes. Il compile
+uniquement les métadonnées dans le HTML. Les fichiers restent des WebP séparés.
+`getMemberVisual`, `getGroupVisual`, `listMemberVisuals`, `listGroupVisuals` et
+`filterMemberVisuals(all|creature|child|adult)` résolvent les IDs, jamais un chemin
+fourni par l'utilisateur. Les IDs du manifeste sont stables et ne doivent pas
+être recyclés. `shared/visual-ids.js` est généré depuis ce JSON ; le build refuse
+une désynchronisation. Ce petit catalogue serveur ne contient aucune image.
 
-`visual-presets.js` ne résout que les IDs du catalogue compilé et des sources
-PNG/WebP embarquées ; une URL ou un ID inconnu n’affiche rien. `visual-gallery.js`
-offre des radios natifs, labels, focus et « Aucune illustration », ainsi que des
-options d’affichage membre/groupes sans persistance. Les catalogues vides masquent
-ces composants. Ajouter un vrai fichier et son entrée suffit au build ; aucune
-nouvelle logique de résolution n’est nécessaire.
+## Sélection et gestion
 
-## Rendu préparé
+La fiche ou le formulaire de création propose Choisir/Changer l'illustration.
+Le dialogue natif affiche une grille icon, filtres membres avec comptes, aperçu
+medium au survol/focus/tap et validation explicite. Aucune illustration puis
+validation remet le champ à NULL. Fermer/Escape/navigation annule. Roving focus,
+flèches/Home/End, Tab/Maj+Tab, focus restauré et libellés accessibles.
+La sélection est provisoire : Enregistrer le membre/groupe ou Créer valide la fiche.
+Un nouveau membre ou groupe n'a aucune illustration par défaut.
 
-Les listes membres/groupes peuvent consommer `memberVisualId` / `groupVisualId` de
-présentation, aujourd’hui absents des projections serveur : vignettes de 40 px,
-sans agrandir les lignes. Le modèle Carte accepte un `memberVisualId`, les
-`groupVisualIds` correspondants aux groupes, et `visualDisplayOptions`.
+La fiche charge le large avec contain, humains verticaux. Les listes ne chargent
+que l'icon ; aucune grande carte ou bannière. Les groupes autorisés restent
+cloisonnés et un Créateur ne gagne aucun droit de gestion des membres.
 
-Sur la carte écran : membre 80–90 px, groupes 28 px. PDF : membre 180 px, groupes
-56 px dans un bloc carte de 1120 px de large (soit environ 90/28 px dans un aperçu
-à demi-échelle). Au plus trois groupes illustrés et résumé du surplus. Le QR noir
-reste sur blanc opaque avec quiet zone ; aucune illustration derrière ou superposée.
-Sans illustration le layout reste utilisable, sans emplacement vide obligatoire.
+## Persistance additive locale
 
-Les fixtures raster géométriques des tests sont exclusivement locales, explicitement
-étiquetées, créées en mémoire et non ajoutées aux manifestes ou au build production.
+Migration `0005_visual_identities.sql` : `space_members.visual_id TEXT NULL` et
+`groups.visual_id TEXT NULL`. Aucun blob, URL, nouvelle entité ou credential.
+Les anciennes lignes restent NULL. Les commandes createMember/updateMember et
+createGroup/renameGroup acceptent visualId en option : ID connu du bon type ou NULL.
+L'omission dans update/rename conserve l'ID courant, NULL l'efface ; CAS et rôles
+existants s'appliquent. Les IDs invalides sont refusés en 400 avant mutation.
 
-## Stockage futur — analyse seulement, pas de migration dans ce lot
+getSpace/getMemberHome acceptent includeVisuals ; le nouvel adaptateur le demande.
+Sans cette option, la projection historique exacte reste valide pour les anciens
+clients stricts. Aucun ID ajouté aux bulletins, commentaires, éligibilité ou résultats.
+La migration et le Worker ne sont **pas déployés** par ce lot local.
 
-Modification additive minimale proposée pour un prochain lot avec les vrais packs :
+## Carte écran et PDF
 
-- `space_members.member_visual_id TEXT NULL` et `groups.group_visual_id TEXT NULL` ;
-- validation serveur d’IDs autorisés, modification via les commandes de gestion
-  existantes et leur CAS ; aucune donnée binaire, URL ou nouveau credential ;
-- projections admin/participant limitées à ces IDs, sans ajout au bulletin/commentaire
-  anonyme, sans modifier éligibilité, snapshot ou unicité ;
-- sauvegardes/exports versionnés pour les seuls IDs, migration additive explicitement
-  auditée et autorisée à ce moment-là ; anciens membres/groupes restent à null ;
-- cartes émises : thème/options/IDs en mémoire de présentation comme aujourd’hui ;
-  aucune récupération du credential côté serveur ni coffre de cartes.
+Même modèle sémantique : nom/Espace/groupes/thème/credential/IDs/options. Membre
+large contain (humain corps entier), groupes icon en miniatures 28 px à l'écran,
+56 px dans le raster PDF. Aucun lieu géant face au QR. Le QR reste noir sur blanc
+opaque, modules entiers, quiet zone, sans image sous ou sur le code. Aucun cadre
+photo vide quand NULL. Les thèmes/options de carte restent en mémoire uniquement.
 
-Aucune colonne, migration 0005, commande/projection Worker ou persistance distante
-n’est implémentée ici. La sélection durable du visuel d’un membre/groupe attend
-ce futur lot ; préparer le renderer ne constitue pas cette fonctionnalité.
+## Distribution, performance et offline
+
+Le HTML conserve ses modules intégrés, mais le pack graphique est distribué avec
+`web/assets/voti-visuals/`. Copier le seul HTML ne suffit pas pour ces illustrations.
+Depuis le dossier complet, les fichiers sont disponibles offline sans requête
+Internet. Depuis HTTP, le cache navigateur est opportuniste ; aucun nouveau service
+worker/PWA ou cache de données privées n'est ajouté. Les opérations du relais
+exigent toujours Internet. Les images appartiennent au site/dossier local, sans CDN.
+
+La grille contient 132 icon au maximum, loading=lazy et decoding=async ; medium
+à la demande, large seulement fiche/carte/PDF. Aucun chargement des 132 large à
+l'ouverture. Le dev server expose seulement les chemins du pack public.

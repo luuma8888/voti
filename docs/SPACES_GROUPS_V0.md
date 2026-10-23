@@ -170,3 +170,12 @@ local. Chaque section relit les données et les droits ; aucune autorisation n�
 mise en cache pour éviter le flash. Historique et contrôles Créateur sont conservés.
 Les largeurs partagées et le footer suivent les pages fluides, avec formulaires
 bornés. Les tests locaux ne remplacent pas une nouvelle recette humaine.
+
+## Illustrations intégrées — évolution locale
+
+Créer/ouvrir une fiche membre ou groupe → Choisir/Changer l'illustration → dialogue
+visuel → valider le choix provisoire → Enregistrer la fiche. NULL/Aucune illustration
+reste possible et aucune attribution automatique n'est faite. Les listes utilisent
+les icon compacts ; les fiches les large, humains verticaux sans crop. Le bouton du
+groupe devient Enregistrer le groupe (nom et illustration), commande renameGroup
+inchangée avec champ optionnel visualId. Rôles et périmètres restent inchangés.

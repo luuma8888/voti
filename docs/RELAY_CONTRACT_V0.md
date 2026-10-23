@@ -406,3 +406,20 @@ REVISION_CONFLICT conservés. Aucun endpoint public de soumission de commentaire
 Résultats disponibles peuvent contenir `comments:{count,items,nextCursor}` seulement
 si au moins un visible ; aucune identité même identified. Projections bornées à 25.
 Les opérations de modération ne changent pas les agrégats ni la révision publique du poll.
+
+## Extension locale : identités visuelles prédéfinies
+
+Les commandes Espace `createMember`, `updateMember`, `createGroup`, `renameGroup`
+acceptent `visualId` optionnel. Valeurs : NULL ou ID appartenant au catalogue du
+bon type (`shared/visual-ids.js`, généré depuis le manifeste). Invalide => 400
+INVALID_REQUEST avant écriture. Omission en update/rename => conserver ; NULL =>
+supprimer. Même contrôle admin et expectedRevision ; aucune nouvelle route média.
+
+`getSpace` et `getMemberHome` acceptent `includeVisuals: true`. Le nouvel adaptateur
+l'ajoute automatiquement ; les réponses exposent alors visual_id sur les objets
+membre/groupe autorisés, et visualId sur le profil propre participant. Sans cette
+option, les réponses historiques strictes restent identiques, sans champs ajoutés.
+Les nouveaux validateurs acceptent aussi les anciennes réponses sans ID.
+Pas de modification des projections vote/résultats, audience, noms publics ou
+credentials. Ordre d'un **futur** déploiement : migration 0005, Worker compatible,
+puis frontend. Aucun de ces déploiements n'est effectué dans ce lot local.

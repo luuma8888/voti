@@ -1,0 +1,2422 @@
+{
+  "schemaVersion": 1,
+  "generatedFor": "Voti",
+  "format": "webp",
+  "memberFilters": [
+    "all",
+    "creature",
+    "child",
+    "adult"
+  ],
+  "tiers": {
+    "icon": {
+      "usage": "selection-grid / compact avatar",
+      "memberCreature": [
+        128,
+        128
+      ],
+      "memberHuman": [
+        128,
+        128
+      ],
+      "group": [
+        128,
+        128
+      ]
+    },
+    "medium": {
+      "usage": "hover/focus preview / member list / UI preview",
+      "memberCreature": [
+        256,
+        256
+      ],
+      "memberHuman": [
+        256,
+        384
+      ],
+      "group": [
+        256,
+        256
+      ]
+    },
+    "large": {
+      "usage": "Voti card / member or group detail / printable card",
+      "memberCreature": [
+        512,
+        512
+      ],
+      "memberHuman": [
+        384,
+        576
+      ],
+      "group": [
+        512,
+        512
+      ]
+    }
+  },
+  "members": [
+    {
+      "id": "member_human_elven_01",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 01",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_01.webp",
+        "medium": "members/medium/member_human_elven_01.webp",
+        "large": "members/large/member_human_elven_01.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_02",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 02",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_02.webp",
+        "medium": "members/medium/member_human_elven_02.webp",
+        "large": "members/large/member_human_elven_02.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_03",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 03",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_03.webp",
+        "medium": "members/medium/member_human_elven_03.webp",
+        "large": "members/large/member_human_elven_03.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_04",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 04",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_04.webp",
+        "medium": "members/medium/member_human_elven_04.webp",
+        "large": "members/large/member_human_elven_04.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_05",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 05",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_05.webp",
+        "medium": "members/medium/member_human_elven_05.webp",
+        "large": "members/large/member_human_elven_05.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_06",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 06",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_06.webp",
+        "medium": "members/medium/member_human_elven_06.webp",
+        "large": "members/large/member_human_elven_06.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_07",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 07",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_07.webp",
+        "medium": "members/medium/member_human_elven_07.webp",
+        "large": "members/large/member_human_elven_07.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_08",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 08",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_08.webp",
+        "medium": "members/medium/member_human_elven_08.webp",
+        "large": "members/large/member_human_elven_08.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_09",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 09",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_09.webp",
+        "medium": "members/medium/member_human_elven_09.webp",
+        "large": "members/large/member_human_elven_09.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_10",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 10",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_10.webp",
+        "medium": "members/medium/member_human_elven_10.webp",
+        "large": "members/large/member_human_elven_10.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_11",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 11",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_11.webp",
+        "medium": "members/medium/member_human_elven_11.webp",
+        "large": "members/large/member_human_elven_11.webp"
+      }
+    },
+    {
+      "id": "member_human_elven_12",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_elven",
+      "label": "Peuples elfiques 12",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_elven_12.webp",
+        "medium": "members/medium/member_human_elven_12.webp",
+        "large": "members/large/member_human_elven_12.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_01",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 01",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_01.webp",
+        "medium": "members/medium/member_creature_colorful_01.webp",
+        "large": "members/large/member_creature_colorful_01.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_02",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 02",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_02.webp",
+        "medium": "members/medium/member_creature_colorful_02.webp",
+        "large": "members/large/member_creature_colorful_02.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_03",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 03",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_03.webp",
+        "medium": "members/medium/member_creature_colorful_03.webp",
+        "large": "members/large/member_creature_colorful_03.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_04",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 04",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_04.webp",
+        "medium": "members/medium/member_creature_colorful_04.webp",
+        "large": "members/large/member_creature_colorful_04.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_05",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 05",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_05.webp",
+        "medium": "members/medium/member_creature_colorful_05.webp",
+        "large": "members/large/member_creature_colorful_05.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_06",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 06",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_06.webp",
+        "medium": "members/medium/member_creature_colorful_06.webp",
+        "large": "members/large/member_creature_colorful_06.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_07",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 07",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_07.webp",
+        "medium": "members/medium/member_creature_colorful_07.webp",
+        "large": "members/large/member_creature_colorful_07.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_08",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 08",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_08.webp",
+        "medium": "members/medium/member_creature_colorful_08.webp",
+        "large": "members/large/member_creature_colorful_08.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_09",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 09",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_09.webp",
+        "medium": "members/medium/member_creature_colorful_09.webp",
+        "large": "members/large/member_creature_colorful_09.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_10",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 10",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_10.webp",
+        "medium": "members/medium/member_creature_colorful_10.webp",
+        "large": "members/large/member_creature_colorful_10.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_11",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 11",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_11.webp",
+        "medium": "members/medium/member_creature_colorful_11.webp",
+        "large": "members/large/member_creature_colorful_11.webp"
+      }
+    },
+    {
+      "id": "member_creature_colorful_12",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_colorful",
+      "label": "Créatures colorées 12",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_colorful_12.webp",
+        "medium": "members/medium/member_creature_colorful_12.webp",
+        "large": "members/large/member_creature_colorful_12.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_01",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 01",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_01.webp",
+        "medium": "members/medium/member_human_sport_01.webp",
+        "large": "members/large/member_human_sport_01.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_02",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 02",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_02.webp",
+        "medium": "members/medium/member_human_sport_02.webp",
+        "large": "members/large/member_human_sport_02.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_03",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 03",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_03.webp",
+        "medium": "members/medium/member_human_sport_03.webp",
+        "large": "members/large/member_human_sport_03.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_04",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 04",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_04.webp",
+        "medium": "members/medium/member_human_sport_04.webp",
+        "large": "members/large/member_human_sport_04.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_05",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 05",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_05.webp",
+        "medium": "members/medium/member_human_sport_05.webp",
+        "large": "members/large/member_human_sport_05.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_06",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 06",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_06.webp",
+        "medium": "members/medium/member_human_sport_06.webp",
+        "large": "members/large/member_human_sport_06.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_07",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 07",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_07.webp",
+        "medium": "members/medium/member_human_sport_07.webp",
+        "large": "members/large/member_human_sport_07.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_08",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 08",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_08.webp",
+        "medium": "members/medium/member_human_sport_08.webp",
+        "large": "members/large/member_human_sport_08.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_09",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 09",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_09.webp",
+        "medium": "members/medium/member_human_sport_09.webp",
+        "large": "members/large/member_human_sport_09.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_10",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 10",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_10.webp",
+        "medium": "members/medium/member_human_sport_10.webp",
+        "large": "members/large/member_human_sport_10.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_11",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 11",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_11.webp",
+        "medium": "members/medium/member_human_sport_11.webp",
+        "large": "members/large/member_human_sport_11.webp"
+      }
+    },
+    {
+      "id": "member_human_sport_12",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_sport",
+      "label": "Sportifs fantastiques 12",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_sport_12.webp",
+        "medium": "members/medium/member_human_sport_12.webp",
+        "large": "members/large/member_human_sport_12.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_01",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 01",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_01.webp",
+        "medium": "members/medium/member_human_fantasy_01.webp",
+        "large": "members/large/member_human_fantasy_01.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_02",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 02",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_02.webp",
+        "medium": "members/medium/member_human_fantasy_02.webp",
+        "large": "members/large/member_human_fantasy_02.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_03",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 03",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_03.webp",
+        "medium": "members/medium/member_human_fantasy_03.webp",
+        "large": "members/large/member_human_fantasy_03.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_04",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 04",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_04.webp",
+        "medium": "members/medium/member_human_fantasy_04.webp",
+        "large": "members/large/member_human_fantasy_04.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_05",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 05",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_05.webp",
+        "medium": "members/medium/member_human_fantasy_05.webp",
+        "large": "members/large/member_human_fantasy_05.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_06",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 06",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_06.webp",
+        "medium": "members/medium/member_human_fantasy_06.webp",
+        "large": "members/large/member_human_fantasy_06.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_07",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 07",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_07.webp",
+        "medium": "members/medium/member_human_fantasy_07.webp",
+        "large": "members/large/member_human_fantasy_07.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_08",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 08",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_08.webp",
+        "medium": "members/medium/member_human_fantasy_08.webp",
+        "large": "members/large/member_human_fantasy_08.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_09",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 09",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_09.webp",
+        "medium": "members/medium/member_human_fantasy_09.webp",
+        "large": "members/large/member_human_fantasy_09.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_10",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 10",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_10.webp",
+        "medium": "members/medium/member_human_fantasy_10.webp",
+        "large": "members/large/member_human_fantasy_10.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_11",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 11",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_11.webp",
+        "medium": "members/medium/member_human_fantasy_11.webp",
+        "large": "members/large/member_human_fantasy_11.webp"
+      }
+    },
+    {
+      "id": "member_human_fantasy_12",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_fantasy",
+      "label": "Personnages fantasy 12",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_fantasy_12.webp",
+        "medium": "members/medium/member_human_fantasy_12.webp",
+        "large": "members/large/member_human_fantasy_12.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_01",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 01",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_01.webp",
+        "medium": "members/medium/member_creature_magic_01.webp",
+        "large": "members/large/member_creature_magic_01.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_02",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 02",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_02.webp",
+        "medium": "members/medium/member_creature_magic_02.webp",
+        "large": "members/large/member_creature_magic_02.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_03",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 03",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_03.webp",
+        "medium": "members/medium/member_creature_magic_03.webp",
+        "large": "members/large/member_creature_magic_03.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_04",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 04",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_04.webp",
+        "medium": "members/medium/member_creature_magic_04.webp",
+        "large": "members/large/member_creature_magic_04.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_05",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 05",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_05.webp",
+        "medium": "members/medium/member_creature_magic_05.webp",
+        "large": "members/large/member_creature_magic_05.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_06",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 06",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_06.webp",
+        "medium": "members/medium/member_creature_magic_06.webp",
+        "large": "members/large/member_creature_magic_06.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_07",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 07",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_07.webp",
+        "medium": "members/medium/member_creature_magic_07.webp",
+        "large": "members/large/member_creature_magic_07.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_08",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 08",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_08.webp",
+        "medium": "members/medium/member_creature_magic_08.webp",
+        "large": "members/large/member_creature_magic_08.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_09",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 09",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_09.webp",
+        "medium": "members/medium/member_creature_magic_09.webp",
+        "large": "members/large/member_creature_magic_09.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_10",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 10",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_10.webp",
+        "medium": "members/medium/member_creature_magic_10.webp",
+        "large": "members/large/member_creature_magic_10.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_11",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 11",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_11.webp",
+        "medium": "members/medium/member_creature_magic_11.webp",
+        "large": "members/large/member_creature_magic_11.webp"
+      }
+    },
+    {
+      "id": "member_creature_magic_12",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_magic",
+      "label": "Créatures magiques 12",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_magic_12.webp",
+        "medium": "members/medium/member_creature_magic_12.webp",
+        "large": "members/large/member_creature_magic_12.webp"
+      }
+    },
+    {
+      "id": "member_human_future_01",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_future",
+      "label": "Héros futuristes 01",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_01.webp",
+        "medium": "members/medium/member_human_future_01.webp",
+        "large": "members/large/member_human_future_01.webp"
+      }
+    },
+    {
+      "id": "member_human_future_02",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_future",
+      "label": "Héros futuristes 02",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_02.webp",
+        "medium": "members/medium/member_human_future_02.webp",
+        "large": "members/large/member_human_future_02.webp"
+      }
+    },
+    {
+      "id": "member_human_future_03",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_future",
+      "label": "Héros futuristes 03",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_03.webp",
+        "medium": "members/medium/member_human_future_03.webp",
+        "large": "members/large/member_human_future_03.webp"
+      }
+    },
+    {
+      "id": "member_human_future_04",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_future",
+      "label": "Héros futuristes 04",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_04.webp",
+        "medium": "members/medium/member_human_future_04.webp",
+        "large": "members/large/member_human_future_04.webp"
+      }
+    },
+    {
+      "id": "member_human_future_05",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_future",
+      "label": "Héros futuristes 05",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_05.webp",
+        "medium": "members/medium/member_human_future_05.webp",
+        "large": "members/large/member_human_future_05.webp"
+      }
+    },
+    {
+      "id": "member_human_future_06",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_future",
+      "label": "Héros futuristes 06",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_06.webp",
+        "medium": "members/medium/member_human_future_06.webp",
+        "large": "members/large/member_human_future_06.webp"
+      }
+    },
+    {
+      "id": "member_human_future_07",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_future",
+      "label": "Héros futuristes 07",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_07.webp",
+        "medium": "members/medium/member_human_future_07.webp",
+        "large": "members/large/member_human_future_07.webp"
+      }
+    },
+    {
+      "id": "member_human_future_08",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_future",
+      "label": "Héros futuristes 08",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_08.webp",
+        "medium": "members/medium/member_human_future_08.webp",
+        "large": "members/large/member_human_future_08.webp"
+      }
+    },
+    {
+      "id": "member_human_future_09",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_future",
+      "label": "Héros futuristes 09",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_09.webp",
+        "medium": "members/medium/member_human_future_09.webp",
+        "large": "members/large/member_human_future_09.webp"
+      }
+    },
+    {
+      "id": "member_human_future_10",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_future",
+      "label": "Héros futuristes 10",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_10.webp",
+        "medium": "members/medium/member_human_future_10.webp",
+        "large": "members/large/member_human_future_10.webp"
+      }
+    },
+    {
+      "id": "member_human_future_11",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_future",
+      "label": "Héros futuristes 11",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_11.webp",
+        "medium": "members/medium/member_human_future_11.webp",
+        "large": "members/large/member_human_future_11.webp"
+      }
+    },
+    {
+      "id": "member_human_future_12",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_future",
+      "label": "Héros futuristes 12",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_future_12.webp",
+        "medium": "members/medium/member_human_future_12.webp",
+        "large": "members/large/member_human_future_12.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_01",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_heroes",
+      "label": "Héros RPG 01",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_01.webp",
+        "medium": "members/medium/member_human_heroes_01.webp",
+        "large": "members/large/member_human_heroes_01.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_02",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_heroes",
+      "label": "Héros RPG 02",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_02.webp",
+        "medium": "members/medium/member_human_heroes_02.webp",
+        "large": "members/large/member_human_heroes_02.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_03",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_heroes",
+      "label": "Héros RPG 03",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_03.webp",
+        "medium": "members/medium/member_human_heroes_03.webp",
+        "large": "members/large/member_human_heroes_03.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_04",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_heroes",
+      "label": "Héros RPG 04",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_04.webp",
+        "medium": "members/medium/member_human_heroes_04.webp",
+        "large": "members/large/member_human_heroes_04.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_05",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_heroes",
+      "label": "Héros RPG 05",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_05.webp",
+        "medium": "members/medium/member_human_heroes_05.webp",
+        "large": "members/large/member_human_heroes_05.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_06",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_heroes",
+      "label": "Héros RPG 06",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_06.webp",
+        "medium": "members/medium/member_human_heroes_06.webp",
+        "large": "members/large/member_human_heroes_06.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_07",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_heroes",
+      "label": "Héros RPG 07",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_07.webp",
+        "medium": "members/medium/member_human_heroes_07.webp",
+        "large": "members/large/member_human_heroes_07.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_08",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_heroes",
+      "label": "Héros RPG 08",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_08.webp",
+        "medium": "members/medium/member_human_heroes_08.webp",
+        "large": "members/large/member_human_heroes_08.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_09",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_heroes",
+      "label": "Héros RPG 09",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_09.webp",
+        "medium": "members/medium/member_human_heroes_09.webp",
+        "large": "members/large/member_human_heroes_09.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_10",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_heroes",
+      "label": "Héros RPG 10",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_10.webp",
+        "medium": "members/medium/member_human_heroes_10.webp",
+        "large": "members/large/member_human_heroes_10.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_11",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_heroes",
+      "label": "Héros RPG 11",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_11.webp",
+        "medium": "members/medium/member_human_heroes_11.webp",
+        "large": "members/large/member_human_heroes_11.webp"
+      }
+    },
+    {
+      "id": "member_human_heroes_12",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_heroes",
+      "label": "Héros RPG 12",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_heroes_12.webp",
+        "medium": "members/medium/member_human_heroes_12.webp",
+        "large": "members/large/member_human_heroes_12.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_01",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 01",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_01.webp",
+        "medium": "members/medium/member_human_rpg_01.webp",
+        "large": "members/large/member_human_rpg_01.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_02",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 02",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_02.webp",
+        "medium": "members/medium/member_human_rpg_02.webp",
+        "large": "members/large/member_human_rpg_02.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_03",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 03",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_03.webp",
+        "medium": "members/medium/member_human_rpg_03.webp",
+        "large": "members/large/member_human_rpg_03.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_04",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 04",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_04.webp",
+        "medium": "members/medium/member_human_rpg_04.webp",
+        "large": "members/large/member_human_rpg_04.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_05",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 05",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_05.webp",
+        "medium": "members/medium/member_human_rpg_05.webp",
+        "large": "members/large/member_human_rpg_05.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_06",
+      "kind": "member",
+      "category": "child",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 06",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_06.webp",
+        "medium": "members/medium/member_human_rpg_06.webp",
+        "large": "members/large/member_human_rpg_06.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_07",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 07",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_07.webp",
+        "medium": "members/medium/member_human_rpg_07.webp",
+        "large": "members/large/member_human_rpg_07.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_08",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 08",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_08.webp",
+        "medium": "members/medium/member_human_rpg_08.webp",
+        "large": "members/large/member_human_rpg_08.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_09",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 09",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_09.webp",
+        "medium": "members/medium/member_human_rpg_09.webp",
+        "large": "members/large/member_human_rpg_09.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_10",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 10",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_10.webp",
+        "medium": "members/medium/member_human_rpg_10.webp",
+        "large": "members/large/member_human_rpg_10.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_11",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 11",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_11.webp",
+        "medium": "members/medium/member_human_rpg_11.webp",
+        "large": "members/large/member_human_rpg_11.webp"
+      }
+    },
+    {
+      "id": "member_human_rpg_12",
+      "kind": "member",
+      "category": "adult",
+      "pack": "human_rpg",
+      "label": "Héros fantasy 12",
+      "sourceAspect": "portrait",
+      "displayMode": "face-crop-icon/full-body-medium-large",
+      "files": {
+        "icon": "members/icon/member_human_rpg_12.webp",
+        "medium": "members/medium/member_human_rpg_12.webp",
+        "large": "members/large/member_human_rpg_12.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_01",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 01",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_01.webp",
+        "medium": "members/medium/member_creature_imaginary_01.webp",
+        "large": "members/large/member_creature_imaginary_01.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_02",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 02",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_02.webp",
+        "medium": "members/medium/member_creature_imaginary_02.webp",
+        "large": "members/large/member_creature_imaginary_02.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_03",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 03",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_03.webp",
+        "medium": "members/medium/member_creature_imaginary_03.webp",
+        "large": "members/large/member_creature_imaginary_03.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_04",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 04",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_04.webp",
+        "medium": "members/medium/member_creature_imaginary_04.webp",
+        "large": "members/large/member_creature_imaginary_04.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_05",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 05",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_05.webp",
+        "medium": "members/medium/member_creature_imaginary_05.webp",
+        "large": "members/large/member_creature_imaginary_05.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_06",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 06",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_06.webp",
+        "medium": "members/medium/member_creature_imaginary_06.webp",
+        "large": "members/large/member_creature_imaginary_06.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_07",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 07",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_07.webp",
+        "medium": "members/medium/member_creature_imaginary_07.webp",
+        "large": "members/large/member_creature_imaginary_07.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_08",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 08",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_08.webp",
+        "medium": "members/medium/member_creature_imaginary_08.webp",
+        "large": "members/large/member_creature_imaginary_08.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_09",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 09",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_09.webp",
+        "medium": "members/medium/member_creature_imaginary_09.webp",
+        "large": "members/large/member_creature_imaginary_09.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_10",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 10",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_10.webp",
+        "medium": "members/medium/member_creature_imaginary_10.webp",
+        "large": "members/large/member_creature_imaginary_10.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_11",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 11",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_11.webp",
+        "medium": "members/medium/member_creature_imaginary_11.webp",
+        "large": "members/large/member_creature_imaginary_11.webp"
+      }
+    },
+    {
+      "id": "member_creature_imaginary_12",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_imaginary",
+      "label": "Créatures imaginaires 12",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_imaginary_12.webp",
+        "medium": "members/medium/member_creature_imaginary_12.webp",
+        "large": "members/large/member_creature_imaginary_12.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_01",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 01",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_01.webp",
+        "medium": "members/medium/member_creature_animal_01.webp",
+        "large": "members/large/member_creature_animal_01.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_02",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 02",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_02.webp",
+        "medium": "members/medium/member_creature_animal_02.webp",
+        "large": "members/large/member_creature_animal_02.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_03",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 03",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_03.webp",
+        "medium": "members/medium/member_creature_animal_03.webp",
+        "large": "members/large/member_creature_animal_03.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_04",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 04",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_04.webp",
+        "medium": "members/medium/member_creature_animal_04.webp",
+        "large": "members/large/member_creature_animal_04.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_05",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 05",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_05.webp",
+        "medium": "members/medium/member_creature_animal_05.webp",
+        "large": "members/large/member_creature_animal_05.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_06",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 06",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_06.webp",
+        "medium": "members/medium/member_creature_animal_06.webp",
+        "large": "members/large/member_creature_animal_06.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_07",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 07",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_07.webp",
+        "medium": "members/medium/member_creature_animal_07.webp",
+        "large": "members/large/member_creature_animal_07.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_08",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 08",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_08.webp",
+        "medium": "members/medium/member_creature_animal_08.webp",
+        "large": "members/large/member_creature_animal_08.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_09",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 09",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_09.webp",
+        "medium": "members/medium/member_creature_animal_09.webp",
+        "large": "members/large/member_creature_animal_09.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_10",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 10",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_10.webp",
+        "medium": "members/medium/member_creature_animal_10.webp",
+        "large": "members/large/member_creature_animal_10.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_11",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 11",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_11.webp",
+        "medium": "members/medium/member_creature_animal_11.webp",
+        "large": "members/large/member_creature_animal_11.webp"
+      }
+    },
+    {
+      "id": "member_creature_animal_12",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_animal",
+      "label": "Créatures fantastiques 12",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_animal_12.webp",
+        "medium": "members/medium/member_creature_animal_12.webp",
+        "large": "members/large/member_creature_animal_12.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_01",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 01",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_01.webp",
+        "medium": "members/medium/member_creature_celestial_01.webp",
+        "large": "members/large/member_creature_celestial_01.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_02",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 02",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_02.webp",
+        "medium": "members/medium/member_creature_celestial_02.webp",
+        "large": "members/large/member_creature_celestial_02.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_03",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 03",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_03.webp",
+        "medium": "members/medium/member_creature_celestial_03.webp",
+        "large": "members/large/member_creature_celestial_03.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_04",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 04",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_04.webp",
+        "medium": "members/medium/member_creature_celestial_04.webp",
+        "large": "members/large/member_creature_celestial_04.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_05",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 05",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_05.webp",
+        "medium": "members/medium/member_creature_celestial_05.webp",
+        "large": "members/large/member_creature_celestial_05.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_06",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 06",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_06.webp",
+        "medium": "members/medium/member_creature_celestial_06.webp",
+        "large": "members/large/member_creature_celestial_06.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_07",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 07",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_07.webp",
+        "medium": "members/medium/member_creature_celestial_07.webp",
+        "large": "members/large/member_creature_celestial_07.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_08",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 08",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_08.webp",
+        "medium": "members/medium/member_creature_celestial_08.webp",
+        "large": "members/large/member_creature_celestial_08.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_09",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 09",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_09.webp",
+        "medium": "members/medium/member_creature_celestial_09.webp",
+        "large": "members/large/member_creature_celestial_09.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_10",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 10",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_10.webp",
+        "medium": "members/medium/member_creature_celestial_10.webp",
+        "large": "members/large/member_creature_celestial_10.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_11",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 11",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_11.webp",
+        "medium": "members/medium/member_creature_celestial_11.webp",
+        "large": "members/large/member_creature_celestial_11.webp"
+      }
+    },
+    {
+      "id": "member_creature_celestial_12",
+      "kind": "member",
+      "category": "creature",
+      "pack": "creature_celestial",
+      "label": "Créatures célestes 12",
+      "sourceAspect": "square",
+      "displayMode": "full",
+      "files": {
+        "icon": "members/icon/member_creature_celestial_12.webp",
+        "medium": "members/medium/member_creature_celestial_12.webp",
+        "large": "members/large/member_creature_celestial_12.webp"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_g01_01_enchanted_treehouse",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Maison dans l’arbre enchantée",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_01_enchanted_treehouse.webp",
+        "medium": "groups/medium/group_g01_01_enchanted_treehouse.webp",
+        "large": "groups/large/group_g01_01_enchanted_treehouse.webp"
+      }
+    },
+    {
+      "id": "group_g01_02_crystal_cave",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Grotte de cristal",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_02_crystal_cave.webp",
+        "medium": "groups/medium/group_g01_02_crystal_cave.webp",
+        "large": "groups/large/group_g01_02_crystal_cave.webp"
+      }
+    },
+    {
+      "id": "group_g01_03_floating_garden",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Jardin flottant",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_03_floating_garden.webp",
+        "medium": "groups/medium/group_g01_03_floating_garden.webp",
+        "large": "groups/large/group_g01_03_floating_garden.webp"
+      }
+    },
+    {
+      "id": "group_g01_04_star_observatory",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Observatoire des étoiles",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_04_star_observatory.webp",
+        "medium": "groups/medium/group_g01_04_star_observatory.webp",
+        "large": "groups/large/group_g01_04_star_observatory.webp"
+      }
+    },
+    {
+      "id": "group_g01_05_secret_waterfall",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Cascade secrète",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_05_secret_waterfall.webp",
+        "medium": "groups/medium/group_g01_05_secret_waterfall.webp",
+        "large": "groups/large/group_g01_05_secret_waterfall.webp"
+      }
+    },
+    {
+      "id": "group_g01_06_sunlight_library",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Bibliothèque solaire",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_06_sunlight_library.webp",
+        "medium": "groups/medium/group_g01_06_sunlight_library.webp",
+        "large": "groups/large/group_g01_06_sunlight_library.webp"
+      }
+    },
+    {
+      "id": "group_g01_07_fantasy_lighthouse",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Phare fantastique",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_07_fantasy_lighthouse.webp",
+        "medium": "groups/medium/group_g01_07_fantasy_lighthouse.webp",
+        "large": "groups/large/group_g01_07_fantasy_lighthouse.webp"
+      }
+    },
+    {
+      "id": "group_g01_08_cloud_cabin",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Cabane dans les nuages",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_08_cloud_cabin.webp",
+        "medium": "groups/medium/group_g01_08_cloud_cabin.webp",
+        "large": "groups/large/group_g01_08_cloud_cabin.webp"
+      }
+    },
+    {
+      "id": "group_g01_09_mushroom_village_nook",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Village champignon",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_09_mushroom_village_nook.webp",
+        "medium": "groups/medium/group_g01_09_mushroom_village_nook.webp",
+        "large": "groups/large/group_g01_09_mushroom_village_nook.webp"
+      }
+    },
+    {
+      "id": "group_g01_10_river_glasshouse",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Serre au bord de la rivière",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_10_river_glasshouse.webp",
+        "medium": "groups/medium/group_g01_10_river_glasshouse.webp",
+        "large": "groups/large/group_g01_10_river_glasshouse.webp"
+      }
+    },
+    {
+      "id": "group_g01_11_moon_bridge",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Pont lunaire",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_11_moon_bridge.webp",
+        "medium": "groups/medium/group_g01_11_moon_bridge.webp",
+        "large": "groups/large/group_g01_11_moon_bridge.webp"
+      }
+    },
+    {
+      "id": "group_g01_12_hidden_courtyard",
+      "kind": "group",
+      "category": "group",
+      "pack": "g01",
+      "label": "Cour secrète",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g01_12_hidden_courtyard.webp",
+        "medium": "groups/medium/group_g01_12_hidden_courtyard.webp",
+        "large": "groups/large/group_g01_12_hidden_courtyard.webp"
+      }
+    },
+    {
+      "id": "group_g02_01_floating_island",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Île flottante",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_01_floating_island.webp",
+        "medium": "groups/medium/group_g02_01_floating_island.webp",
+        "large": "groups/large/group_g02_01_floating_island.webp"
+      }
+    },
+    {
+      "id": "group_g02_02_miniature_sky_city",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Cité céleste miniature",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_02_miniature_sky_city.webp",
+        "medium": "groups/medium/group_g02_02_miniature_sky_city.webp",
+        "large": "groups/large/group_g02_02_miniature_sky_city.webp"
+      }
+    },
+    {
+      "id": "group_g02_03_aurora_valley",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Vallée des aurores",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_03_aurora_valley.webp",
+        "medium": "groups/medium/group_g02_03_aurora_valley.webp",
+        "large": "groups/large/group_g02_03_aurora_valley.webp"
+      }
+    },
+    {
+      "id": "group_g02_04_desert_oasis_temple",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Temple-oasis du désert",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_04_desert_oasis_temple.webp",
+        "medium": "groups/medium/group_g02_04_desert_oasis_temple.webp",
+        "large": "groups/large/group_g02_04_desert_oasis_temple.webp"
+      }
+    },
+    {
+      "id": "group_g02_05_undersea_dome",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Dôme sous-marin",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_05_undersea_dome.webp",
+        "medium": "groups/medium/group_g02_05_undersea_dome.webp",
+        "large": "groups/large/group_g02_05_undersea_dome.webp"
+      }
+    },
+    {
+      "id": "group_g02_06_cloud_harbor",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Port des nuages",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_06_cloud_harbor.webp",
+        "medium": "groups/medium/group_g02_06_cloud_harbor.webp",
+        "large": "groups/large/group_g02_06_cloud_harbor.webp"
+      }
+    },
+    {
+      "id": "group_g02_07_prism_mountain_pass",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Col prismatique",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_07_prism_mountain_pass.webp",
+        "medium": "groups/medium/group_g02_07_prism_mountain_pass.webp",
+        "large": "groups/large/group_g02_07_prism_mountain_pass.webp"
+      }
+    },
+    {
+      "id": "group_g02_08_giant_flower_sanctuary",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Sanctuaire de la fleur géante",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_08_giant_flower_sanctuary.webp",
+        "medium": "groups/medium/group_g02_08_giant_flower_sanctuary.webp",
+        "large": "groups/large/group_g02_08_giant_flower_sanctuary.webp"
+      }
+    },
+    {
+      "id": "group_g02_09_stellar_gate",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Porte stellaire",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_09_stellar_gate.webp",
+        "medium": "groups/medium/group_g02_09_stellar_gate.webp",
+        "large": "groups/large/group_g02_09_stellar_gate.webp"
+      }
+    },
+    {
+      "id": "group_g02_10_lava_garden",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Jardin de lave",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_10_lava_garden.webp",
+        "medium": "groups/medium/group_g02_10_lava_garden.webp",
+        "large": "groups/large/group_g02_10_lava_garden.webp"
+      }
+    },
+    {
+      "id": "group_g02_11_ice_palace_refuge",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Refuge de glace",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_11_ice_palace_refuge.webp",
+        "medium": "groups/medium/group_g02_11_ice_palace_refuge.webp",
+        "large": "groups/large/group_g02_11_ice_palace_refuge.webp"
+      }
+    },
+    {
+      "id": "group_g02_12_celestial_lake",
+      "kind": "group",
+      "category": "group",
+      "pack": "g02",
+      "label": "Lac céleste",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g02_12_celestial_lake.webp",
+        "medium": "groups/medium/group_g02_12_celestial_lake.webp",
+        "large": "groups/large/group_g02_12_celestial_lake.webp"
+      }
+    },
+    {
+      "id": "group_g03_01_clockwork_garden",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Jardin mécanique",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_01_clockwork_garden.webp",
+        "medium": "groups/medium/group_g03_01_clockwork_garden.webp",
+        "large": "groups/large/group_g03_01_clockwork_garden.webp"
+      }
+    },
+    {
+      "id": "group_g03_02_floating_book_house",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Maison-livre flottante",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_02_floating_book_house.webp",
+        "medium": "groups/medium/group_g03_02_floating_book_house.webp",
+        "large": "groups/large/group_g03_02_floating_book_house.webp"
+      }
+    },
+    {
+      "id": "group_g03_03_color_workshop",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Atelier des couleurs",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_03_color_workshop.webp",
+        "medium": "groups/medium/group_g03_03_color_workshop.webp",
+        "large": "groups/large/group_g03_03_color_workshop.webp"
+      }
+    },
+    {
+      "id": "group_g03_04_music_pavilion",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Pavillon musical",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_04_music_pavilion.webp",
+        "medium": "groups/medium/group_g03_04_music_pavilion.webp",
+        "large": "groups/large/group_g03_04_music_pavilion.webp"
+      }
+    },
+    {
+      "id": "group_g03_05_giant_teacup_garden",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Jardin de la tasse géante",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_05_giant_teacup_garden.webp",
+        "medium": "groups/medium/group_g03_05_giant_teacup_garden.webp",
+        "large": "groups/large/group_g03_05_giant_teacup_garden.webp"
+      }
+    },
+    {
+      "id": "group_g03_06_starship_tree",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Arbre-vaisseau",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_06_starship_tree.webp",
+        "medium": "groups/medium/group_g03_06_starship_tree.webp",
+        "large": "groups/large/group_g03_06_starship_tree.webp"
+      }
+    },
+    {
+      "id": "group_g03_07_prism_playground",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Terrain prismatique",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_07_prism_playground.webp",
+        "medium": "groups/medium/group_g03_07_prism_playground.webp",
+        "large": "groups/large/group_g03_07_prism_playground.webp"
+      }
+    },
+    {
+      "id": "group_g03_08_cloud_library",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Bibliothèque des nuages",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_08_cloud_library.webp",
+        "medium": "groups/medium/group_g03_08_cloud_library.webp",
+        "large": "groups/large/group_g03_08_cloud_library.webp"
+      }
+    },
+    {
+      "id": "group_g03_09_bubble_observatory",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Observatoire-bulle",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_09_bubble_observatory.webp",
+        "medium": "groups/medium/group_g03_09_bubble_observatory.webp",
+        "large": "groups/large/group_g03_09_bubble_observatory.webp"
+      }
+    },
+    {
+      "id": "group_g03_10_lantern_forest_clearing",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Clairière des lanternes",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_10_lantern_forest_clearing.webp",
+        "medium": "groups/medium/group_g03_10_lantern_forest_clearing.webp",
+        "large": "groups/large/group_g03_10_lantern_forest_clearing.webp"
+      }
+    },
+    {
+      "id": "group_g03_11_mirror_pool_court",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Cour du bassin-miroir",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_11_mirror_pool_court.webp",
+        "medium": "groups/medium/group_g03_11_mirror_pool_court.webp",
+        "large": "groups/large/group_g03_11_mirror_pool_court.webp"
+      }
+    },
+    {
+      "id": "group_g03_12_impossible_house",
+      "kind": "group",
+      "category": "group",
+      "pack": "g03",
+      "label": "Maison impossible",
+      "sourceAspect": "square",
+      "displayMode": "full-square",
+      "files": {
+        "icon": "groups/icon/group_g03_12_impossible_house.webp",
+        "medium": "groups/medium/group_g03_12_impossible_house.webp",
+        "large": "groups/large/group_g03_12_impossible_house.webp"
+      }
+    }
+  ],
+  "counts": {
+    "members": 132,
+    "creatures": 60,
+    "children": 36,
+    "adults": 36,
+    "groups": 36,
+    "excluded": 1
+  }
+}

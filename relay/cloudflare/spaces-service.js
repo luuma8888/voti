@@ -58,10 +58,10 @@ export class SpacesService {
     need(Array.isArray(ids)&&ids.length<=20&&ids.every(isPublicPollId)&&new Set(ids).size===ids.length,'INVALID_REQUEST');
     if(ids.length)need((await this.sql(`SELECT count(*) n FROM groups WHERE group_id IN (${ids.map(()=>'?').join(',')}) AND space_id=? AND status='active'`,...ids,spaceId).first()).n===ids.length,'ACCESS_DENIED');
   }
-  async view(access){
+  async view(access,includeVisuals=false){
     const id=access.space_id,isAdmin=access.role==='admin';
-    const groups=(await this.sql('SELECT group_id,name,status FROM groups WHERE space_id=? ORDER BY name',id).all()).results.filter(g=>access.groupIds===null||access.groupIds.includes(g.group_id));
-    const members=isAdmin?(await this.sql(`SELECT m.member_id,m.display_name,m.status,EXISTS(SELECT 1 FROM member_credentials c WHERE c.member_id=m.member_id) has_card,
+    const groups=(await this.sql(`SELECT group_id,name,status${includeVisuals?',visual_id':''} FROM groups WHERE space_id=? ORDER BY name`,id).all()).results.filter(g=>access.groupIds===null||access.groupIds.includes(g.group_id));
+    const members=isAdmin?(await this.sql(`SELECT m.member_id,m.display_name,m.status${includeVisuals?',m.visual_id':''},EXISTS(SELECT 1 FROM member_credentials c WHERE c.member_id=m.member_id) has_card,
       (SELECT json_group_array(group_id) FROM group_memberships WHERE member_id=m.member_id) group_ids FROM space_members m WHERE space_id=? ORDER BY display_name`,id).all()).results:[];
     for(const member of members){member.groupIds=JSON.parse(member.group_ids);delete member.group_ids;}
     const invitations=isAdmin?(await this.sql('SELECT invitation_id,group_ids,max_uses,uses,expires_at,closed FROM invitations WHERE space_id=?',id).all()).results:[];
@@ -82,12 +82,12 @@ export class SpacesService {
     }
     if(command==='acceptInvitation')return this.acceptInvitation(data,credential);
     if(command==='getMemberHome'){
-      const member=await this.member(credential),groups=(await this.sql("SELECT g.group_id,g.name FROM group_memberships m JOIN groups g USING(group_id) WHERE m.member_id=? AND g.status='active'",member.member_id).all()).results;
+      const member=await this.member(credential),groups=(await this.sql(`SELECT g.group_id,g.name${data.includeVisuals?',g.visual_id':''} FROM group_memberships m JOIN groups g USING(group_id) WHERE m.member_id=? AND g.status='active'`,member.member_id).all()).results;
       const polls=(await this.sql(`SELECT p.poll_id,p.status,p.definition,p.result_rules,e.consumed,a.snapshot_size,a.results_audience,
         (SELECT coalesce(sum(consumed),0) FROM poll_member_eligibility WHERE poll_id=p.poll_id) consumed_total
         FROM poll_member_eligibility e JOIN polls p USING(poll_id) JOIN poll_audiences a USING(poll_id)
         WHERE e.member_id=? AND p.status!='draft'`,member.member_id).all()).results;
-      return {kind:'member',memberId:member.member_id,displayName:member.display_name,space:{spaceId:member.space_id,name:member.space_name},groups,
+      return {kind:'member',memberId:member.member_id,displayName:member.display_name,...(data.includeVisuals?{visualId:member.visual_id}:{}),space:{spaceId:member.space_id,name:member.space_name},groups,
         polls:polls.map(p=>({pollId:p.poll_id,question:JSON.parse(p.definition).question,status:p.status,alreadyParticipated:Boolean(p.consumed),resultsAvailable:p.results_audience==='poll_audience'&&groupResultsAvailable(p.status,JSON.parse(p.result_rules),p.consumed_total,p.snapshot_size)}))};
     }
     if(['getMemberPoll','getMemberResults','getMemberComments','castMemberVote'].includes(command)){
@@ -121,23 +121,23 @@ export class SpacesService {
       return this.publish(row);
     }
     const access=await this.staff(data.spaceId,credential,data.expectedRevision, !['getSpace','prepareSpacePublication'].includes(command));
-    if(command==='getSpace')return this.view(access);
+    if(command==='getSpace')return this.view(access,data.includeVisuals===true);
     if(command==='prepareSpacePublication')return this.prepare(access,data);
     const bounds={createGroup:['groups',20],createMember:['space_members',200],createAccess:['space_access',20],createInvitation:['invitations',40]};
     if(bounds[command]){const[table,max]=bounds[command];need((await this.sql(`SELECT count(*) n FROM ${table} WHERE space_id=?`,data.spaceId).first()).n<max,'PAYLOAD_TOO_LARGE');}
     let statements=[];
     if(command==='renameSpace')statements=[this.sql('UPDATE spaces SET name=? WHERE space_id=?',spaceName(data.name),data.spaceId)];
     else if(command==='archiveSpace')statements=[this.sql("UPDATE spaces SET status='archived' WHERE space_id=?",data.spaceId)];
-    else if(command==='createGroup')statements=[this.sql('INSERT INTO groups(group_id,space_id,name) VALUES(?,?,?)',data.groupId,data.spaceId,spaceName(data.name))];
+    else if(command==='createGroup')statements=[this.sql('INSERT INTO groups(group_id,space_id,name,visual_id) VALUES(?,?,?,?)',data.groupId,data.spaceId,spaceName(data.name),data.visualId??null)];
     else if(['renameGroup','archiveGroup'].includes(command)){
       need(await this.sql('SELECT 1 FROM groups WHERE group_id=? AND space_id=?',data.groupId,data.spaceId).first(),'NOT_FOUND');
       if(command==='archiveGroup')need(!await this.sql("SELECT 1 FROM poll_audience_groups g JOIN polls p USING(poll_id) WHERE g.group_id=? AND p.status IN ('draft','published')",data.groupId).first(),'PUBLICATION_CONFLICT');
-      statements=[command==='renameGroup'?this.sql('UPDATE groups SET name=? WHERE group_id=?',spaceName(data.name),data.groupId):this.sql("UPDATE groups SET status='archived' WHERE group_id=?",data.groupId)];
+      statements=[command==='renameGroup'?this.sql(`UPDATE groups SET name=?${Object.hasOwn(data,'visualId')?',visual_id=?':''} WHERE group_id=?`,spaceName(data.name),...(Object.hasOwn(data,'visualId')?[data.visualId]:[]),data.groupId):this.sql("UPDATE groups SET status='archived' WHERE group_id=?",data.groupId)];
     }else if(['createMember','updateMember','revokeMember','rotateMemberCard','revokeMemberCard'].includes(command)){
       if(command!=='createMember')need(await this.sql('SELECT 1 FROM space_members WHERE member_id=? AND space_id=?',data.memberId,data.spaceId).first(),'NOT_FOUND');
       if(['createMember','updateMember'].includes(command)){
         await this.groupIds(data.spaceId,data.groupIds);const name=memberName(data.displayName);
-        statements.push(command==='createMember'?this.sql('INSERT INTO space_members(member_id,space_id,display_name) VALUES(?,?,?)',data.memberId,data.spaceId,name):this.sql('UPDATE space_members SET display_name=? WHERE member_id=?',name,data.memberId),
+        statements.push(command==='createMember'?this.sql('INSERT INTO space_members(member_id,space_id,display_name,visual_id) VALUES(?,?,?,?)',data.memberId,data.spaceId,name,data.visualId??null):this.sql(`UPDATE space_members SET display_name=?${Object.hasOwn(data,'visualId')?',visual_id=?':''} WHERE member_id=?`,name,...(Object.hasOwn(data,'visualId')?[data.visualId]:[]),data.memberId),
           this.sql('DELETE FROM group_memberships WHERE member_id=?',data.memberId),...data.groupIds.map(g=>this.sql('INSERT INTO group_memberships VALUES(?,?,?)',data.spaceId,g,data.memberId)));
       }
       if(['createMember','rotateMemberCard'].includes(command)){

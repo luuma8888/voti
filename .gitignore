@@ -9,6 +9,7 @@ coverage/
 .env
 .env.*
 .aws
+byluuma/
 
 VOTI_AUDIT_*.zip
 # Les transferts d'administration sont secrets, jamais des sources du projet.

@@ -5,7 +5,7 @@ import {validateSpaceCommand,validateSpaceResponse} from '../shared/space-wire.j
 /** Transport fetch uniquement ; pas de DOM, cookies, retry automatique ou état métier. */
 export class HttpRelayAdapter extends RelayAdapter {
   async spaceCommand({command,input,credential,humanVerificationToken}) {
-    const data=validateSpaceCommand(command,input),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),this.timeoutMs);
+    const data=validateSpaceCommand(command,['getSpace','getMemberHome'].includes(command)?{includeVisuals:true,...input}:input),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),this.timeoutMs);
     try{
       const response=await this.fetchImpl.call(globalThis,`${this.baseUrl}/api/v1/spaces/${command}`,{
         method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:`Bearer ${credential}`},

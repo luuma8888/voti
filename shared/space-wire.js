@@ -3,6 +3,7 @@ import {object,isUuid} from './validation.js';
 import {validateRelayResponse,validateProjection,validateCommentPage} from './relay-wire.js';
 import {memberName,spaceName} from './spaces.js';
 import {validateDefinition,validateStyle,validateRules,validateAccess} from './validation.js';
+import {isVisualId} from './visual-ids.js';
 
 /** Contrat fournisseur-neutre ; les credentials transitent exclusivement en Bearer. */
 export const SPACE_COMMAND_FIELDS=Object.freeze({
@@ -25,7 +26,10 @@ export const SPACE_COMMAND_FIELDS=Object.freeze({
 });
 export function validateSpaceCommand(command,input){
   need(Object.hasOwn(SPACE_COMMAND_FIELDS,command),'INVALID_REQUEST');
-  try{object(input,SPACE_COMMAND_FIELDS[command],'Opération Espace');}catch{need(false,'INVALID_REQUEST');}
+  const optional=['createMember','updateMember','createGroup','renameGroup'].includes(command)?['visualId']:['getSpace','getMemberHome'].includes(command)?['includeVisuals']:[];
+  try{object(input,[...SPACE_COMMAND_FIELDS[command],...optional.filter(k=>Object.hasOwn(input??{},k))],'Opération Espace');}catch{need(false,'INVALID_REQUEST');}
+  if(Object.hasOwn(input,'visualId'))need(isVisualId(['createMember','updateMember'].includes(command)?'member':'group',input.visualId),'INVALID_REQUEST');
+  if(Object.hasOwn(input,'includeVisuals'))need(typeof input.includeVisuals==='boolean','INVALID_REQUEST');
   for(const key of ['spaceId','groupId','memberId','accessId','invitationId','pollId','actionId'])if(Object.hasOwn(input,key))need(isPublicPollId(input[key]),'INVALID_REQUEST');
   if(Object.hasOwn(input,'choiceId'))need(isUuid(input.choiceId),'INVALID_REQUEST');
   if(Object.hasOwn(input,'expectedDefinitionHash'))need(typeof input.expectedDefinitionHash==='string'&&/^[a-f0-9]{64}$/.test(input.expectedDefinitionHash),'INVALID_REQUEST');
@@ -41,7 +45,8 @@ export function validateSpaceResponse(value,relayId=null,pollId=null){
     poll:['kind','poll'],memberPoll:['kind','poll','alreadyParticipated'],results:['kind','results'],comments:['kind','page'],
     vote:['kind','receipt'],attendance:['kind','identityMode','consumed','eligible','members']};
   need(Object.hasOwn(keys,value.kind),'RELAY_UNAVAILABLE');
-  try{object(value,keys[value.kind],'Réponse Espace');}catch{need(false,'RELAY_UNAVAILABLE');}
+  try{object(value,[...keys[value.kind],...(value.kind==='member'&&Object.hasOwn(value,'visualId')?['visualId']:[])],'Réponse Espace');}catch{need(false,'RELAY_UNAVAILABLE');}
+  if(value.kind==='member'&&Object.hasOwn(value,'visualId'))need(isVisualId('member',value.visualId),'RELAY_UNAVAILABLE');
   if(['mutation','prepared','acceptedInvitation'].includes(value.kind)){
     for(const key of ['spaceId','pollId','memberId'])if(Object.hasOwn(value,key))need(isPublicPollId(value[key]),'RELAY_UNAVAILABLE');
     if(Object.hasOwn(value,'revision'))need(Number.isSafeInteger(value.revision)&&value.revision>=0,'RELAY_UNAVAILABLE');
@@ -63,7 +68,7 @@ export function validateSpaceResponse(value,relayId=null,pollId=null){
   if(value.kind==='member'){
     need(isPublicPollId(value.memberId)&&memberName(value.displayName)===value.displayName,'RELAY_UNAVAILABLE');object(value.space,['spaceId','name'],'Espace participant');need(isPublicPollId(value.space.spaceId)&&spaceName(value.space.name)===value.space.name,'RELAY_UNAVAILABLE');
     need(Array.isArray(value.groups)&&value.groups.length<=20&&Array.isArray(value.polls)&&value.polls.length<=200,'RELAY_UNAVAILABLE');
-    for(const g of value.groups){object(g,['group_id','name'],'Groupe participant');need(isPublicPollId(g.group_id)&&spaceName(g.name)===g.name,'RELAY_UNAVAILABLE');}
+    for(const g of value.groups){object(g,['group_id','name',...(Object.hasOwn(g,'visual_id')?['visual_id']:[])],'Groupe participant');if(Object.hasOwn(g,'visual_id'))need(isVisualId('group',g.visual_id),'RELAY_UNAVAILABLE');need(isPublicPollId(g.group_id)&&spaceName(g.name)===g.name,'RELAY_UNAVAILABLE');}
     for(const p of value.polls){object(p,['pollId','question','status','alreadyParticipated','resultsAvailable'],'Sondage participant');need(isPublicPollId(p.pollId)&&typeof p.question==='string'&&p.question.length<=240&&['published','closed'].includes(p.status)&&typeof p.alreadyParticipated==='boolean'&&typeof p.resultsAvailable==='boolean','RELAY_UNAVAILABLE');}
   }
   if(value.kind==='space'){
@@ -73,8 +78,8 @@ export function validateSpaceResponse(value,relayId=null,pollId=null){
     need(value.access.groupIds===null||ids(value.access.groupIds),'RELAY_UNAVAILABLE');
     for(const [key,max] of [['members',200],['groups',20],['staffAccesses',20],['invitations',40],['polls',200]])need(Array.isArray(value[key])&&value[key].length<=max,'RELAY_UNAVAILABLE');
     if(value.access.role==='creator')need(!value.members.length&&!value.staffAccesses.length&&!value.invitations.length,'RELAY_UNAVAILABLE');
-    for(const m of value.members){object(m,['member_id','display_name','status','has_card','groupIds'],'Membre administré');need(isPublicPollId(m.member_id)&&memberName(m.display_name)===m.display_name&&['active','revoked'].includes(m.status)&&[0,1].includes(m.has_card)&&Array.isArray(m.groupIds)&&m.groupIds.length<=20&&m.groupIds.every(isPublicPollId),'RELAY_UNAVAILABLE');}
-    for(const g of value.groups){object(g,['group_id','name','status'],'Groupe administré');need(isPublicPollId(g.group_id)&&spaceName(g.name)===g.name&&['active','archived'].includes(g.status),'RELAY_UNAVAILABLE');}
+    for(const m of value.members){object(m,['member_id','display_name','status','has_card','groupIds',...(Object.hasOwn(m,'visual_id')?['visual_id']:[])],'Membre administré');if(Object.hasOwn(m,'visual_id'))need(isVisualId('member',m.visual_id),'RELAY_UNAVAILABLE');need(isPublicPollId(m.member_id)&&memberName(m.display_name)===m.display_name&&['active','revoked'].includes(m.status)&&[0,1].includes(m.has_card)&&Array.isArray(m.groupIds)&&m.groupIds.length<=20&&m.groupIds.every(isPublicPollId),'RELAY_UNAVAILABLE');}
+    for(const g of value.groups){object(g,['group_id','name','status',...(Object.hasOwn(g,'visual_id')?['visual_id']:[])],'Groupe administré');if(Object.hasOwn(g,'visual_id'))need(isVisualId('group',g.visual_id),'RELAY_UNAVAILABLE');need(isPublicPollId(g.group_id)&&spaceName(g.name)===g.name&&['active','archived'].includes(g.status),'RELAY_UNAVAILABLE');}
     for(const a of value.staffAccesses){object(a,['access_id','role','group_scopes','status'],'Accès de gestion');need(isPublicPollId(a.access_id)&&['admin','creator'].includes(a.role)&&['active','revoked'].includes(a.status)&&(a.group_scopes===null||typeof a.group_scopes==='string'&&ids(JSON.parse(a.group_scopes))),'RELAY_UNAVAILABLE');}
     for(const i of value.invitations){object(i,['invitation_id','group_ids','max_uses','uses','expires_at','closed'],'Invitation');need(isPublicPollId(i.invitation_id)&&typeof i.group_ids==='string'&&ids(JSON.parse(i.group_ids))&&Number.isSafeInteger(i.max_uses)&&i.max_uses>=1&&i.max_uses<=200&&Number.isSafeInteger(i.uses)&&i.uses>=0&&i.uses<=i.max_uses&&Number.isSafeInteger(i.expires_at)&&[0,1].includes(i.closed),'RELAY_UNAVAILABLE');}
     for(const p of value.polls){object(p,['pollId','status','question'],'Sondage Espace');need(isPublicPollId(p.pollId)&&['draft','published','closed'].includes(p.status)&&typeof p.question==='string'&&[...p.question].length<=240,'RELAY_UNAVAILABLE');}

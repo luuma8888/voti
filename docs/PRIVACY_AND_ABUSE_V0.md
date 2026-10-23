@@ -218,3 +218,12 @@ Rétention = sondage, aucune expiration publiée/fermée. DeleteComment supprime
 texte sans supprimer le vote/reçu ; DeletePoll cascade toutes ces nouvelles données.
 Backup local contient les noms/commentaires locaux ; ne pas le partager publiquement.
 PDF exportés/copies téléchargées peuvent survivre à toute suppression serveur.
+
+## Illustrations de profil prédéfinies (lot local)
+
+Seul un ID de catalogue public est associé au profil membre ou groupe. Pas d'image
+personnelle, URL, upload, R2, blob D1 ou nouvel identifiant participant. L'ID n'est
+jamais copié dans le bulletin/commentaire anonyme ou le registre d'éligibilité.
+Les images statiques n'incluent aucun nom/credential ; les fichiers d'accès et
+QR conservent leur traitement secret. Pas de nouveau cache privé, cookie ou tracking.
+Une illustration choisie n'est ni une identité vérifiée ni un contrôle d'unicité.

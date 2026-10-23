@@ -71,5 +71,5 @@ export async function build() {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const html = await build();
-  console.log(`Build OK : index.html autonome (${Buffer.byteLength(html)} octets), aucune ressource externe.`);
+  console.log(`Build OK : index.html (${Buffer.byteLength(html)} octets) et pack WebP local, aucune ressource distante.`);
 }

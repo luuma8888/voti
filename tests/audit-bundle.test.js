@@ -17,7 +17,7 @@ test('Audit v0.5 : .env/.dev.vars exclus même suivis par erreur',()=>{
 });
 test('Audit : captures personnelles exclues, assets de marque conservés',()=>{
   for(const path of ['Screenshot 2026-10-12 20.46.53.png','Screenshot 2026-10-12 21.45.36.png','docs/Screenshot test.webp'])assert.ok(isPrivateOrTemporaryExport(path));
-  assert.equal(isPrivateOrTemporaryExport('assets/branding/source/voti-logo-source.png'),false);
+  assert.equal(isPrivateOrTemporaryExport('assets/branding/source/voti-logo-source.png'),true);assert.equal(isPrivateOrTemporaryExport('assets/branding/voti-logo.webp'),false);
 });
 test('Audit v0.4A : aucune clé exportée ni PDF de recette, même suivi par erreur', () => {
   assert.equal(AUDIT_NAME, 'VOTI_AUDIT_V0_6_2.zip');
@@ -42,4 +42,9 @@ test('Archive audit : ZIP UTF-8 déterministe, octets/CRC et répertoire correct
   }
   assert.equal(zip.readUInt32LE(p), 0x02014b50); assert.equal(zip.readUInt32LE(zip.length - 22), 0x06054b50);
   assert.equal(zip.readUInt16LE(zip.length - 12), entries.length); assert.equal(zip.readUInt32LE(zip.length - 6), p);
+});
+test('Audit : pack WebP officiel inclus, transferts privés exclus',async()=>{
+ const paths=await auditPaths();assert.equal(paths.filter(p=>/^web\/assets\/voti-visuals\/.*\.webp$/.test(p)).length,504);assert.ok(paths.includes('web/assets/voti-visuals/assets-manifest.json'));assert.ok(!paths.some(p=>p.startsWith('byluuma/')));
+ assert.equal(isPrivateOrTemporaryExport('web/assets/voti-visuals/members/icon/member_human_elven_01.webp'),false);
+ assert.equal(isPrivateOrTemporaryExport('web/assets/voti-visuals/photo.png'),true);
 });

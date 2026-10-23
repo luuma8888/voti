@@ -8,14 +8,14 @@ import { crc32 } from '../relay/cloudflare/image-validation.js';
 
 export const AUDIT_NAME = 'VOTI_AUDIT_V0_6_2.zip';
 export function isAuditArchive(path) { return /\.zip$/i.test(path); }
-export function isPrivateOrTemporaryExport(path) { return /(?:^|\/)voti-(?:admin|space-access|member-card|invitation)[^/]*\.(?:json|svg|png|pdf)$/i.test(path) || /\.(?:pdf|sql\.gz|sqlite|sqlite3|db|log)$/i.test(path) || (/\.(?:png|jpe?g|webp)$/i.test(path)&&!path.startsWith('assets/branding/')) || /(?:^|\/)(?:\.env(?:\.[^/]*)?|\.dev\.vars[^/]*)$/i.test(path); }
+export function isPrivateOrTemporaryExport(path) { return /^assets\/branding\/source\//.test(path) || /(?:^|\/)voti-(?:admin|space-access|member-card|invitation)[^/]*\.(?:json|svg|png|pdf)$/i.test(path) || /\.(?:pdf|sql\.gz|sqlite|sqlite3|db|log)$/i.test(path) || (/\.(?:png|jpe?g|webp)$/i.test(path)&&!path.startsWith('assets/branding/')&&!/^web\/assets\/voti-visuals\/(members|groups)\/(icon|medium|large)\/[a-z0-9_-]+\.webp$/.test(path)) || /(?:^|\/)(?:\.env(?:\.[^/]*)?|\.dev\.vars[^/]*)$/i.test(path); }
 export async function auditPaths() {
   const { stdout } = await promisify(execFile)('git', ['ls-files', '-co', '--exclude-standard', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 8_000_000 });
   // Exclure aussi les anciennes archives déjà suivies par Git : jamais de ZIP récursif.
   const paths = [...new Set(stdout.split('\0').filter(path => path && !isAuditArchive(path) && !isPrivateOrTemporaryExport(path)))].sort();
   for (const path of paths) {
     if (path === AUDIT_NAME || path.startsWith('/') || path.split('/').includes('..') ||
-      /^(?:node_modules|\.npm-cache|\.wrangler|\.relay-local|\.browser-tests|\.git|\.aws|coverage)(?:\/|$)/.test(path)) throw new Error('Contenu interdit dans le bundle d’audit.');
+      /^(?:byluuma|node_modules|\.npm-cache|\.wrangler|\.relay-local|\.browser-tests|\.git|\.aws|coverage)(?:\/|$)/.test(path)) throw new Error('Contenu interdit dans le bundle d’audit.');
   }
   return paths;
 }

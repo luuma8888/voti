@@ -10,6 +10,7 @@ import { draft } from '../tests/fixtures.js';
 import { makeAsset } from '../shared/assets.js';
 import { pngFixture } from '../tests/image-fixtures.js';
 import { participationChecks } from './participation-checks.mjs';
+import {visualIdentitiesChecks} from './visual-identities-checks.mjs';
 import {spacesChecks} from './spaces-checks.mjs';
 
 // Profil local indépendant, sans binding R2, sans credentials et sans ressource distante.
@@ -35,6 +36,7 @@ try {
     if (child.exitCode !== null || Date.now() > deadline) throw new Error('Worker gratuit local non prêt.');
     await new Promise(resolve => setTimeout(resolve, 100));
   }
+  if(process.argv.includes('--visual-identities')){const repeat=wrangler(['d1','migrations','apply',relayId,...args,'--local',...persist],{stdio:['ignore','pipe','pipe']});repeat.stdout.resume();repeat.stderr.resume();check((await once(repeat,'exit'))[0]===0);checks+=await visualIdentitiesChecks({adapter:adapter(),sql});}
   if(process.argv.includes('--spaces'))checks+=await spacesChecks({adapter:adapter(),sql});
   if(!process.argv.includes('--spaces-browser-only')){
   checks+=await participationChecks({adapter:adapter(),sql});
@@ -72,7 +74,7 @@ try {
   await creator.deletePoll(poll.id); await rejected(voter.getPoll(poll.id), 'NOT_FOUND');
   }
   if (process.argv.includes('--browser')||process.argv.includes('--spaces-browser')) {
-    const browser = spawn(process.execPath, ['scripts/browser-test.mjs',...(process.argv.includes('--spaces-browser')?['--spaces',...(process.argv.includes('--space-layout')?['--space-layout']:[])]:[])], { stdio: 'inherit', env: { ...localEnv,
+    const browser = spawn(process.execPath, ['scripts/browser-test.mjs',...(process.argv.includes('--spaces-browser')?['--spaces',...(process.argv.includes('--space-layout')?['--space-layout']:[]),...(process.argv.includes('--visual-identities')?['--visual-identities']:[])]:[])], { stdio: 'inherit', env: { ...localEnv,
       VOTI_RELAY_URL: baseUrl, VOTI_RELAY_ID: relayId, VOTI_TURNSTILE_MODE: 'local-test',
       VOTI_REMOTE_ASSETS_ENABLED: 'false', VOTI_TEST_FREE_PILOT: '1', VOTI_TEST_PERSIST: persist[1] } });
     check((await once(browser, 'exit'))[0] === 0);

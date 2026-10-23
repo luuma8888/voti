@@ -31,3 +31,15 @@ await rows(`INSERT INTO ballots(poll_id,action_id,choice_id) VALUES(${quote(poll
 assert.equal((await rows('SELECT count(*) n FROM poll_audiences'))[0].n,0);checks++;
 assert.equal((await rows('SELECT count(*) n FROM member_participations'))[0].n,0);checks++;
 console.log(`Migration 0004 locale : ${checks} contrôles réussis, lignes/hashes v0.4C/v0.5 intacts et INSERT v0.5 compatibles.`);
+
+// 0005 ne touche qu'à deux objets de profil, jamais à l'historique des réponses.
+const spaceId=crypto.randomUUID(),groupId=crypto.randomUUID(),memberId=crypto.randomUUID();
+await rows(`INSERT INTO spaces(space_id,name) VALUES(${quote(spaceId)},'Espace historique fictif')`);
+await rows(`INSERT INTO groups(group_id,space_id,name) VALUES(${quote(groupId)},${quote(spaceId)},'Groupe historique fictif')`);
+await rows(`INSERT INTO space_members(member_id,space_id,display_name) VALUES(${quote(memberId)},${quote(spaceId)},'Membre historique fictif')`);
+const oldGroups=await rows('SELECT * FROM groups'),oldMembers=await rows('SELECT * FROM space_members'),oldPolls=await rows('SELECT * FROM polls ORDER BY poll_id'),oldBallots=await rows('SELECT * FROM ballots ORDER BY poll_id,action_id');
+await run(['--file','relay/cloudflare/migrations/0005_visual_identities.sql']);
+for(const [table,previous]of [['groups',oldGroups],['space_members',oldMembers]]){const current=await rows('SELECT * FROM '+table);assert.ok(current.every(r=>r.visual_id===null));checks++;assert.deepEqual(current.map(({visual_id,...r})=>r),previous);checks++;}
+assert.deepEqual(await rows('SELECT * FROM polls ORDER BY poll_id'),oldPolls);checks++;assert.deepEqual(await rows('SELECT * FROM ballots ORDER BY poll_id,action_id'),oldBallots);checks++;
+assert.equal((await rows('PRAGMA quick_check'))[0].quick_check,'ok');checks++;assert.deepEqual(await rows('PRAGMA foreign_key_check'),[]);checks++;
+console.log(`Migration 0005 locale : 8 contrôles supplémentaires, membres/groupes historiques NULL et sondages/bulletins intacts (${checks} contrôles au total).`);

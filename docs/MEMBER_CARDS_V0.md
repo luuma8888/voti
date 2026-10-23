@@ -105,7 +105,17 @@ QR noir, blanc opaque, quiet zone et modules entiers sont inchangés, même en N
 Le titre et le nom plus grands n’empiètent pas sur le QR. Les miniatures groupes
 restent secondaires face à l’éventuelle illustration membre et au QR.
 
-Les vrais packs d’illustrations ne sont pas encore fournis. Leurs manifestes vides
-ne produisent ni galerie vide ni upload : uniquement des illustrations prédéfinies
-intégrées à Voti, jamais une photo personnelle. Voir `MEMBER_VISUALS_V0.md` pour
-les composants préparés et la proposition de stockage futur des seuls IDs.
+La préparation initiale utilisait des manifestes vides. Les vrais packs sont
+désormais intégrés dans le lot local décrit ci-dessous : uniquement des
+illustrations prédéfinies, jamais une photo personnelle. Voir `MEMBER_VISUALS_V0.md`
+pour le catalogue et la persistance locale des seuls IDs, sans migration production.
+
+## Intégration locale des vrais packs
+
+Les vrais WebP fournis remplacent désormais l'échafaudage vide décrit ci-dessus.
+Les IDs de membre/groupes choisis dans les fiches sont transmis à la carte lors
+de création/régénération/invitation ; les illustrations ne sont jamais dans le QR.
+Large membre (humain vertical contain) et petits icon groupes, modèle commun écran
+et PDF. Le choix de thème reste temporaire. Les cartes existantes ne deviennent pas
+récupérables : aucun coffre de credentials. Voir `MEMBER_VISUALS_V0.md` pour le
+catalogue, la migration locale et la distribution du dossier offline complet.
