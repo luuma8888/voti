@@ -445,3 +445,194 @@ La dernière reconstruction inclut ce constat ; ses taille/SHA sont donnés dans
 réponse finale. Le mécanisme historique inclut aussi les documents locaux
 préexistants admissibles, qui restent exclus du nouveau commit et non modifiés.
 Le ZIP demeure ignoré/non commité. Les captures sont également hors Git/audit.
+
+
+## Publication contrôlée — 23 octobre 2026
+
+Publication autorisée explicitement par Lu’uma : migration 0005 seule, Worker
+compatible, contrôles API, puis push du commit déjà audité et GitHub Pages.
+Aucun correctif produit/UX n’a été apporté pendant cette publication. Aucun nouveau
+commit, amend, rebase ou squash. Les sept rapports historiques déjà modifiés et
+les fichiers personnels restent hors commit ; l’index reste vide. Cette section
+post-publication est ajoutée localement, sans commit documentaire supplémentaire.
+
+### Préflight, sauvegarde et migration
+
+HEAD local initial/final : `9dad05b11cd5e4ec2be7e24749ad0656d8e4a7b5`.
+Parent et main distante avant push : `45d17a9c5e685a1de8fde6e6369d80e78fe337be`.
+Working tree applicatif identique au commit audité ; build inchangé, index vide,
+`git diff --check` valide. Wrangler installé 4.149.0, Node 22.23.3. Syntaxe export,
+migrations apply et deploy vérifiée dans l’aide du CLI installé.
+
+Cible vérifiée réellement : compte `1c74451e938197bbcd316939932fc778`,
+D1 `voti-production` / `bb3329c1-7de3-4147-8d07-af8679b6cd12`, Worker `voti-relay`.
+Avant écriture : migrations 0001–0004, seule 0005 en attente. Export D1 privé créé
+avant migration dans un répertoire ignoré, permissions restreintes ; reconstruction
+SQLite locale réussie, quick_check ok et aucune violation FK. Sauvegarde conservée,
+contenu non affiché et absent du dépôt/bundle. Compteurs revérifiés immédiatement
+avant application.
+
+Commande exécutée avec configuration production explicite :
+
+```sh
+node_modules/node/bin/node node_modules/wrangler/bin/wrangler.js d1 migrations apply voti-production --remote --config relay/cloudflare/wrangler.production.jsonc
+```
+
+0005_visual_identities.sql appliquée et enregistrée exactement une fois. Deux
+colonnes `visual_id TEXT DEFAULT NULL`, nullables ; anciens membres et groupes
+restés à NULL. Export après migration reconstruit localement : données des 21 tables
+historiques comparées sans afficher leur contenu, toutes identiques ; index et
+triggers inchangés. Aucun bulletin brut interrogé directement en production.
+`PRAGMA quick_check = ok`, `foreign_key_check` vide.
+
+Avant/après puis contrôle final : 2 sondages, 5 bulletins, 0 commentaire,
+0 Participation, 1 Espace, 2 groupes, 5 membres, 5 affiliations,
+2 accès de gestion, 5 credentials membres, 1 invitation, 0 audience de sondage
+Espace. Aucun choix visuel attribué automatiquement. Aucune fixture créée,
+aucune modification des membres/groupes de l’Espace test.
+
+### Worker compatible déployé avant le frontend
+
+Worker précédent : version `31ad3d94-8e25-4490-91f5-125c58552e79`,
+deployment `67074c50-987e-431e-85d8-85ba216f6c35`.
+Dry-run du package audité réussi (116,67 Kio, gzip 27,06 Kio), puis :
+
+```sh
+node_modules/node/bin/node node_modules/wrangler/bin/wrangler.js deploy --config relay/cloudflare/wrangler.production.jsonc --no-autoconfig
+```
+
+Nouvelle version : `71281198-44dc-4454-9243-1a7fcc688f3f`.
+Deployment : `a5380ae2-05c3-4c5c-abf1-485e95722b4d`, 100 % du trafic.
+URL : https://voti-relay.voti-luuma8888.workers.dev
+
+Bindings vérifiés après déploiement : D1 attendue ; LIMITER 120/60 s,
+CREATION_LIMITER 30/60 s, ASSET_LIMITER 600/60 s ; namespaces inchangés.
+relayId voti-production ; REMOTE_ASSETS_ENABLED=false ; CORS limité à
+https://luuma8888.github.io ; TURNSTILE_MODE=siteverify ; hostname
+luuma8888.github.io ; TTL 86400 ; cron `17 * * * *`. Secret Turnstile : présence
+vérifiée uniquement par métadonnées, jamais valeur lue/copiée/régénérée.
+Aucun R2, aucune modification du forfait Free confirmé par Lu’uma.
+
+Smoke API : 16 contrôles réussis, GET/OPTIONS et commandes de lecture seulement,
+credentials aléatoires inexistants en mémoire ; refus correct des accès invalides,
+includeVisuals accepté syntaxiquement sans contourner l’autorisation, CORS strict,
+aucun cookie. Six projections publiques des deux sondages libres comparées avant
+et après Worker : mêmes statuts, mêmes empreintes ; résultats historiques disponibles
+ou 423 RESULTS_LOCKED selon leurs règles. Le premier helper de smoke ignorait le
+statut historique 423 : assertion du helper privé corrigée, aucun code produit changé.
+Aucun vote de production soumis et aucun challenge Turnstile simulé.
+
+Repli : ne jamais revenir à un Worker v0.5/v0.5.1 après v0.6. En cas d’incident,
+arrêt et diagnostic, forward-fix compatible avec les gardes d’audience v0.6 ; pas
+de restauration destructive ni rollback automatique effectué.
+
+### Push et publication Pages vérifiés
+
+Après vérification de main distante sans concurrence, push normal du seul commit
+`9dad05b11cd5e4ec2be7e24749ad0656d8e4a7b5`. SHA distant identique. Aucun force-push.
+Mécanisme Pages existant conservé, aucun workflow modifié.
+
+Déploiement Pages `7286501901`, état success, commit observé
+`9dad05b11cd5e4ec2be7e24749ad0656d8e4a7b5`.
+URL : https://luuma8888.github.io/voti/
+Propagation effective constatée après quatre lectures bornées : HTTP 200,
+HTML **1 790 490 octets**, SHA-256
+`b67f7a18554b9093024d45a79debbe3a38d662ea4834ba7c9abe60e7c04d4e86`,
+strictement identique octet par octet au build audité.
+Configuration publique relayId/baseUrl/site key attendue, images distantes désactivées,
+scanner local embarqué ; aucun secret/credential dans les modules servis, aucun script
+CDN ajouté.
+
+505 fichiers publiés vérifiés (manifeste + 504 WebP), HTTP 200 et SHA-256 identiques
+aux fichiers locaux : 19 872 714 octets, 132 illustrations membres et 36 groupes.
+Aucune recompression d’asset.
+
+### Smoke navigateur publié et limites humaines
+
+107 contrôles Chromium réussis à 1200 et 360 px : accueil, création libre sans
+soumission, Espaces, présentation de carte vide, sauvegarde, lecture des deux
+sondages publics et de leurs résultats. Aucune exception JS, erreur réseau,
+requête mutante, origine inattendue, cookie ou session participant créée. Toutes
+les méthodes hors GET/OPTIONS bloquées avant réseau dans ce navigateur de smoke.
+
+Les sélecteurs sont aussi ouverts directement comme composants dans le DOM publié,
+sans accès Espace et sans écriture : 132 options membres, filtres Tous 132 /
+Créatures 60 / Enfants 36 / Adultes 36, 36 options groupes, images icon et medium
+chargées, humains medium verticaux en contain, validation provisoire de l’ID en
+mémoire, fermeture correcte. Ceci vérifie le rendu du composant livré, pas sa
+persistance dans un Espace authentifié.
+
+Aucun navigateur utilisateur connecté ni fichier d’accès à l’Espace test disponible.
+Après demande de chemin d’accès sans secret, Lu’uma a répondu « Non, c’est pas grave,
+ignore. » Les vérifications privées sont donc explicitement laissées humaines :
+accès à l’Espace existant, fiches membre/groupe depuis cet Espace, enregistrement
+visualId puis reload, Carte Voti réelle avec illustration et QR réellement scanné.
+Aucun accès n’a été créé/récupéré et aucune carte existante régénérée pour contourner
+ce manque. L’Espace test conservé n’a pas été muté.
+
+Les tests locaux déjà audités de persistance, rôles, anonymat, snapshot et PDF
+restent valides : 15/15 QR illustrés redécodés à 300 dpi, corps entiers non recadrés,
+miniatures groupes secondaires. Ils ne sont pas présentés comme des validations
+humaines/privées de production. Aucun vote/anonymat/résultat métier n’a été rejoué
+avec une carte réelle pendant le déploiement.
+
+Contrôle D1 final : 0001–0005, une seule entrée 0005, quick_check ok,
+foreign_key_check vide ; toujours 2 sondages / 5 votes, 1 Espace / 2 groupes /
+5 membres, zéro visual_id non NULL. Aucun incident produit ni correctif UX après
+déploiement. Publication techniquement cohérente ; recette privée/humaine à faire.
+Le bundle d’audit pré-publication est conservé sans réécriture.
+
+
+## Correctif local — sélection explicite des illustrations
+
+Retour humain après publication : cliquer une illustration ne fixe pas le choix,
+qui suit encore la dernière vignette survolée. Cause : le même helper `show`
+affectait `candidate` sur mouseenter, focus et click. Traverser la grille pour
+rejoindre le bouton de validation remplaçait donc le choix fait au clic.
+
+Correction frontend ciblée dans `web/visual-selector.js` : aperçu séparé de la
+sélection provisoire. Le survol/focus actualise seulement l’image medium ; clic,
+toucher ou activation native au clavier fixe l’ID et le marquage aria-pressed.
+Sortir de la grille ou mettre le focus sur la validation réaffiche le choix fixé.
+Le texte « Sélection : … » reste lié au choix explicite, et le bouton devient
+« Valider mon choix ». Filtres, suppression d’illustration, annulation et stockage
+de l’ID après enregistrement de fiche conservent leur fonctionnement.
+
+Test ajouté à `scripts/run-visual-review.mjs` : vrai pointeur Chromium, membre et
+groupe, 1440 et 390 px ; survol d’une autre vignette avant/après clic, traversée
+de la grille jusqu’à Valider, changement de filtre et ID finalement transmis à
+la fiche. Le test échoue bien sur le code publié avec « Un survol a écrasé le choix
+cliqué ». L’ancien test de focus clavier est adapté au comportement attendu :
+flèche = aperçu sans sélection, Entrée = choix ; toucher testé sur un autre ID.
+La simulation Entrée CDP inclut son caractère natif, comme les autres tests clavier.
+
+Vérifications locales : npm test PASS (408 tests) ; npm run check PASS
+(136 fichiers) ; syntaxe des deux fichiers modifiés vérifiée à nouveau.
+Le premier lancement sandbox des tests workerd/D1 échouait au démarrage ; relance
+avec autorisation pour les processus/ports locaux réussie, sans accès production.
+La suite visuelle complète valide également le catalogue, les autorisations,
+la persistance, l’annulation, les filtres, le clavier, le tactile et l’offline.
+Les captures de revue existantes sont régénérées par la suite, avec fixtures
+fictives locales ; les sélecteurs 1440 et 390 px sont inspectés sans débordement.
+
+Aucun changement shared, relay, migration, contrat ou credential. Aucun appel
+production, nouveau commit, staging, push ou déploiement pendant ce correctif.
+Le bundle d’audit pré-publication reste celui de la version déjà publiée.
+Les résultats définitifs de la suite visuelle et du build sont consignés ci-dessous.
+
+Résultats définitifs : `npm run test:visual-identities` PASS, 1 372 contrôles
+Chromium / 38 captures, 215 contrôles HTTP/D1 locaux (dont 212 spécifiques),
+aucune ressource distante. `npm run build:production` PASS,
+**1 791 014 octets**, SHA-256
+`25ba827e52aefdae697d0f8b16e5a8e22cdae6ff3ef28aa252b420ff6424f487`. Variation par rapport au build publié :
++524 octets, due à la séparation aperçu/choix et à ses messages.
+`git diff --check` PASS. HEAD reste
+`9dad05b11cd5e4ec2be7e24749ad0656d8e4a7b5`, index vide, aucune publication
+du correctif. Suites PDF/Worker complètes non relancées : rendu PDF, API et backend
+inchangés ; la suite visuelle couvre les interactions et les écritures locales
+concernées. Le correctif reste à commiter/publier avec accord explicite.
+
+Publication du correctif autorisée explicitement par Lu’uma après validation locale.
+Livraison frontend seule : sélecteur, test navigateur, build et présent rapport ;
+aucun autre rapport historique, média personnel ou fichier privé dans le commit.
+Worker, D1 et configuration Cloudflare hors de cette publication.
