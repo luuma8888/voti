@@ -12,7 +12,7 @@ test('Bundle audit : fichiers Git admissibles sans aucune archive VOTI récursiv
   assert.equal(new Set(paths).size, paths.length);
 });
 test('Audit v0.5 : .env/.dev.vars exclus même suivis par erreur',()=>{
-  assert.equal(AUDIT_NAME,'VOTI_AUDIT_V0_6_1.zip');
+  assert.equal(AUDIT_NAME,'VOTI_AUDIT_V0_6_2.zip');
   for(const path of ['.env','.env.local','relay/.dev.vars','relay/.dev.vars.test'])assert.ok(isPrivateOrTemporaryExport(path));
 });
 test('Audit : captures personnelles exclues, assets de marque conservés',()=>{
@@ -20,13 +20,14 @@ test('Audit : captures personnelles exclues, assets de marque conservés',()=>{
   assert.equal(isPrivateOrTemporaryExport('assets/branding/source/voti-logo-source.png'),false);
 });
 test('Audit v0.4A : aucune clé exportée ni PDF de recette, même suivi par erreur', () => {
-  assert.equal(AUDIT_NAME, 'VOTI_AUDIT_V0_6_1.zip');
+  assert.equal(AUDIT_NAME, 'VOTI_AUDIT_V0_6_2.zip');
   for(const path of ['voti-admin-test.json','docs/voti-admin-test.json','.browser-tests/test.pdf','voti-affiche-test.pdf','voti-invitation-test-secret.svg','voti-member-card-espace-lot-2-cartes-secret.pdf','backup.db']) assert.ok(isPrivateOrTemporaryExport(path));
   assert.equal(isPrivateOrTemporaryExport('shared/admin-key.js'), false);
 });
 test('Audit : exclusion des ZIP VOTI même anciens, imbriqués ou suivis', () => {
   for (const path of ['VOTI_AUDIT_V0_3B.zip', 'VOTI_AUDIT_V0_3C.zip', AUDIT_NAME, 'docs/VOTI_AUDIT_ancien.zip']) assert.ok(isAuditArchive(path));
   assert.equal(isAuditArchive('docs/rapport.md'), false);
+  assert.ok(isAuditArchive('VOTI_V0_6_2_VISUAL_REVIEW.zip'));
 });
 test('Archive audit : ZIP UTF-8 déterministe, octets/CRC et répertoire corrects', () => {
   const entries = [['docs/rapport-é.json', Buffer.from('{"test":true}')], ['assets/image.webp', Buffer.from([0, 255, 12, 9])]];

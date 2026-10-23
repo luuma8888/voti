@@ -10,6 +10,10 @@ export const SPACE_RELEASE_LABELS = [
   ['all_eligible_or_closed','Quand tous ont participé, ou dès la fermeture']
 ];
 
+/** Express crée un vote simple au minimum 2, sans écraser les réglages saisis. */
+export const SPACE_EXPRESS_DEFAULTS=Object.freeze({identity:'anonymous',comments:'disabled',visibility:'private',release:'threshold',minimum:'2',audience:'poll_audience'});
+export function spaceCreationValues(values,mode){return mode==='express'?{...values,...SPACE_EXPRESS_DEFAULTS}:{...values};}
+
 /** Présentation seulement : available reste exclusivement décidé par le relais.
  * Les compteurs administratifs ne sont jamais demandés dans le parcours membre. */
 export function resultsState(poll,{admin=false,attendance=null}={}) {

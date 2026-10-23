@@ -177,3 +177,16 @@ vote verrouille aussi les références d'images. Les thèmes restent modifiables
 La bibliothèque est bornée à 200 images distinctes et 24 Mo pour rester exportable
 dans un fichier de 40 Mo maximum. Exportez régulièrement : IndexedDB peut aussi être effacé.
 Voir `docs/CODEX_UX_V0_2B_2_REPORT.md` pour la migration et les garanties transactionnelles.
+### Revue locale de l’interface Espaces v0.6.2
+
+La gestion est organisée en Aperçu, Sondages, Membres, Groupes, Invitations et
+Accès, avec fiches/formulaires ouverts à la demande. Cette évolution frontend
+reste locale, sans déploiement ni modification du relais ou de D1.
+
+`npm run test:space-ui` exécute des fixtures fictives contre D1/Worker locaux et
+produit 24 captures de revue finale dans `.browser-tests/v062-final-review/`
+(planche `index.html`) : Guidée en six étapes, Express court et Avancé secondaire. Les
+20 anciennes captures de `.browser-tests/v062-review/` restent conservées pour
+comparaison ; les nouveaux parcours partagent le même constructeur de brouillon.
+Le [rapport v0.6.2](docs/CODEX_V0_6_2_SPACE_UI_REPORT.md) distingue tests automatiques,
+inspection des captures et validation visuelle humaine encore attendue.

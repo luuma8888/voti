@@ -26,6 +26,7 @@
     "test:participation": "node scripts/browser-test.mjs --participation",
     "test:comments": "node scripts/test-posters.mjs --participation",
     "test:spaces": "node scripts/free-pilot-integration.mjs --spaces --spaces-browser",
+    "test:space-ui": "node scripts/free-pilot-integration.mjs --spaces-browser-only --spaces-browser --space-layout",
     "test:spaces-ux": "node scripts/free-pilot-integration.mjs --spaces-browser-only --spaces-browser",
     "test:member-scanner": "node scripts/browser-test.mjs --member-scanner",
     "test:member-cards": "node scripts/test-member-cards.mjs",

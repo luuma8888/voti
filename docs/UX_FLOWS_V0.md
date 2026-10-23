@@ -333,3 +333,24 @@ par personne prétendue. Voir `COMMENTS_AND_IDENTITY_V0.md`.
   PDF individuel et lot mémoire explicitement distingués, fichiers nommés sans credential.
 - Scanner : cadre et guidage rapproche/agrandis/stabilise, analyse locale bornée,
   pistes vidéo libérées à la sortie. Aucune validation physique v0.6.1 revendiquée.
+## Gestion des Espaces — évolution locale v0.6.2
+
+`Espaces → Espace → Aperçu` puis une section : **Sondages, Membres, Groupes,
+Invitations, Accès**. Navigation latérale sur ordinateur, grille courte sur
+téléphone. Les listes restent compactes, sans édition permanente. **Voir / Gérer**
+ouvre la fiche ; **Ajouter / Nouveau** ouvre la tâche. **Réglages** rassemble nom,
+export personnel et archivage. Les actions dangereuses sont repliées dans les
+fiches et gardent leurs dialogues de confirmation.
+
+Sondages → Nouveau sondage → choix **Création guidée**, **Express** ou **Réglages
+avancés** (secondaire). Guidée : six étapes, question/réponses/qui/comment/résultats/
+vérifier. Express : question, réponses, audience ; défauts anonyme/vote simple
+sans commentaire/minimum 2/seuil/membres concernés. Aucun abaissement à 1 pour
+un seul membre éligible. Avancé : tous les paramètres.
+Un seul constructeur et validations ; retour entre étapes sans perte. Quitter la tâche abandonne
+les saisies non créées. Les parcours participant, scanner, QR, résultats, session
+temporaire et les règles serveur v0.6.1 sont conservés.
+
+Cette présentation reste locale. La refonte visuelle est validée par Lu’uma avant
+le dernier ajustement des défauts Express ; cela ne constitue pas une publication
+ni une recette physique.

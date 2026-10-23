@@ -1,10 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {resultsState,accessFilename,cardsFilename,makeSpacePollDraft,SPACE_RELEASE_LABELS} from '../web/space-ux.js';
+import {resultsState,accessFilename,cardsFilename,makeSpacePollDraft,SPACE_RELEASE_LABELS,SPACE_EXPRESS_DEFAULTS,spaceCreationValues} from '../web/space-ux.js';
 import {scanRegion} from '../web/member-scanner.js';
 import {groupResultsAvailable} from '../shared/spaces.js';
 
 const poll=(mode='threshold',available=false,audience='poll_audience')=>({status:'published',resultRules:{minimumResponses:2,releaseMode:mode},accessRules:{pollAudience:{resultsAudience:audience}},results:{available}});
+test('Express impose un vote simple au minimum 2 sans détruire les réglages Guidée/Avancé',()=>{
+  const values={question:'Sortie ?',answers:'Parc\nCinéma',groupIds:['00000000-0000-4000-8000-000000000002'],identity:'identified',comments:'optional',visibility:'public_with_results',release:'closed',minimum:'7',audience:'admins_only'},initial=structuredClone(values);
+  assert.deepEqual(spaceCreationValues(values,'express'),{...values,...SPACE_EXPRESS_DEFAULTS});assert.deepEqual(values,initial);
+  assert.deepEqual(spaceCreationValues(values,'guided'),spaceCreationValues(values,'advanced'));
+  const result=makeSpacePollDraft(spaceCreationValues(values,'express'),'00000000-0000-4000-8000-000000000001');
+  assert.equal(result.poll.definition.participationIdentityMode,'anonymous');assert.equal(result.poll.definition.commentMode,'disabled');assert.equal(result.poll.definition.commentVisibility,'private');assert.equal(result.poll.resultRules.minimumResponses,2);assert.equal(result.poll.resultRules.releaseMode,'threshold');assert.equal(result.pollAudience.resultsAudience,'poll_audience');
+  assert.deepEqual(spaceCreationValues(values,'guided'),initial);assert.deepEqual(spaceCreationValues(values,'advanced'),initial);
+});
+test('Express : snapshots 1, 2 et 8, minimum fixe 2 et résultats selon les règles communes',()=>{
+  const space='00000000-0000-4000-8000-000000000001';
+  for(const eligible of [1,2,8]){
+    const {poll:p}=makeSpacePollDraft(spaceCreationValues({question:'Sortie ?',answers:'Parc\nCinéma',groupIds:[]},'express'),space);
+    assert.equal(p.resultRules.minimumResponses,2,'ni réduction à 1, ni ancien minimum 5');
+    for(let total=0;total<=eligible;total++)for(const status of ['published','closed'])assert.equal(groupResultsAvailable(status,p.resultRules,total,eligible),total>=2,`snapshot ${eligible}, ${total} votes, ${status}`);
+  }
+});
 test('Résultats : audience prioritaire, pas de faux motif de seuil ni compteur membre',()=>{
   const state=resultsState(poll('closed',false,'admins_only'));
   assert.equal(state.code,'reserved');assert.match(state.title,/réservés/);assert.doesNotMatch(state.detail,/minimum|2|participation/);

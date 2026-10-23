@@ -6,8 +6,8 @@ import { deflateRawSync } from 'node:zlib';
 import { ROOT } from './build.mjs';
 import { crc32 } from '../relay/cloudflare/image-validation.js';
 
-export const AUDIT_NAME = 'VOTI_AUDIT_V0_6_1.zip';
-export function isAuditArchive(path) { return /(?:^|\/)VOTI_AUDIT_[^/]*\.zip$/i.test(path); }
+export const AUDIT_NAME = 'VOTI_AUDIT_V0_6_2.zip';
+export function isAuditArchive(path) { return /\.zip$/i.test(path); }
 export function isPrivateOrTemporaryExport(path) { return /(?:^|\/)voti-(?:admin|space-access|member-card|invitation)[^/]*\.(?:json|svg|png|pdf)$/i.test(path) || /\.(?:pdf|sql\.gz|sqlite|sqlite3|db|log)$/i.test(path) || (/\.(?:png|jpe?g|webp)$/i.test(path)&&!path.startsWith('assets/branding/')) || /(?:^|\/)(?:\.env(?:\.[^/]*)?|\.dev\.vars[^/]*)$/i.test(path); }
 export async function auditPaths() {
   const { stdout } = await promisify(execFile)('git', ['ls-files', '-co', '--exclude-standard', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 8_000_000 });

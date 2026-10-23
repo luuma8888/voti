@@ -16,6 +16,7 @@ import { browserStudioScenario, browserStudioPdfScenario, browserStudioWorkspace
 import { wrangler } from './relay-local.mjs';
 import { browserParticipationScenario,browserParticipationPdf,remoteParticipationStage } from './browser-participation.mjs';
 import {browserSpacesStage} from './browser-spaces.mjs';
+import {spaceLayoutSetup,spaceLayoutCheck,spaceLayoutCreator,spaceLayoutActions,spaceLayoutCreatorChecks,spaceCreationView,spaceCreationChecks} from './browser-space-layout.mjs';
 import {browserSpacesUx,browserScannerUx} from './browser-spaces-ux.mjs';
 
 await build();
@@ -404,6 +405,56 @@ try {
   await navigateReady(sessionId, url);
   if(process.argv.includes('--member-scanner')) {
     await startDevServer();await navigateReady(sessionId,'http://127.0.0.1:4173/voti/');const checks=await evaluate(sessionId,`(${browserScannerUx.toString()})('voti-member-v1.'+'a'.repeat(64))`);if(runtimeErrors.length)throw new Error('Exceptions scanner.');if(requests.some(url=>/^https?:/.test(url)&&!url.startsWith('http://127.0.0.1:4173/')))throw new Error('Réseau scanner.');console.log(`Scanner Chromium local : ${checks} contrôles réussis.`);
+  } else if(process.argv.includes('--space-layout')) {
+    if(!process.env.VOTI_TEST_FREE_PILOT)throw new Error('Capture locale uniquement.');
+    await startDevServer();await navigateReady(sessionId,'http://127.0.0.1:4173/voti/#home');
+    const fixture=await evaluate(sessionId,`(${spaceLayoutSetup.toString()})()`);let checks=await evaluate(sessionId,`(${spaceCreationChecks.toString()})(${JSON.stringify(fixture)})`);
+    const directory=resolve(ROOT,'.browser-tests/v062-final-review');await mkdir(directory,{recursive:true});const files=[];
+    const views=[['overview',''],['polls','/polls'],['members','/members'],['member-detail','/members/'+fixture.memberId],['groups','/groups'],['invitations','/invitations'],['access','/access'],...['creation-choice','guided-question','guided-participants','guided-participation','guided-results','guided-review','express','advanced'].map(v=>[v,'/polls/new'])];
+    for(const [width,height]of [[1440,900],[390,844],[360,800],[1200,800]]){
+      await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<500},sessionId);
+      for(const[view,suffix]of views){
+        // Force a different route only when the requested task was already open.
+        await evaluate(sessionId,`(async()=>{const target=${JSON.stringify('#space/'+fixture.spaceId+suffix)};if(location.hash===target){location.hash='#home';await new Promise(resolve=>{const wait=()=>document.querySelector('#app h1')?.textContent==='Mes sondages'?resolve():requestAnimationFrame(wait);wait();});}location.hash=target;})()`);
+        await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{const root=document.querySelector('[data-space-section]');if(root&&root.dataset.spaceSection===${JSON.stringify(suffix.split('/')[1]||'overview')}&&Boolean(document.querySelector('.space-task-form'))===${Boolean(suffix.split('/')[2])})return resolve();if(Date.now()-start>15000)return reject(new Error('Vue absente : ${view}'));requestAnimationFrame(wait);};wait();})`);
+        await new Promise(resolve=>setTimeout(resolve,1000));
+        await evaluate(sessionId,`(${spaceCreationView.toString()})(${JSON.stringify(view)})`);
+        if(view==='polls')await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{if(![...document.querySelectorAll('.space-poll-metadata')].some(n=>n.textContent==='Audience et résultats…'))return resolve();if(Date.now()-start>15000)return reject(new Error('Résumé sondage non chargé'));requestAnimationFrame(wait);};wait();})`);
+        await evaluate(sessionId,`new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);
+        checks+=await evaluate(sessionId,`(${spaceLayoutCheck.toString()})(${JSON.stringify(view)})`);
+        if((width===1440||width===390)&&!['polls','groups','invitations','access'].includes(view)){const name=view+'-'+width+'.png';const shot=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);await writeFile(resolve(directory,name),Buffer.from(shot.data,'base64'));files.push(name);
+          if(view==='advanced'){
+            const metrics=await command('Page.getLayoutMetrics',{},sessionId),fullName='advanced-full-'+width+'.png';
+            // Vue longue auxiliaire réellement rendue : la barre mobile fixe reste
+            // au bas du viewport agrandi, au lieu de recouvrir le milieu d'un assemblage.
+            await command('Emulation.setDeviceMetricsOverride',{width,height:Math.ceil(metrics.cssContentSize.height),deviceScaleFactor:1,mobile:width<500},sessionId);
+            await evaluate(sessionId,`(async()=>{window.scrollTo({top:0,behavior:'instant'});await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));})()`);
+            const full=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);
+            await writeFile(resolve(directory,fullName),Buffer.from(full.data,'base64'));files.push(fullName);
+            await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<500},sessionId);
+          }
+        }
+      }
+    }
+    checks+=await evaluate(sessionId,`(${spaceLayoutActions.toString()})(${JSON.stringify(fixture)})`);
+    await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},sessionId);await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},sessionId);
+    await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{if(document.querySelector('.member-row'))return resolve();if(Date.now()-start>10000)return reject(new Error('Entrée clavier sans effet'));requestAnimationFrame(wait);};wait();})`);checks++;
+    await evaluate(sessionId,`history.back()`);
+    await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{if(document.querySelector('.space-list-row'))return resolve();if(Date.now()-start>10000)return reject(new Error('Historique retour sans liste'));requestAnimationFrame(wait);};wait();})`);checks++;
+    for(const theme of ['pop','nature','douceur','dark','minimal'])checks+=await evaluate(sessionId,`(()=>{document.documentElement.dataset.theme=${JSON.stringify(theme)};if(document.documentElement.scrollWidth>innerWidth||!document.querySelector('.space-navigation [aria-current=page]'))throw new Error('Thème/navigation v0.6.2');return 1;})()`);
+    await command('Emulation.setEmulatedMedia',{media:'print'},sessionId);
+    checks+=await evaluate(sessionId,`(()=>{if(getComputedStyle(document.querySelector('.space-navigation')).display!=='none'||getComputedStyle(document.querySelector('.space-workspace')).display!=='block')throw new Error('Navigation visible en impression');return 1;})()`);
+    await command('Emulation.setEmulatedMedia',{media:''},sessionId);
+    await evaluate(sessionId,`history.forward()`);
+    await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{if(document.querySelector('.member-row')&&document.activeElement===document.querySelector('h1'))return resolve();if(Date.now()-start>10000)return reject(new Error('Historique avant/focus sans fiche'));requestAnimationFrame(wait);};wait();})`);checks++;
+    await evaluate(sessionId,`(${spaceLayoutCreator.toString()})(${JSON.stringify(fixture)})`);
+    await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{if(document.querySelector('.space-heading')?.textContent.includes('Créateur de l’Espace'))return resolve();if(Date.now()-start>10000)return reject(new Error('Créateur absent'));requestAnimationFrame(wait);};wait();})`);
+    checks+=await evaluate(sessionId,`(()=>{const app=document.getElementById('app');if(app.querySelector('.space-navigation a[href$="/members"],.space-navigation a[href$="/access"],.space-navigation a[href$="/invitations"]')||app.textContent.includes('Groupe Lune'))throw new Error('Périmètre Créateur violé');return 1;})()`);
+    checks+=await evaluate(sessionId,`(${spaceLayoutCreatorChecks.toString()})(${JSON.stringify(fixture)})`);
+    await writeFile(resolve(directory,'index.html'),'<!doctype html><meta charset="utf-8"><title>Voti v0.6.2 — revue locale</title><style>body{font-family:system-ui;background:#eee}section{display:inline-block;vertical-align:top;margin:12px}img{display:block;max-width:600px;max-height:700px}a{display:block}</style><h1>Vues réelles · fixtures locales</h1>'+files.map(name=>`<section><a href="${name}">${name}</a><img src="${name}"></section>`).join(''));
+    if(runtimeErrors.length)throw new Error('Exceptions UI v0.6.2.');
+    if(requests.some(u=>/^https?:/.test(u)&&!u.startsWith('http://127.0.0.1:')))throw new Error('Réseau externe UI.');
+    console.log(`UI Espaces v0.6.2 : ${checks} contrôles structure/densité/rôles ; ${files.length} captures réelles, 360/390/1200/1440.`);
   } else if(process.argv.includes('--spaces')) {
     if(!process.env.VOTI_TEST_FREE_PILOT)throw new Error('La recette cartes exige le Worker local sans R2.');
     await command('Page.addScriptToEvaluateOnNewDocument',{source:`window.__spaceNetwork={leaked:false,votes:0};const originalFetch=window.fetch;window.fetch=function(input,init){const url=String(input?.url||input);if(/voti-(member|staff|invitation)-v1/.test(url)||/voti-(member|invitation)-v1/.test(location.hash))window.__spaceNetwork.leaked=true;if(url.includes('/spaces/castMemberVote'))window.__spaceNetwork.votes++;return originalFetch.call(this,input,init);};`},sessionId);
@@ -429,7 +480,7 @@ try {
       await navigateReady(sessionId,servedUrl+'?bad-card='+crypto.randomUUID()+'#/member/voti-member-v1.'+'0'.repeat(64));checks+=await stage(fixture,'badCard');
       await navigateReady(sessionId,servedUrl+'?ux='+crypto.randomUUID()+'#home');checks+=await evaluate(sessionId,`(${browserSpacesUx.toString()})(${JSON.stringify(fixture)})`);
       if(width===360)checks+=await evaluate(sessionId,`(${browserScannerUx.toString()})(${JSON.stringify(fixture.cards[1].credential)})`);
-      await evaluate(sessionId,`location.hash=${JSON.stringify('#space/'+fixture.spaceId)}`);await evaluate(sessionId,`new Promise((resolve,reject)=>{const started=Date.now();const check=()=>{if(document.querySelector('.member-row'))return resolve();if(Date.now()-started>10000)return reject(new Error('Capture UI indisponible'));requestAnimationFrame(check);};check();})`);
+      await evaluate(sessionId,`location.hash=${JSON.stringify('#space/'+fixture.spaceId+'/members/'+(await evaluate(sessionId,`(async()=>{const {HttpRelayAdapter}=await import('voti/web/http-relay.js'),{RELAY_CONFIG}=await import('voti/web/relay-config.js');return (await new HttpRelayAdapter(RELAY_CONFIG).spaceCommand({command:'getSpace',input:{spaceId:${JSON.stringify(fixture.spaceId)}},credential:${JSON.stringify(fixture.staff)}})).members[0].member_id;})()`)))}`);await evaluate(sessionId,`new Promise((resolve,reject)=>{const started=Date.now();const check=()=>{if(document.querySelector('.member-row'))return resolve();if(Date.now()-started>10000)return reject(new Error('Capture UI indisponible'));requestAnimationFrame(check);};check();})`);
       await mkdir(resolve(ROOT,'.browser-tests/spaces-ux'),{recursive:true});const screenshot=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:true},sessionId);await writeFile(resolve(ROOT,`.browser-tests/spaces-ux/${width}.png`),Buffer.from(screenshot.data,'base64'));
       await navigateReady(sessionId,servedUrl+'?deletion='+crypto.randomUUID()+'#home');const before=relayRequests.length;checks+=await stage(fixture,'localDeletion');if(relayRequests.length!==before)throw new Error('La suppression locale a appelé le relais.');checks++;
     }

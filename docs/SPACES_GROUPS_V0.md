@@ -128,3 +128,31 @@ designs d’affiches et historique distant ne sont pas inclus. Exporter séparé
 accès de gestion ; conserver les cartes imprimées comme des secrets.
 
 Voir `MEMBER_CARDS_V0.md` et `GROUP_VOTING_PRIVACY_V0.md` pour les limites de sécurité.
+## Gestion de l’Espace — présentation v0.6.2 locale
+
+L’ouverture d’un Espace mène à un **Aperçu**, avec ses groupes, membres et sondages
+ouverts. La navigation sépare **Sondages, Membres, Groupes, Invitations et Accès**.
+Une seule section est affichée à la fois. **Réglages** rassemble le nom de l’Espace,
+l’export de son accès personnel et l’archivage.
+
+Les listes montrent des lignes compactes. **Voir / Gérer** ouvre une fiche dédiée ;
+les champs et actions de révocation restent dans cette fiche, avec les confirmations
+existantes. Les boutons d’ajout ouvrent une tâche distincte : les formulaires ne
+restent plus sous les listes. Les liens natifs permettent de revenir sans reload.
+
+Les Créateurs ne voient que leurs groupes et sondages autorisés. Aucun compteur
+de membres n’est inventé lorsqu’ils n’ont pas accès à cette liste. Les informations
+complémentaires des vingt premiers sondages sont chargées par les lectures de
+gestion déjà autorisées ; au-delà, ouvrir **Gérer**. Aucun contrat serveur ne change.
+
+La création propose **Guidée** (question, réponses, qui participe, comment participer,
+résultats, vérifier), **Express** (question/réponses/audience) et **Réglages avancés**
+en secondaire. Express prépare un vote anonyme simple, sans commentaire, avec
+résultats après au moins 2 réponses pour les membres concernés. Le minimum reste
+2 même pour un seul membre éligible : les résultats restent alors protégés.
+Un même formulaire
+et constructeur servent les trois présentations ; changer de mode conserve les
+saisies, y compris les réglages personnalisés si l’on revient à Guidée/Avancé.
+Quitter la tâche ne sauvegarde pas un brouillon intermédiaire. Cette présentation
+est locale ; sa refonte visuelle a été validée par Lu’uma avant le dernier
+ajustement des défauts Express. Aucun déploiement v0.6.2 n’est effectué.
