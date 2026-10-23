@@ -89,3 +89,23 @@ le parcours carte d’abord, sans intégrer de service de décodage distant à V
 Le scanner v0.6.1 alterne analyse bornée du cadre entier et de son centre (1 280 px
 maximum), avec guidage pour rapprocher/agrandir/stabiliser. Caméra simulée et photos
 de fixtures ne constituent pas une validation de caméra téléphone réelle.
+
+## Polissage local post-commit v0.6.2
+
+L’émission affiche un véritable aperçu « Ma carte individuelle », avec nom/pseudo
+dominant, Espace et groupes secondaires. Un thème de cette carte peut être choisi
+parmi Voti Pop, Nature, Douceur, Nuit et Minimal. Le choix vit dans la carte en
+mémoire de cette visite, sans stockage navigateur ou serveur, et s’applique au PDF
+individuel et à son entrée dans le lot disponible. Les autres cartes gardent leurs
+propres choix. Quitter efface toujours la file, sans coffre permanent.
+
+`memberCardModel` fournit les mêmes nom, Espace, groupes, thème et options aux
+renderers écran/PDF. Le DOM est responsive ; le PDF garde huit cartes A4 par page.
+QR noir, blanc opaque, quiet zone et modules entiers sont inchangés, même en Nuit.
+Le titre et le nom plus grands n’empiètent pas sur le QR. Les miniatures groupes
+restent secondaires face à l’éventuelle illustration membre et au QR.
+
+Les vrais packs d’illustrations ne sont pas encore fournis. Leurs manifestes vides
+ne produisent ni galerie vide ni upload : uniquement des illustrations prédéfinies
+intégrées à Voti, jamais une photo personnelle. Voir `MEMBER_VISUALS_V0.md` pour
+les composants préparés et la proposition de stockage futur des seuls IDs.

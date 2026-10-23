@@ -17,6 +17,7 @@ import { wrangler } from './relay-local.mjs';
 import { browserParticipationScenario,browserParticipationPdf,remoteParticipationStage } from './browser-participation.mjs';
 import {browserSpacesStage} from './browser-spaces.mjs';
 import {spaceLayoutSetup,spaceLayoutCheck,spaceLayoutCreator,spaceLayoutActions,spaceLayoutCreatorChecks,spaceCreationView,spaceCreationChecks} from './browser-space-layout.mjs';
+import {spaceShellChecks,spacePolishView,cardPolishPdfs} from './browser-space-polish.mjs';
 import {browserSpacesUx,browserScannerUx} from './browser-spaces-ux.mjs';
 
 await build();
@@ -409,9 +410,9 @@ try {
     if(!process.env.VOTI_TEST_FREE_PILOT)throw new Error('Capture locale uniquement.');
     await startDevServer();await navigateReady(sessionId,'http://127.0.0.1:4173/voti/#home');
     const fixture=await evaluate(sessionId,`(${spaceLayoutSetup.toString()})()`);let checks=await evaluate(sessionId,`(${spaceCreationChecks.toString()})(${JSON.stringify(fixture)})`);
-    const directory=resolve(ROOT,'.browser-tests/v062-final-review');await mkdir(directory,{recursive:true});const files=[];
+    const directory=resolve(ROOT,'.browser-tests/v062-postcommit-review');await mkdir(directory,{recursive:true});const files=[];
     const views=[['overview',''],['polls','/polls'],['members','/members'],['member-detail','/members/'+fixture.memberId],['groups','/groups'],['invitations','/invitations'],['access','/access'],...['creation-choice','guided-question','guided-participants','guided-participation','guided-results','guided-review','express','advanced'].map(v=>[v,'/polls/new'])];
-    for(const [width,height]of [[1440,900],[390,844],[360,800],[1200,800]]){
+    for(const [width,height]of [[1440,900],[390,844],[360,800],[1200,800],[1920,1080]]){
       await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<500},sessionId);
       for(const[view,suffix]of views){
         // Force a different route only when the requested task was already open.
@@ -436,6 +437,7 @@ try {
         }
       }
     }
+    for(const width of [360,1440]){await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<500},sessionId);checks+=await evaluate(sessionId,`(${spaceShellChecks.toString()})(${JSON.stringify(fixture)})`);}
     checks+=await evaluate(sessionId,`(${spaceLayoutActions.toString()})(${JSON.stringify(fixture)})`);
     await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},sessionId);await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},sessionId);
     await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{if(document.querySelector('.member-row'))return resolve();if(Date.now()-start>10000)return reject(new Error('Entrée clavier sans effet'));requestAnimationFrame(wait);};wait();})`);checks++;
@@ -447,6 +449,10 @@ try {
     await command('Emulation.setEmulatedMedia',{media:''},sessionId);
     await evaluate(sessionId,`history.forward()`);
     await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{if(document.querySelector('.member-row')&&document.activeElement===document.querySelector('h1'))return resolve();if(Date.now()-start>10000)return reject(new Error('Historique avant/focus sans fiche'));requestAnimationFrame(wait);};wait();})`);checks++;
+    const reviewViews=[['home',1920,1080],['home',1200,800],['home',390,844],['home',360,800],['spaces',1440,900],['spaces',390,844],['spaces',1920,1080],['overview',1920,1080],['footer-spaces',1920,1080],['footer-space',1920,1080],['file-input',1440,900],['file-input',390,844],['card',1440,900],['card',390,844],...['pop','nature','douceur','dark','minimal'].map(t=>['card-theme-'+t,1440,900]),['members-visual-fixtures',1440,900],['groups-visual-fixtures',1440,900],['gallery-fixtures',390,844]];
+    for(const[view,width,height]of reviewViews){await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<500},sessionId);checks+=await evaluate(sessionId,`(${spacePolishView.toString()})(${JSON.stringify(fixture)},${JSON.stringify(view)})`);const name=view+'-'+width+'.png',shot=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);await writeFile(resolve(directory,name),Buffer.from(shot.data,'base64'));if(!files.includes(name))files.push(name);await new Promise(r=>setTimeout(r,1000));}
+    await command('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39},sessionId);await command('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight',windowsVirtualKeyCode:39},sessionId);checks+=await evaluate(sessionId,`(()=>{if(!document.querySelector('.visual-gallery input[value="member_fixture_01"]').checked)throw new Error('Galerie clavier');return 1;})()`);
+    const pdfs=await evaluate(sessionId,`(${cardPolishPdfs.toString()})()`),pdfRoot=resolve(ROOT,'.browser-tests/member-card-polish');await mkdir(pdfRoot,{recursive:true});for(const pdf of pdfs)await writeFile(resolve(pdfRoot,pdf.name),Buffer.from(pdf.base64,'base64'));await writeFile(resolve(pdfRoot,'expected.json'),JSON.stringify(pdfs.map(({name,expected})=>({name,expected}))));
     await evaluate(sessionId,`(${spaceLayoutCreator.toString()})(${JSON.stringify(fixture)})`);
     await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{if(document.querySelector('.space-heading')?.textContent.includes('Créateur de l’Espace'))return resolve();if(Date.now()-start>10000)return reject(new Error('Créateur absent'));requestAnimationFrame(wait);};wait();})`);
     checks+=await evaluate(sessionId,`(()=>{const app=document.getElementById('app');if(app.querySelector('.space-navigation a[href$="/members"],.space-navigation a[href$="/access"],.space-navigation a[href$="/invitations"]')||app.textContent.includes('Groupe Lune'))throw new Error('Périmètre Créateur violé');return 1;})()`);
@@ -454,7 +460,7 @@ try {
     await writeFile(resolve(directory,'index.html'),'<!doctype html><meta charset="utf-8"><title>Voti v0.6.2 — revue locale</title><style>body{font-family:system-ui;background:#eee}section{display:inline-block;vertical-align:top;margin:12px}img{display:block;max-width:600px;max-height:700px}a{display:block}</style><h1>Vues réelles · fixtures locales</h1>'+files.map(name=>`<section><a href="${name}">${name}</a><img src="${name}"></section>`).join(''));
     if(runtimeErrors.length)throw new Error('Exceptions UI v0.6.2.');
     if(requests.some(u=>/^https?:/.test(u)&&!u.startsWith('http://127.0.0.1:')))throw new Error('Réseau externe UI.');
-    console.log(`UI Espaces v0.6.2 : ${checks} contrôles structure/densité/rôles ; ${files.length} captures réelles, 360/390/1200/1440.`);
+    console.log(`UI Espaces v0.6.2 : ${checks} contrôles structure/densité/rôles/shell persistant ; ${files.length} captures réelles, 360/390/1200/1440/1920.`);
   } else if(process.argv.includes('--spaces')) {
     if(!process.env.VOTI_TEST_FREE_PILOT)throw new Error('La recette cartes exige le Worker local sans R2.');
     await command('Page.addScriptToEvaluateOnNewDocument',{source:`window.__spaceNetwork={leaked:false,votes:0};const originalFetch=window.fetch;window.fetch=function(input,init){const url=String(input?.url||input);if(/voti-(member|staff|invitation)-v1/.test(url)||/voti-(member|invitation)-v1/.test(location.hash))window.__spaceNetwork.leaked=true;if(url.includes('/spaces/castMemberVote'))window.__spaceNetwork.votes++;return originalFetch.call(this,input,init);};`},sessionId);

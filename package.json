@@ -30,6 +30,7 @@
     "test:spaces-ux": "node scripts/free-pilot-integration.mjs --spaces-browser-only --spaces-browser",
     "test:member-scanner": "node scripts/browser-test.mjs --member-scanner",
     "test:member-cards": "node scripts/test-member-cards.mjs",
+    "test:card-polish": "node scripts/test-card-polish.mjs",
     "test:spaces-migration": "node scripts/spaces-migration-checks.mjs",
     "audit:bundle": "node scripts/audit-bundle.mjs"
   },

@@ -832,3 +832,406 @@ HTML : aucun détecté. Les références historiques inchangées de règles et l
 fixtures fictives de tests restent distinctes des défauts Express finaux.
 Le ZIP reste hors Git ; les vérifications de manifeste et CRC sont répétées sur
 l’archive contenant ce rapport final avant la livraison du commit local.
+
+## 23. Publication frontend autorisée et vérifiée
+
+Le 23 octobre 2026, après le commit local final, Lu’uma autorise explicitement :
+« tu peux deployer et push ». Cette autorisation concerne le frontend v0.6.2 déjà
+validé ; aucun déploiement Worker ni migration n’est réalisé.
+
+- Commit publié : `67328a2014e52d8427a46e869b7275a09ba2a3bf`,
+  `feat: refondre l’ergonomie des Espaces Voti v0.6.2`, 21 fichiers.
+- Avant push : branche main, index vide, build local identique à `HEAD:index.html`,
+  aucun diff shared/relay/lockfile dans le commit. La lecture distante de main
+  confirme encore `d0e7422fff22387e1f9231d10842302c9c3070eb`.
+- Push normal `git push origin main` : succès, sans force. Une nouvelle lecture
+  distante confirme main exactement à `67328a2014e52d8427a46e869b7275a09ba2a3bf`.
+- Le mécanisme Pages existant publie sans changement de workflow/configuration.
+  Les premières lectures servent encore la v0.6.1 ; aucune réussite n’est annoncée
+  avant propagation effective.
+- À **13:29:19 UTC**, l’URL canonique `https://luuma8888.github.io/voti/` répond
+  **HTTP 200**, **1 644 573 octets**, SHA-256
+  `35dad48e10007fe74b4d8df84062d0ba7fce0a525d751c91269c62e258f3fae1`.
+  Comparaison binaire au build local : **identité exacte**.
+
+Smoke Chromium sur cette URL publique, profil neuf et isolé, sans import de
+credential ni fixture : accueil, Espaces & groupes et première étape de création
+libre, à **360 × 800** et **1200 × 800**. Les six vues s’ouvrent ; aucun débordement
+horizontal, exception JS, requête externe inattendue, cookie ou credential
+participant persistant détecté. Les captures ont été produites sans retouche dans
+`.browser-tests/v062-published-smoke/` et les vues accueil/entrée Espaces ont été
+inspectées. Aucune soumission de formulaire, aucun accès à l’Espace test conservé.
+Le harnais interdit les requêtes HTTP mutantes ; aucune tentative bloquée et
+**zéro requête au backend** pendant le smoke final. Aucun challenge Turnstile.
+
+Deux limites du contrôle sont consignées : l’API publique de statut Pages répond
+404 sans authentification, donc la preuve de publication retenue est le contenu
+effectivement servi, et non cette API. Le premier passage du petit harnais smoke
+cherchait un input au lieu du textarea existant de question libre ; seul ce
+sélecteur dans `/tmp` a été corrigé, puis les six vues ont été revérifiées avec
+succès. Aucun correctif applicatif après publication.
+
+Worker/D1/Turnstile/bindings/R2 : **aucune commande ni modification**. Leur état
+interne n’a pas été relu pour cette publication exclusivement frontend ; aucune
+nouvelle migration ni fixture. Les écrans privés Membres/Groupes/Guidée/Express
+n’ont pas été parcourus en production sans accès : ils restent couverts par les
+tests locaux et la revue visuelle humaine déjà déclarée. Aucun nouveau scan
+physique ou vote humain n’est revendiqué.
+
+HEAD et origin/main sont synchronisés au commit publié. Les fichiers historiques
+hors lot sont conservés. Cette section post-publication reste **locale non commitée**,
+sans second commit documentaire automatique. Le bundle d’audit prépublication est
+conservé tel quel ; aucun ZIP final de recette n’est régénéré.
+
+## 24. Polissage post-commit après usage réel
+
+### État initial et audit avant modification
+
+HEAD relevé : `67328a2014e52d8427a46e869b7275a09ba2a3bf`, identique au commit
+v0.6.2 précédent. `origin/main` local pointe déjà dessus : contrairement au
+préambule de la nouvelle demande, ce commit a été poussé et Pages vérifié lors
+de l’autorisation précédente (section 23). Aucun nouvel accès production n’est
+nécessaire pour ce lot. Le rapport contient déjà une section post-publication
+locale non commitée ; les six autres rapports historiques modifiés, captures et
+archives hors lot sont préservés. Index initial vide.
+
+| Retour humain | Cause observée dans le code | Correction locale retenue | Vérifications |
+| --- | --- | --- | --- |
+| Liste d’Espaces ambiguë | `listSpaces` juxtapose lien et action de retrait dans une card | Mes Espaces, nom/rôle dominants, Ouvrir explicite, retrait secondaire | clavier/mobile/liste multi-Espaces |
+| Flash entre sections | `app.render` et `SpacesUI.handleRoute` vident `#app`, puis le renderer reconstruit la coque après fetch | conserver shell/header/nav et remplacer le contenu central, sans cache d’autorisation | MutationObserver + RAF + historique |
+| Carte écran brute | `showCard` affiche texte/QR séparés ; PDF dispose de son propre modèle minimal | modèle commun, vrai aperçu, thèmes et hiérarchie du nom | écran/PDF/QR Poppler |
+| Visuels membres/groupes | aucun catalogue local | manifestes intégrés vides, résolution stricte, galerie réutilisable non montée sans assets | fixtures raster locales, aucun upload |
+| Largeurs incohérentes | main historique 1080 px, Espace 1480 px | largeur fluide partagée avec formulaires bornés | 360/390/1200/1440/1920 |
+| Input fichier natif visible | import Espace et photo scanner affichent l’input brut | pattern commun input réel masqué visuellement + label stylisé + nom | clavier/labels/focus/reset |
+| Footer trop étroit | `main,footer` figés puis override de main seul | même variable de largeur et marges que main | pages libres/Espaces/1920/mobile |
+
+Périmètre : présentation web, PDF des cartes et outillage/tests locaux. Aucun
+changement shared/relay, migration, credential, anonymat, snapshot, unicité ou
+règle de résultats. Packs membres/groupes : illustrations prédéfinies intégrées
+uniquement, sans image personnelle, URL utilisateur, stockage binaire, R2 ou CDN.
+Les vrais assets seront créés séparément ; aucune illustration SVG de substitution.
+
+### Présentation livrée et navigation sans flash
+
+La page d’entrée distingue **Mes Espaces**, une liste compacte avec nom/rôle et
+**Ouvrir**, puis création à la demande et import d’un accès existant. Le retrait
+est dans un details natif « Plus d’actions », replié, avec sa confirmation intacte.
+Le serveur fournit toujours le rôle ; il n’est pas inféré du fichier local.
+
+`app.render` demande désormais si un shell du même Espace peut être conservé,
+avant de vider le contenu. `SpacesUI.handleRoute` conserve alors la coque et son
+emplacement central, remplace seulement celui-ci par un statut de chargement, puis
+relit les données/droits. `renderSpaceManagement` actualise titre, rôle, section et
+état actif sans détacher le header ni la navigation. Un changement de périmètre
+réconcilie les liens autorisés, sans conserver des liens admin pour un Créateur.
+Les réponses asynchrones périmées restent refusées par l’epoch existant.
+
+Aucun cache d’autorisation, délai de rendu, opacity, fade ou animation pour masquer
+le défaut. Sortir de l’Espace, passer à un autre Espace ou au parcours participant
+ne réutilise pas ce shell. Les erreurs de droit restent refusées. Sur mobile,
+la navigation reste visible dans les fiches ; la création de sondage conserve
+sa présentation de tâche validée.
+
+Le test navigateur suit Aperçu → Membres → fiche → Membres → Groupes → Réglages →
+Aperçu, puis retour/avant. MutationObserver et une boucle requestAnimationFrame
+vérifient l’identité et la présence des nœuds shell/header/navigation pendant
+les lectures asynchrones, ainsi que l’état actif et le slot central. Il s’exécute
+en 360 et 1440 px ; pas de simple attente arbitraire utilisée comme preuve.
+Le pacing des captures existant pour ne pas déclencher les quotas locaux est
+uniquement dans le harnais, pas dans l’application.
+
+### Coque, footer et fichiers
+
+Les pages bibliothèque libre, entrée Espaces, gestion Espace et carte partagent
+une largeur fluide maximale de 1760 px, avec marges responsive. Les formulaires
+restent bornés, les listes compactes ne redeviennent pas de grandes cartes.
+Le footer suit la même variable que main ; Studio garde sa largeur propre de
+1480 px et vote/résultats leur largeur de lecture. Les overrides de largeur sont
+limités à l’écran pour préserver l’impression.
+
+`file-picker.js` garde le vrai input file et son FileList. Il est masqué visuellement,
+reste dans l’ordre clavier et associé aux labels ; le label stylisé affiche le
+focus de l’input. Nom sélectionné annoncé par role=status, reset explicite après
+import/analyse. Ce pattern s’applique à l’import Espace et à la photo du scanner.
+Audit des autres inputs : sauvegarde, clé admin et images de sondage disposaient
+déjà d’inputs cachés avec boutons explicites ; ils ne sont pas refondus.
+
+### Carte écran/PDF et thèmes
+
+`memberCardModel` normalise nom, Espace, groupes, credential et choix de thème/visuels.
+Il est consommé par `memberCardPreview` et `drawMemberCard`/`memberCardsPdf` : aucune
+divergence de données entre écran, individuel et lot. Les groupes sont fournis
+depuis les affiliations déjà autorisées lors de création/régénération, ou le
+profil propre de l’invité ; aucune nouvelle requête ou projection serveur.
+
+Le texte est exactement **Ma carte individuelle**. Le nom est dominant ; Espace
+et groupes secondaires. La page d’émission distingue aperçu, thème et outils
+d’export. Le thème courant initialise seulement cette carte ; choisir Voti Pop,
+Nature, Douceur, Nuit ou Minimal met immédiatement à jour l’aperçu et le modèle
+de cette entrée dans le lot. Aucun enregistrement du thème ou de la carte dans
+localStorage/sessionStorage/IndexedDB ou sur le serveur.
+
+PDF : huit cartes par A4 conservées, nom agrandi (jusqu’à 64 px dans le raster de
+carte), adaptation des noms longs, Espace secondaire. Le QR garde sa grille entière,
+son budget de 400 px, blanc opaque et quiet zone. Aucune illustration ne chevauche
+le QR. Sans illustration ni groupe, il est centré ; sinon il est séparé à droite.
+Le DOM mobile peut empiler les zones tout en gardant la même sémantique.
+
+### Packs prédéfinis : architecture prête, pas de faux pack
+
+Deux manifestes JSON vides dans `web/assets/member-visuals/` et `group-visuals/`.
+Le build valide ID stable, type, label, fichier PNG/WebP local et dimensions/poids,
+puis embarque les futurs assets du dépôt dans le HTML offline. Aucun chemin/URL
+utilisateur, SVG d’illustration de substitution, upload ou stockage d’image.
+
+`visual-presets.js` résout les seuls IDs connus ; `visual-gallery.js` fournit radios
+natifs, « Aucune illustration », noms, focus et options indépendantes membre/groupes.
+Ces éléments sont masqués avec le catalogue vide. Les listes savent consommer des
+IDs de présentation avec vignettes de 40 px. La carte prévoit membre 80–90 px et
+groupes 28 px à l’écran (180/56 dans le raster PDF), trois groupes plus résumé du
+surplus. Aucune grande image de lieu concurrente du membre ou du QR.
+
+Les seuls graphismes d’essai sont des carrés raster géométriques explicitement
+fictifs, générés en mémoire des tests et jamais ajoutés aux manifestes. Ils testent
+les dimensions et la résolution d’IDs, pas l’identité artistique des futurs packs.
+La sélection durable d’IDs membres/groupes n’est **pas** implémentée sans vrai pack.
+
+`docs/MEMBER_VISUALS_V0.md` propose pour un futur lot deux champs nullable
+`space_members.member_visual_id` et `groups.group_visual_id`, validation serveur
+et projections limitées aux IDs via commandes/CAS existants. Backup versionné pour
+les IDs uniquement, sans toucher aux bulletins/commentaires anonymes. Aucune
+migration 0005, colonne, API, nouveau credential ou stockage binaire dans ce lot.
+
+### Incidents de mise au point consignés
+
+- Collision de variable locale `settings` dans le renderer, détectée à l’initialisation
+  navigateur puis corrigée en `settingsLink` ; aucun contournement de test.
+- Le bouton d’un details fermé restait mesurable via l’API de géométrie de Chromium :
+  CSS explicite display:none pour l’action de retrait fermée, sans retirer l’assertion.
+- Un premier lancement npm test sous sandbox a échoué dans workerd ; le test local
+  concerné passe avec les permissions de processus/loopback, puis la suite complète
+  est relancée avec ces permissions. Aucun appel Siteverify réel.
+- Le pixel de bord d’un QR rasterisé peut être interpolé par Poppler. Le test de
+  blanc opaque porte maintenant sur les **quatre coins intérieurs de la quiet zone**,
+  tous strictement blancs, en plus du redécodage ; ce contrôle est plus représentatif
+  et ne réduit pas l’exigence de contraste.
+
+- Le repère « Administrateur » existe maintenant aussi dans la bibliothèque des
+  Espaces : une attente de test devenue ambiguë a été remplacée par l’attente de
+  la vraie section Aperçu. Les assertions métier et de navigation sont conservées.
+- L’inspection à 1920 px a révélé une recherche trop étirée sur l’accueil. Sa zone
+  de filtres est bornée à 1180 px, sans réduire la bibliothèque ni le footer.
+  Les quatre formats d’accueil sont régénérés et contrôlés après cette correction.
+
+### Résultats exacts des vérifications locales
+
+Toutes les commandes ci-dessous terminent avec le code 0. Les tests qui utilisent
+Chromium/workerd sont exécutés avec les permissions de processus et de loopback
+local ; aucune commande distante, donnée production ou vérification Turnstile
+humaine n’est utilisée.
+
+| Commande | Résultat |
+| --- | --- |
+| `npm test` | 404 tests ; dernière relance après l’assertion de refus d’un credential staff dans le modèle de carte |
+| `npm run check` | Syntaxe de 127 fichiers JavaScript valide |
+| `npm run test:browser` | 2966 contrôles |
+| `npm run test:space-ui` | Dernière relance : 2845 contrôles UI + 2 contrôles du pilote local ; 46 captures |
+| `npm run test:spaces-ux` | 368 contrôles navigateur + 2 contrôles du pilote local |
+| `npm run test:spaces` | 368 contrôles navigateur + 188 contrôles HTTP/D1 local |
+| `npm run test:member-cards` | 30 contrôles ; 2 pages A4 ; 9 QR fictifs décodés à 300 dpi |
+| `npm run test:card-polish` | 66 contrôles ; 6 PDF (5 individuels et un lot) ; 10 QR fictifs décodés à 300 dpi |
+| `npm run test:participation` | 294 contrôles ; 3 PDF détaillés |
+| `npm run test:free-pilot` | 3138 contrôles navigateur + 67 contrôles HTTP/D1 local |
+| `npm run test:spaces-migration` | 8 contrôles ; migration 0004 locale, lignes/hashes historiques et INSERT v0.5 compatibles |
+| `npm run test:member-scanner` | 11 contrôles |
+| `npm run test:poster` | 97 contrôles ; 8 PDF ; 30 QR décodés |
+| `npm run test:poster-studio` | 188 contrôles ; 13 PDF ; 51 QR décodés |
+| `npm run test:poster-polish` | 117 contrôles ; 7 PDF ; 36 QR décodés |
+| `npm run build:production` | Réussi, exécuté en dernier après les suites navigateur/PDF |
+| `git diff --check` | PASS ; contrôle staged à nouveau exigé immédiatement avant le commit local |
+
+La dernière retouche partagée se limite à la largeur CSS des filtres de bibliothèque.
+Après celle-ci, la suite UI dédiée complète est relancée (2845 + 2), les PDF carte
+sont revérifiés (66), puis le build production est refait. Les grosses suites déjà
+vertes ne sont pas répétées sans changement les concernant. Aucun test supprimé.
+
+Les tests couvrent les rôles et restrictions par groupe, le shell persistant avec
+historique, la navigation clavier, les labels/input file, l’absence de persistance
+participante, les cinq thèmes de carte, les noms longs/accents/emoji et les groupes
+0/1/plusieurs. Les calculs QR vérifient modules entiers, taille minimale, blanc de
+quiet zone et décodage Poppler. Les tests unitaires refusent les IDs inconnus, les
+URLs/chemins/manifestes invalides et les données d’image personnelles ignorées.
+
+### Captures originales et inspection visuelle
+
+46 PNG Chromium dans `.browser-tests/v062-postcommit-review/`, hors Git et bundle.
+`index.html` est la planche locale ; `MANIFEST.json` contient dimensions, tailles et
+SHA-256 des PNG originaux. Aucun recadrage, redimensionnement ou annotation des PNG.
+Les séries précédentes `v062-review/` et `v062-final-review/` sont conservées.
+
+Liste exacte :
+
+```text
+advanced-1440.png
+advanced-390.png
+advanced-full-1440.png
+advanced-full-390.png
+card-1440.png
+card-390.png
+card-theme-dark-1440.png
+card-theme-douceur-1440.png
+card-theme-minimal-1440.png
+card-theme-nature-1440.png
+card-theme-pop-1440.png
+creation-choice-1440.png
+creation-choice-390.png
+express-1440.png
+express-390.png
+file-input-1440.png
+file-input-390.png
+footer-space-1920.png
+footer-spaces-1920.png
+gallery-fixtures-390.png
+groups-visual-fixtures-1440.png
+guided-participants-1440.png
+guided-participants-390.png
+guided-participation-1440.png
+guided-participation-390.png
+guided-question-1440.png
+guided-question-390.png
+guided-results-1440.png
+guided-results-390.png
+guided-review-1440.png
+guided-review-390.png
+home-1200.png
+home-1920.png
+home-360.png
+home-390.png
+member-detail-1440.png
+member-detail-390.png
+members-1440.png
+members-390.png
+members-visual-fixtures-1440.png
+overview-1440.png
+overview-1920.png
+overview-390.png
+spaces-1440.png
+spaces-1920.png
+spaces-390.png
+```
+
+Dimensions : 360×800, 390×844, 1200×800, 1440×900 et 1920×1080 ;
+les deux vues complètes Avancé mesurent 1440×3397 et 390×3402.
+
+Inspection réelle des captures et rendus PDF :
+
+- Mes Espaces : nom et rôle identifiables, Ouvrir dominant, retrait caché dans
+  Plus d’actions ; création repliée, import séparé et sélection de fichier lisible.
+- À 1920 px, main/footer alignés sur 1760 px ; listes et filtres bornés, sans
+  transformer les formulaires en champs géants. À 360/390 px, pas d’overflow.
+- La fiche membre garde son nom en titre et sa navigation visible. Les listes
+  restent compactes ; aucune action dangereuse ajoutée aux lignes ordinaires.
+- Carte : nom dominant, Espace/groupes secondaires, QR blanc bien distinct,
+  contraste Nuit conservé. Les cinq palettes écran/PDF utilisent le même modèle.
+  Les fixtures montrent bien membre plus grand que les miniatures de groupes.
+- Guidée, Express et Avancé gardent leur hiérarchie validée ; la vue complète
+  reste volontairement longue. Le clavier et le focus visible sont conservés.
+- Sans vrai pack, une carte avec peu de groupes conserve de l’espace libre :
+  il n’est pas rempli par une fausse illustration. La qualité artistique des packs
+  n’est pas évaluée dans ce lot. La validation visuelle finale de Lu’uma reste à faire.
+
+### Build final, confidentialité et périmètre figé
+
+Build production : **1 669 112 octets**, SHA-256
+`3c43a1c1d680fb9dc8a1cb685d0a8da6aa65148017ff3a92f5f0d37f42dba88e`.
+Variation par rapport au HEAD initial : **+24 539 octets** (1 644 573 → 1 669 112),
+due au shell, aux composants carte/fichier, au catalogue préparé et aux styles.
+Aucun pack d’illustrations réel ni dépendance ajouté.
+
+Audit local : les 70 fichiers protégés au début sont identiques par SHA-256,
+dont shared/, relay/, vendor/, package-lock, rapports historiques exclus et
+fichiers personnels préexistants. Aucune migration, colonne distante, modification
+Worker/Cloudflare, nouvelle capacité, nouveau credential ou règle métier.
+
+Les sélections de thème/visuels de carte vivent dans les objets en mémoire déjà
+temporaires de l’écran d’émission ; aucun token/carte/identité participante ajouté
+aux storages, au BroadcastChannel, aux logs ou noms de fichiers. Les données
+screen/PDF restent texte brut. Aucune jointure membre/bulletin anonyme ajoutée.
+Les tests locaux conservent snapshot, unicité, admins_only et restriction Créateur.
+Scanner local et libération caméra restent testés ; aucun upload, CDN, média distant,
+cookie ou tracking ajouté. Les catalogues intégrés sont vides ; la galerie et ses
+options ne sont donc pas affichées dans le build livré. Les seuls credentials des
+PDF/captures sont fictifs, créés par les fixtures locales, exclus du bundle.
+
+Limites : aucune preuve de nouvelle impression papier/caméra réelle ni validation
+humaine inventée ; aucun thème persistant côté serveur ; IDs de visuels non encore
+persistés ; futurs assets et éventuelle évolution additive des IDs à traiter dans
+un lot séparé. **Images personnelles membres/groupes exclues par décision produit.**
+
+### Manifeste du nouveau commit local
+
+Parent attendu : `67328a2014e52d8427a46e869b7275a09ba2a3bf`.
+Nouveau message : `fix: harmoniser l’interface et les Cartes Voti`.
+Le SHA du nouveau commit est relevé après création dans la réponse finale ; aucun
+amend/rebase/squash, push ou accès production. La référence locale origin/main
+reste celle relevée au début, sans fetch/push pendant cette mission.
+
+30 fichiers prévus, staging explicite uniquement :
+
+```text
+README.md
+docs/CODEX_V0_6_2_SPACE_UI_REPORT.md
+docs/MEMBER_CARDS_V0.md
+docs/MEMBER_VISUALS_V0.md
+docs/SPACES_GROUPS_V0.md
+docs/UX_FLOWS_V0.md
+index.html
+package.json
+scripts/browser-space-layout.mjs
+scripts/browser-space-polish.mjs
+scripts/browser-spaces.mjs
+scripts/browser-test.mjs
+scripts/build.mjs
+scripts/test-card-polish.mjs
+scripts/test-member-cards.mjs
+scripts/visual-assets.mjs
+tests/member-presentation.test.js
+web/app.js
+web/assets/group-visuals/manifest.json
+web/assets/member-visuals/manifest.json
+web/file-picker.js
+web/member-card-model.js
+web/member-card-view.js
+web/member-cards.js
+web/member-scanner.js
+web/space-management.js
+web/spaces-ui.js
+web/styles.css
+web/visual-gallery.js
+web/visual-presets.js
+```
+
+Les six rapports historiques déjà modifiés, cinq captures personnelles, deux
+archives personnelles et l’ancienne spec UX hors lot restent exclus et inchangés.
+Les captures Chromium, PDF/QR de fixtures, ZIP d’audit, bases, profils et caches
+restent ignorés/non suivis. Aucun fichier shared/relay/migration/config/lock ajouté
+au manifeste. Le rapport inclut la section 23 préexistante de publication précédente,
+puis la présente section 24 ; les autres rapports historiques ne sont pas réécrits.
+
+### Bundle et contrôle de livraison
+
+`VOTI_AUDIT_V0_6_2.zip` reconstruit par `npm run audit:bundle` : **211 fichiers**.
+Contrôle CRC de chaque entrée, décompression Python et manifeste exact de
+`auditPaths()` réussis ; les octets décompressés sont comparés aux fichiers locaux.
+Aucune archive récursive, capture, PDF, base, backup, export de carte/accès, env,
+profil, cache ou node_modules. Aucun credential littéral détecté dans le bundle
+ni dans les 62 modules décodés du HTML autonome. Les catalogues sont vides.
+Le ZIP reste ignoré/non commité. Sa taille et son SHA-256 sont relevés après cette
+dernière mise à jour du rapport, dans la réponse de livraison, pour éviter une
+empreinte autoréférente dans le bundle.
+
+Le manifeste source de 30 fichiers est contrôlé avant staging explicite, puis
+comparé à l’index avec `git diff --cached --check` et scan des blobs staged avant
+commit. Les scans ciblent notamment credentials littéraux, clés privées, tokens
+GitHub et clés AWS ; ce contrôle raisonnable complète les tests de confidentialité,
+sans prétendre constituer une détection universelle de secrets.

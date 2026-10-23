@@ -2,6 +2,7 @@ import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build as bundle } from 'esbuild';
+import {embeddedVisuals} from './visual-assets.mjs';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -11,6 +12,7 @@ export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
  * Aucun chargement réseau runtime.
  */
 export async function build() {
+  const visuals=await embeddedVisuals(ROOT);
   const branding = {};
   for (const name of ['logo', 'background', 'mascot']) {
     const bytes = await readFile(resolve(ROOT, `assets/branding/voti-${name}.webp`));
@@ -32,6 +34,7 @@ export async function build() {
   }
   for (const file of files) {
     let source = await readFile(resolve(ROOT, file), 'utf8');
+    if(file==='web/visual-presets.js')source=source.replace('export const VISUAL_PRESETS = {member:[],group:[]};',`export const VISUAL_PRESETS = ${JSON.stringify(visuals)};`);
     if (file === 'web/relay-config.js' && process.env.VOTI_RELAY_URL) {
       const config = { relayId: process.env.VOTI_RELAY_ID || 'voti-local', baseUrl: process.env.VOTI_RELAY_URL,
         turnstileSiteKey: process.env.VOTI_TURNSTILE_SITE_KEY || null, turnstileMode: process.env.VOTI_TURNSTILE_MODE || 'siteverify',

@@ -132,7 +132,7 @@ export async function spaceLayoutActions(fixture){
   const app=document.getElementById('app');let checks=0;
   const ok=(x,why)=>{if(!x)throw new Error('Tâche v0.6.2 : '+why);checks++;};
   const wait=async(fn)=>{const end=Date.now()+15000;while(!fn()){if(Date.now()>end)throw new Error('Tâche absente : '+app.textContent.slice(0,120));await new Promise(requestAnimationFrame);}};
-  const go=async(suffix)=>{const previous=app.querySelector('[data-space-section]');location.hash='#space/'+fixture.spaceId+suffix;await wait(()=>!previous.isConnected&&app.querySelector('[data-space-section]'));};
+  const go=async(suffix)=>{location.hash='#space/'+fixture.spaceId+suffix;await wait(()=>app.getAttribute('aria-busy')==='false'&&app.querySelector('[data-space-section]')?.getAttribute('aria-busy')==='false'&&app.querySelector('[data-space-section]').dataset.spaceSection===suffix.split('/')[1]);};
   const click=(text,root=app)=>{const b=[...root.querySelectorAll('a,button')].find(n=>n.textContent===text.replace(/^[←+]\s*/,''));if(!b)throw new Error('Action absente : '+text);b.click();};
   const set=(text,value)=>{const l=[...app.querySelectorAll('label')].find(n=>n.textContent===text.replace(/^[←+]\s*/,'')),input=document.getElementById(l.htmlFor);input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));};
   const confirm=async(text)=>{await wait(()=>document.querySelector('dialog[open]'));click(text,document.querySelector('dialog[open]'));};

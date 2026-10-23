@@ -156,3 +156,17 @@ saisies, y compris les réglages personnalisés si l’on revient à Guidée/Ava
 Quitter la tâche ne sauvegarde pas un brouillon intermédiaire. Cette présentation
 est locale ; sa refonte visuelle a été validée par Lu’uma avant le dernier
 ajustement des défauts Express. Aucun déploiement v0.6.2 n’est effectué.
+
+### Polissage local post-commit
+
+L’entrée propose une liste **Mes Espaces** : nom et rôle, **Ouvrir** en premier,
+retrait de l’accès dans **Plus d’actions**, avec confirmation conservée. Créer un
+Espace s’ouvre à la demande ; l’import reste distinct avec un vrai sélecteur de
+fichier natif présenté par un label stylisé accessible.
+
+Dans le même Espace, header/navigation et emplacement central restent montés :
+une lecture asynchrone remplace seulement le contenu central par un chargement
+local. Chaque section relit les données et les droits ; aucune autorisation n’est
+mise en cache pour éviter le flash. Historique et contrôles Créateur sont conservés.
+Les largeurs partagées et le footer suivent les pages fluides, avec formulaires
+bornés. Les tests locaux ne remplacent pas une nouvelle recette humaine.

@@ -1,6 +1,7 @@
 import {decodeQr} from '../vendor/scanner.js';
 import {isSpaceCredential} from '../shared/spaces.js';
 import {inspectImage} from '../shared/image-format.js';
+import {filePicker,refreshFilePicker} from './file-picker.js';
 
 /** Alterne vue entière et centre : un petit QR garde davantage de pixels.
  * Bornes CPU/mémoire explicites, pas d'image envoyée à un serveur. */
@@ -34,11 +35,11 @@ export function scanMemberCard(trigger){
         const tick=time=>{if(closed)return;if(video.videoWidth&&time-last>180){try{decode(video,video.videoWidth,video.videoHeight,attempt++);if(!closed&&time-started>4000)status.textContent='Toujours en recherche : rapproche le QR, agrandis-le et stabilise la carte.';}catch{status.textContent='Image en cours d’analyse. Garde le QR entier et stable.';}last=time;}if(!closed)frame=requestAnimationFrame(tick);};frame=requestAnimationFrame(tick);
       }catch{stream?.getTracks().forEach(t=>t.stop());video.srcObject=null;video.hidden=true;viewport.hidden=true;camera.disabled=false;if(!closed)status.textContent='Caméra indisponible. Tu peux choisir une photo de ta carte.';}
     });
-    const label=document.createElement('label');label.textContent='Ou choisir une photo de la carte';const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';input.id=title.id+'-file';label.htmlFor=input.id;
-    input.addEventListener('change',async()=>{const file=input.files[0];if(!file)return;let bitmap;try{if(file.size>10_000_000||!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error();const info=inspectImage(new Uint8Array(await file.arrayBuffer()));if(info.mimeType!==file.type||info.width*info.height>16_000_000)throw new Error();bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});if(bitmap.width*bitmap.height>16_000_000)throw new Error();if(!closed){decode(bitmap,bitmap.width,bitmap.height);if(!closed)status.textContent='Carte non reconnue. Essaie une photo nette avec le QR entier.';}}catch{if(!closed)status.textContent='Photo de carte illisible.';}finally{bitmap?.close();input.value='';}});
+    const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';input.id=title.id+'-file';const picker=filePicker(input,'Ou choisir une photo de la carte');
+    input.addEventListener('change',async()=>{const file=input.files[0];if(!file)return;let bitmap;try{if(file.size>10_000_000||!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error();const info=inspectImage(new Uint8Array(await file.arrayBuffer()));if(info.mimeType!==file.type||info.width*info.height>16_000_000)throw new Error();bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});if(bitmap.width*bitmap.height>16_000_000)throw new Error();if(!closed){decode(bitmap,bitmap.width,bitmap.height);if(!closed)status.textContent='Carte non reconnue. Essaie une photo nette avec le QR entier.';}}catch{if(!closed)status.textContent='Photo de carte illisible.';}finally{bitmap?.close();input.value='';refreshFilePicker(input);}});
     const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Annuler';cancel.addEventListener('click',()=>finish(null));dialog.addEventListener('cancel',event=>{event.preventDefault();finish(null);});
     const leave=()=>finish(null);window.addEventListener('pagehide',leave,{once:true});window.addEventListener('hashchange',leave,{once:true});
     dialog.addEventListener('close',()=>{window.removeEventListener('pagehide',leave);window.removeEventListener('hashchange',leave);});
-    dialog.append(title,status,viewport,guide,camera,label,input,cancel);document.body.append(dialog);dialog.showModal();cancel.focus();
+    dialog.append(title,status,viewport,guide,camera,picker,cancel);document.body.append(dialog);dialog.showModal();cancel.focus();
   });
 }

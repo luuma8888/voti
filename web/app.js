@@ -863,9 +863,9 @@ async function render() {
   const sequence = ++renderSequence;
   if(disposeView){const dispose=disposeView;disposeView=null;dispose();}
   app.setAttribute('aria-busy', 'true');
-  app.replaceChildren();
-  images.sweep();
   const nextRoute = location.hash || '#home';
+  if(!spacesUI.canKeepShell(nextRoute))app.replaceChildren();
+  images.sweep();
   if (nextRoute !== '#admin-transfer') pendingAdminPayload = null;
   if (nextRoute !== route) { editor = null; voteSession = null; voteOutcome = null; clearError(); notify(''); route = nextRoute; }
   try {

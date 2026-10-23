@@ -1,4 +1,5 @@
 import {withSpaceIcon} from './space-icons.js';
+import {presetThumbnail,VISUAL_PRESETS} from './visual-presets.js';
 /** Présentation de la gestion uniquement. Les commandes et contrôles restent dans SpacesUI/le relais. */
 const el=(tag,text,attrs={})=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;for(const[k,v]of Object.entries(attrs))n.setAttribute(k,v);return n;};
 const put=(parent,...children)=>{parent.append(...children);return parent;};
@@ -10,28 +11,33 @@ const roles={admin:'Administrateur de l’Espace',creator:'Créateur de l’Espa
 const status=p=>p.status==='draft'?'Brouillon':p.status==='closed'?'Fermé':'Ouvert';
 const scopes=(raw,groups)=>{const ids=typeof raw==='string'?JSON.parse(raw):raw;return ids?.length?ids.map(id=>groups.find(g=>g.group_id===id)?.name??'Groupe archivé').join(' · '):'Tout l’Espace';};
 
-export function renderSpaceManagement(ui,data,section='overview',entity=null){
+export function renderSpaceManagement(ui,data,section='overview',entity=null,catalog=VISUAL_PRESETS){
   const id=data.spaceId,base='#space/'+id,admin=data.access.role==='admin',active=data.status==='active';
   const permitted=admin?SECTIONS:SECTIONS.filter(([key])=>['overview','polls','groups'].includes(key));
   if(![...permitted.map(([key])=>key),'settings'].includes(section))throw new Error('Cet accès ne permet pas d’ouvrir cette section.');
   if(entity&&(!['polls','members','groups','invitations','access'].includes(section)||entity==='new'&&!active))throw new Error('Cette action n’est pas disponible.');
   if(entity==='new'&&section!=='polls'&&!admin)throw new Error('Action réservée à l’administration.');
-  ui.title(data.name);
-  const heading=ui.app.querySelector('h1'),workspace=el('div',undefined,{class:'space-workspace',...(entity?{'data-space-task':''}:{})});
   const person=section==='members'&&entity&&entity!=='new'?data.members.find(m=>m.member_id===entity):null;
-  if(person)heading.textContent=person.display_name;
-  const header=put(el('header',undefined,{class:'space-heading'}),nav('← Espaces','#spaces','space-back'),put(el('div'),...(person?[el('p',data.name,{class:'space-context-name'})]:[]),heading,el('p',roles[data.access.role],{class:'help'})),nav('Réglages',base+'/settings'));
-  const navigation=el('nav',undefined,{class:'space-navigation','aria-label':'Dans cet Espace'});
-  for(const[key,label]of permitted){const a=nav(label,base+(key==='overview'?'':'/'+key));if(key===section)a.setAttribute('aria-current','page');navigation.append(a);}
-  const content=el('section',undefined,{class:'space-content','data-space-section':section,'aria-label':SECTIONS.find(([key])=>key===section)?.[1]??'Réglages'});
-  workspace.append(header,navigation,content);ui.app.append(workspace);
+  if(!ui.shell||ui.shell.spaceId!==id||!ui.shell.root.isConnected){
+    ui.title(data.name);const heading=ui.app.querySelector('h1'),workspace=el('div',undefined,{class:'space-workspace'}),context=el('p',data.name,{class:'space-context-name'}),role=el('p',roles[data.access.role],{class:'help'});
+    const header=put(el('header',undefined,{class:'space-heading'}),nav('← Espaces','#spaces','space-back'),put(el('div'),context,heading,role),nav('Réglages',base+'/settings'));
+    const navigation=el('nav',undefined,{class:'space-navigation','aria-label':'Dans cet Espace'}),content=el('section',undefined,{class:'space-content'});
+    for(const[key,label]of permitted)navigation.append(nav(label,base+(key==='overview'?'':'/'+key)));
+    workspace.append(header,navigation,content);ui.app.append(workspace);ui.shell={spaceId:id,root:workspace,header,navigation,content,heading,context,role};
+  }
+  const {root:workspace,content,heading,context,role,navigation}=ui.shell;
+  ui.title(person?.display_name??data.name,heading);context.textContent=data.name;context.hidden=!person;role.textContent=roles[data.access.role];
+  const settingsLink=ui.shell.header.querySelector('a[href$="/settings"]');if(section==='settings')settingsLink.setAttribute('aria-current','page');else settingsLink.removeAttribute('aria-current');
+  const allowed=permitted.map(([key])=>key).join(',');if(navigation.dataset.allowed!==allowed){navigation.replaceChildren(...permitted.map(([key,label])=>nav(label,base+(key==='overview'?'':'/'+key))));navigation.dataset.allowed=allowed;}
+  for(const a of navigation.querySelectorAll('a')){const key=a.hash.split('/')[2]??'overview';if(key===section)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}
+  workspace.toggleAttribute('data-space-task',Boolean(entity));content.dataset.spaceSection=section;content.setAttribute('aria-label',SECTIONS.find(([key])=>key===section)?.[1]??'Réglages');content.setAttribute('aria-busy','false');content.replaceChildren();
   if(!active)content.append(el('p','Espace archivé. Les cartes et accès créateur sont désactivés ; l’historique reste conservé.',{class:'space-notice'}));
   const title=(text,action)=>{const h=put(el('div',undefined,{class:'space-section-heading'}),el('h2',text));if(action)h.append(action);content.append(h);};
   const add=(text)=>active?nav(text,base+'/'+section+'/new','primary'):null;
   const list=()=>{const box=el('div',undefined,{class:'space-list'});content.append(box);return box;};
-  const row=(name,details,href,label='Voir',secondary=false)=>{
+  const row=(name,details,href,label='Voir',secondary=false,visual=null)=>{
     const article=el('article',undefined,{class:'space-list-row'+(secondary?' is-secondary':'')});
-    article.append(put(el('div',undefined,{class:'space-row-title'}),el('h3',name)),put(el('div',undefined,{class:'space-row-meta'}),...details.map(d=>typeof d==='string'?badge(d):d)),nav(label,href));article.querySelector('a').setAttribute('aria-label',label+' : '+name);return article;
+    article.append(put(el('div',undefined,{class:'space-row-title'}),...(visual?[visual]:[]),el('h3',name)),put(el('div',undefined,{class:'space-row-meta'}),...details.map(d=>typeof d==='string'?badge(d):d)),nav(label,href));article.querySelector('a').setAttribute('aria-label',label+' : '+name);return article;
   };
   const empty=(text)=>content.append(el('p',text,{class:'space-empty'}));
   if(entity){
@@ -56,10 +62,10 @@ export function renderSpaceManagement(ui,data,section='overview',entity=null){
   }
   if(section==='members'){
     title('Membres',add('+ Ajouter un membre'));content.append(el('p','Ouvre une fiche pour modifier les groupes ou gérer la Carte Voti.',{class:'help'}));
-    const box=list();for(const m of data.members){const groups=data.groups.filter(g=>m.groupIds.includes(g.group_id)).map(g=>g.name);box.append(row(m.display_name,[...groups.length?groups:['Sans groupe'],m.status!=='active'?'Membre révoqué':m.has_card?'Carte active':'Carte révoquée'],base+'/members/'+m.member_id,'Voir',m.status!=='active'));}if(!data.members.length)empty('Ajoute un premier membre pour lui remettre sa Carte Voti.');return;
+    const box=list();for(const m of data.members){const groups=data.groups.filter(g=>m.groupIds.includes(g.group_id)).map(g=>g.name);box.append(row(m.display_name,[...groups.length?groups:['Sans groupe'],m.status!=='active'?'Membre révoqué':m.has_card?'Carte active':'Carte révoquée'],base+'/members/'+m.member_id,'Voir',m.status!=='active',presetThumbnail('member',m.memberVisualId,catalog)));}if(!data.members.length)empty('Ajoute un premier membre pour lui remettre sa Carte Voti.');return;
   }
   if(section==='groups'){
-    title('Groupes',admin?add('+ Nouveau groupe'):null);const box=list();for(const g of data.groups){const details=[admin?count(data.members.filter(m=>m.status==='active'&&m.groupIds.includes(g.group_id)).length,'membre'):'Groupe accessible',...(g.status==='active'?[]:['Archivé'])];box.append(row(g.name,details,base+'/groups/'+g.group_id,admin?'Gérer':'Voir',g.status!=='active'));}if(!data.groups.length)empty('Les groupes permettent de choisir qui participe à chaque sondage.');return;
+    title('Groupes',admin?add('+ Nouveau groupe'):null);const box=list();for(const g of data.groups){const details=[admin?count(data.members.filter(m=>m.status==='active'&&m.groupIds.includes(g.group_id)).length,'membre'):'Groupe accessible',...(g.status==='active'?[]:['Archivé'])];box.append(row(g.name,details,base+'/groups/'+g.group_id,admin?'Gérer':'Voir',g.status!=='active',presetThumbnail('group',g.groupVisualId,catalog)));}if(!data.groups.length)empty('Les groupes permettent de choisir qui participe à chaque sondage.');return;
   }
   if(section==='polls'){
     title('Sondages',add('+ Nouveau sondage'));const box=list(),metadata=[];for(const p of data.polls){const meta=el('span','Audience et résultats…',{class:'space-poll-metadata'});const r=row(p.question,[status(p),meta],base+'/poll/'+p.pollId,'Gérer');box.append(r);metadata.push({p,meta});}if(!data.polls.length)empty('Crée un sondage avec le parcours guidé ou express.');

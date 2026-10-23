@@ -190,3 +190,9 @@ produit 24 captures de revue finale dans `.browser-tests/v062-final-review/`
 comparaison ; les nouveaux parcours partagent le même constructeur de brouillon.
 Le [rapport v0.6.2](docs/CODEX_V0_6_2_SPACE_UI_REPORT.md) distingue tests automatiques,
 inspection des captures et validation visuelle humaine encore attendue.
+
+Le polissage post-commit produit sa revue dans `.browser-tests/v062-postcommit-review/`
+sans écraser les séries précédentes. Après `npm run test:space-ui`,
+`npm run test:card-polish` vérifie les PDF individuels/lot et leurs QR à 300 dpi.
+Les [packs visuels membres/groupes](docs/MEMBER_VISUALS_V0.md) sont préparés avec
+manifestes vides : aucun upload personnel, asset factice ou migration ajouté.

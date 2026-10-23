@@ -12,6 +12,11 @@ import {SPACE_RELEASE_LABELS,resultsState,accessFilename,cardsFilename,fileLabel
 import {spacePollEditor} from './space-poll-editor.js';
 import {renderSpaceManagement} from './space-management.js';
 import {withSpaceIcon} from './space-icons.js';
+import {filePicker,refreshFilePicker} from './file-picker.js';
+import {memberCardModel} from './member-card-model.js';
+import {memberCardPreview} from './member-card-view.js';
+import {THEME_OPTIONS,normalizeTheme} from './themes.js';
+import {visualGallery,visualDisplayOptions} from './visual-gallery.js';
 
 const node=(tag,text,attrs={})=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;for(const[k,v]of Object.entries(attrs))n.setAttribute(k,String(v));return n;};
 const append=(parent,...children)=>{parent.append(...children);return parent;};
@@ -24,7 +29,7 @@ export class SpacesUI {
   constructor({app,adapter,config,error,notify,clearError=()=>{},confirmAction,posters,assets,memberCredential=null,invitationCredential=null}){
     Object.assign(this,{app,adapter,config,error,notify,clearError,confirmAction,posters,assets});this.accesses=new SpaceAccessStorage(localStorage);this.session=new TemporaryMemberSession();
     const home=withSpaceIcon(link('Accueil Voti','#home'),'back');home.className='button space-global-return';document.querySelector('.topbar').insertBefore(home,document.getElementById('theme-toggle'));
-    this.profile=null;this.invitation=invitationCredential;this.issued=[];this.outcome=null;this.disposePanel=null;this.epoch=0;this.intent=null;
+    this.profile=null;this.invitation=invitationCredential;this.issued=[];this.outcome=null;this.disposePanel=null;this.epoch=0;this.intent=null;this.shell=null;
     this.channel=typeof BroadcastChannel==='function'?new BroadcastChannel('voti.member.clear.v1'):null;
     if(this.channel)this.channel.onmessage=event=>{if(event.data?.type==='clear'&&this.session.credential&&!this.submitting){this.clearMember();this.cardPrompt();}};
     if(memberCredential)this.setMember(memberCredential);
@@ -36,7 +41,7 @@ export class SpacesUI {
     const b=node('button',label,{type:'button',class:className});b.addEventListener('click',async()=>{if(b.disabled)return;b.disabled=true;
       try{await action(b);}catch(e){if(b.isConnected&&e.name!=='AbortError'){if(e.code==='REVISION_CONFLICT'){this.notify('Les données ont changé. Actualise avant de recommencer ; rien n’a été écrasé.');}this.error(e);}}finally{if(b.isConnected){b.disabled=false;if(document.activeElement===document.body)b.focus({preventScroll:true});}}});return b;
   }
-  title(text){this.clearError();this.notify('');const h=node('h1',text,{tabindex:'-1','data-navigation-focus':''});this.app.append(h);queueMicrotask(()=>{if(h.isConnected)h.focus({preventScroll:true});});document.title=`${text} · Voti`;const marker=document.getElementById('location');marker.hidden=false;marker.textContent=text;for(const a of document.querySelectorAll('.main-nav a'))a.removeAttribute('aria-current');}
+  title(text,existing=null){this.clearError();this.notify('');const h=existing??node('h1',text,{tabindex:'-1','data-navigation-focus':''});h.textContent=text;if(!existing)this.app.append(h);queueMicrotask(()=>{if(h.isConnected)h.focus({preventScroll:true});});document.title=`${text} · Voti`;const marker=document.getElementById('location');marker.hidden=false;marker.textContent=text;for(const a of document.querySelectorAll('.main-nav a'))a.removeAttribute('aria-current');}
   async call(command,input,credential,extras={}){if(!this.adapter)throw new Error('Relais non configuré. Les sondages libres locaux restent disponibles.');const epoch=this.epoch;
     if(isSpaceCredential(credential,'member')&&this.session.credential!==credential)throw new DOMException('La Carte Voti temporaire a expiré.','AbortError');
     const value=await this.adapter.spaceCommand({command,input,credential,...extras});
@@ -48,7 +53,8 @@ export class SpacesUI {
   async navigate(hash){if(location.hash===hash)await this.refresh();else location.hash=hash;}
   returnToSpace(id){const a=link('Retour à l’Espace',`#space/${id}`);a.addEventListener('click',event=>{if(event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();this.navigate(a.hash).catch(this.error);});return a;}
   ownsRoute(hash){const [view,id]=hash.replace(/^#\/?/,'').split('/');return ['spaces','space','member','invite'].includes(view)||Boolean(this.session.credential)||view==='p'&&this.outcome?.pollId===id;}
-  leaveRoute(){document.body.removeAttribute('data-space-management');this.epoch++;this.disposePanel?.();this.disposePanel=null;this.clearMember();this.outcome=null;this.issued=[];this.invitation=null;delete document.body.dataset.votiRole;}
+  canKeepShell(hash){const [view,id,section]=hash.replace(/^#\/?/,'').split('/');return !this.session.credential&&view==='space'&&(!section||['polls','members','groups','invitations','access','settings'].includes(section))&&this.shell?.spaceId===id&&this.shell.root.isConnected;}
+  leaveRoute(){this.shell=null;document.body.removeAttribute('data-space-management');this.epoch++;this.disposePanel?.();this.disposePanel=null;this.clearMember();this.outcome=null;this.issued=[];this.invitation=null;delete document.body.dataset.votiRole;}
   async handleRoute(hash){
     this.epoch++;
     document.body.toggleAttribute('data-space-management',/^#\/?space\//.test(hash)&&!this.session.credential);
@@ -59,7 +65,9 @@ export class SpacesUI {
     if(!['spaces','space','member','invite'].includes(view)&&!(view==='p'&&this.session.credential)&&!(view==='p'&&this.outcome?.pollId===id)){
       this.disposePanel?.();this.disposePanel=null;if(view!=='p')this.clearMember();this.outcome=null;this.issued=[];delete document.body.dataset.votiRole;return false;
     }
-    const epoch=this.epoch;this.disposePanel?.();this.disposePanel=null;this.app.replaceChildren();
+    const epoch=this.epoch;this.disposePanel?.();this.disposePanel=null;
+    if(this.canKeepShell(hash)){this.shell.content.setAttribute('aria-busy','true');this.shell.content.replaceChildren(node('p','Chargement de cette section…',{role:'status',class:'help'}));}
+    else{this.shell=null;this.app.replaceChildren();}
     if(view==='p'&&this.outcome?.pollId===id){this.success(id,this.outcome.commentSent);return true;}
     if(view==='p'){
       try{if(!this.profile)this.profile=await this.call('getMemberHome',{},this.session.credential);const response=await this.call('getMemberPoll',{pollId:id},this.session.credential);if(epoch!==this.epoch)return true;
@@ -139,24 +147,28 @@ export class SpacesUI {
     const epoch=this.epoch;
     this.title('Espaces & groupes');this.app.append(node('p','Un Espace réunit des groupes et des membres. Aucun compte e-mail ou mot de passe n’est nécessaire.'),link('Mes sondages libres','#home'));
     if(!this.config){this.app.append(node('p','Un relais Internet configuré est nécessaire pour les Espaces. Le mode libre local reste disponible.'));return;}
+    const library=node('section',undefined,{'data-space-library':'',class:'space-library'});library.append(node('h2','Mes Espaces'));const list=node('div',undefined,{class:'space-library-list'});library.append(list);this.app.append(library);
     for(const access of this.accesses.list().filter(a=>a.relayId===this.config.relayId)){
       if(epoch!==this.epoch)return;
-      const row=node('article',undefined,{class:'card'});row.append(link('Ouvrir cet Espace',`#space/${access.spaceId}`),this.button('Retirer cet accès de cet appareil',async b=>{if(await this.confirmAction({trigger:b,title:'Oublier cet accès de gestion ?',description:'L’Espace reste en ligne. Exporte ton accès avant s’il n’est conservé nulle part ailleurs.',actionLabel:'Oublier cet accès',danger:true})){await this.accesses.delete(access.relayId,access.spaceId);await this.refresh();}}));this.app.append(row);
-      try{const data=await this.getSpace(access.spaceId);if(row.isConnected)row.querySelector('a').textContent=data.name;}catch{if(row.isConnected)row.append(node('p','Accès indisponible.'))}
+      const name=node('h3','Espace enregistré'),role=node('p','Lecture de cet accès…',{class:'help'}),more=append(node('details',undefined,{class:'space-access-more'}),node('summary','Plus d’actions'));
+      more.append(this.button('Retirer cet accès de cet appareil',async b=>{if(await this.confirmAction({trigger:b,title:'Oublier cet accès de gestion ?',description:'L’Espace reste en ligne. Exporte ton accès avant s’il n’est conservé nulle part ailleurs.',actionLabel:'Oublier cet accès',danger:true})){await this.accesses.delete(access.relayId,access.spaceId);await this.refresh();}}));
+      const open=withSpaceIcon(link('Ouvrir',`#space/${access.spaceId}`),'overview');open.classList.add('primary');const row=append(node('article',undefined,{class:'space-library-row'}),append(node('div'),name,role),open,more);list.append(row);
+      try{const data=await this.getSpace(access.spaceId);if(row.isConnected){name.textContent=data.name;role.textContent=data.access.role==='admin'?'Administrateur de l’Espace':'Créateur de l’Espace';open.setAttribute('aria-label','Ouvrir '+data.name);}}catch{if(row.isConnected)role.textContent='Accès indisponible.';}
     }
+    if(!list.children.length)list.append(node('p','Tes Espaces apparaîtront ici après création ou import.',{class:'help'}));
     if(epoch!==this.epoch)return;
     const name=textField('Nom de l’Espace'),form=node('form',undefined,{class:'card'}),create=node('button','Créer un Espace',{type:'submit',class:'primary'});name.input.required=true;form.append(name.element,create);
     form.addEventListener('submit',async e=>{e.preventDefault();if(create.disabled)return;create.disabled=true;const spaceId=crypto.randomUUID(),credential=createSpaceCredential('staff'),challenge=node('div');form.append(challenge);
       try{const token=await humanVerification(this.config,challenge);if(!create.isConnected)return;await this.accesses.put({relayId:this.config.relayId,spaceId,credential});await this.call('createSpace',{spaceId,name:name.input.value,expectedRevision:0},credential,{humanVerificationToken:token});location.hash=`#space/${spaceId}`;}
-      catch(error){this.error(error);}finally{challenge.remove();if(create.isConnected)create.disabled=false;}});this.app.append(form,this.importAccess());
+      catch(error){this.error(error);}finally{challenge.remove();if(create.isConnected)create.disabled=false;}});const add=append(node('details',undefined,{class:'space-create-entry'}),node('summary','Créer un Espace'),form);this.app.append(add,this.importAccess());
   }
   importAccess(){
-    const input=node('input',undefined,{type:'file',accept:'application/json,.json'}),box=append(node('section',undefined,{class:'card'}),node('h2','Importer un accès SECRET à un Espace'),field('Fichier d’accès de gestion',input));
+    const input=node('input',undefined,{type:'file',accept:'application/json,.json'}),box=append(node('section',undefined,{class:'space-import'}),node('h2','Importer un accès SECRET à un Espace'),filePicker(input,'Fichier d’accès de gestion'));
     input.addEventListener('change',async()=>{try{const file=input.files[0];if(!file||file.size>4096)throw new Error('Fichier d’accès invalide.');const value=decodeSpaceAccess(await file.text(),this.config.relayId);
       await this.call('getSpace',{spaceId:value.spaceId},value.credential);const previous=this.accesses.get(value.relayId,value.spaceId);
       if(previous&&previous.credential!==value.credential&&!await this.confirmAction({trigger:input,title:'Remplacer l’accès à cet Espace ?',description:'Le nouvel accès a été vérifié. Il remplacera la capacité de gestion conservée sur cet appareil.',actionLabel:'Remplacer l’accès'}))return;
       await this.accesses.put({relayId:value.relayId,spaceId:value.spaceId,credential:value.credential},previous?.credential);location.hash=`#space/${value.spaceId}`;
-    }catch(error){this.error(error);}finally{input.value='';}});return box;
+    }catch(error){this.error(error);}finally{input.value='';refreshFilePicker(input);}});return box;
   }
   async adminMutation(data,command,fields){await this.call(command,{spaceId:data.spaceId,...fields,expectedRevision:data.revision},this.staff(data.spaceId));await this.refresh();}
   groupSelection(groups,selected=[]){const box=node('fieldset',undefined,{class:'space-group-options'});box.append(node('legend','Groupes'));for(const g of groups.filter(g=>g.status==='active')){const input=node('input',undefined,{type:'checkbox',value:g.group_id});input.checked=selected.includes(g.group_id);box.append(append(node('label'),input,node('span',g.name)));}return{element:box,values:()=>[...box.querySelectorAll('input:checked')].map(i=>i.value)};}
@@ -180,14 +192,14 @@ export class SpacesUI {
         const changed=()=>{const pending=name.input.value!==m.display_name||JSON.stringify(selection.values().sort())!==JSON.stringify([...m.groupIds].sort());save.disabled=!pending;row.classList.toggle('is-dirty',pending);dirty.textContent=pending?'Modifications non enregistrées : clique sur « Enregistrer le membre ».':'Aucune modification à enregistrer.';};name.input.addEventListener('input',changed);selection.element.addEventListener('change',changed);
         const revoke=this.button(m.has_card?'Révoquer la carte':'Carte déjà révoquée',async b=>{if(await this.confirmAction({trigger:b,title:'Révoquer cette carte ?',description:'Le membre et ses anciens votes restent conservés. Une nouvelle carte pourra être générée.',actionLabel:'Révoquer la carte',danger:true})){await this.adminMutation(data,'revokeMemberCard',{memberId:m.member_id});this.notify('Carte révoquée. Elle ne permet plus de participer. Tu peux en régénérer une.');}},'danger');revoke.disabled=!m.has_card;
         row.append(node('h3','Carte Voti'),node('p',m.status==='active'?(m.has_card?'Carte active':'Carte révoquée · régénération possible'):'Membre révoqué',{class:'space-card-state'}));if(m.status==='active')row.append(name.element,selection.element,dirty,save,append(node('div',undefined,{class:'actions'}),
-          this.button('Régénérer la carte',async b=>{if(!await this.confirmAction({trigger:b,title:'Régénérer cette Carte Voti ?',description:'L’ancienne carte ne fonctionnera plus. Les votes passés restent conservés, sans permettre de retrouver un bulletin anonyme.',actionLabel:'Régénérer'}))return;const card=createSpaceCredential('member');await this.call('rotateMemberCard',{spaceId:id,memberId:m.member_id,memberCredential:card,expectedRevision:data.revision},credential);this.showCard({credential:card,memberId:m.member_id,displayName:m.display_name,spaceName:data.name,returnHash:`#space/${id}/members`});}),
+          this.button('Régénérer la carte',async b=>{if(!await this.confirmAction({trigger:b,title:'Régénérer cette Carte Voti ?',description:'L’ancienne carte ne fonctionnera plus. Les votes passés restent conservés, sans permettre de retrouver un bulletin anonyme.',actionLabel:'Régénérer'}))return;const card=createSpaceCredential('member');await this.call('rotateMemberCard',{spaceId:id,memberId:m.member_id,memberCredential:card,expectedRevision:data.revision},credential);this.showCard({credential:card,memberId:m.member_id,displayName:m.display_name,spaceName:data.name,groups:data.groups.filter(g=>m.groupIds.includes(g.group_id)).map(g=>g.name),returnHash:`#space/${id}/members`});}),
           revoke,
           this.button('Révoquer le membre',async b=>{if(await this.confirmAction({trigger:b,title:'Révoquer ce membre ?',description:'La carte sera invalidée. Les anciens votes et le snapshot des sondages seront conservés.',actionLabel:'Révoquer',danger:true}))await this.adminMutation(data,'revokeMember',{memberId:m.member_id});},'danger')));
         if(m.status==='active'){const h=row.querySelector('h3'),state=row.querySelector('.space-card-state');save.after(h,state);}
         memberGrid.append(row);
       }
       if(entity==='new'){const name=textField('Nom ou pseudonyme du nouveau membre'),selection=this.groupSelection(data.groups);members.append(append(node('div',undefined,{class:'space-detail-create'}),node('h3','Ajouter un membre'),name.element,selection.element,node('p','Coche ses groupes, puis crée le membre et sa carte.',{class:'help'}),
-        this.button('Créer le membre et sa carte',async()=>{const card=createSpaceCredential('member'),memberId=crypto.randomUUID();await this.call('createMember',{spaceId:id,memberId,displayName:name.input.value,groupIds:selection.values(),memberCredential:card,expectedRevision:data.revision},credential);this.showCard({credential:card,memberId,displayName:name.input.value,spaceName:data.name,returnHash:`#space/${id}/members`});},'primary')));}
+        this.button('Créer le membre et sa carte',async()=>{const card=createSpaceCredential('member'),memberId=crypto.randomUUID();await this.call('createMember',{spaceId:id,memberId,displayName:name.input.value,groupIds:selection.values(),memberCredential:card,expectedRevision:data.revision},credential);this.showCard({credential:card,memberId,displayName:name.input.value,spaceName:data.name,groups:data.groups.filter(g=>selection.values().includes(g.group_id)).map(g=>g.name),returnHash:`#space/${id}/members`});},'primary')));}
       container.append(members);}
     if(admin&&section==='invitations'){
 
@@ -211,7 +223,11 @@ export class SpacesUI {
   qrImage(url,alt){return node('img',undefined,{class:'member-card-qr',alt,src:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(renderQrSvg(createQrMatrix(url)))});}
   showCard(card){
     this.clearMember();this.app.replaceChildren();this.title('Carte Voti créée');if(card.memberId)this.issued=this.issued.filter(c=>c.memberId!==card.memberId);if(!this.issued.some(c=>c.credential===card.credential))this.issued.push(card);
-    this.app.append(node('p',card.displayName+' · '+card.spaceName),this.qrImage(buildMemberUrl(location.origin+location.pathname,card.credential),'Carte Voti secrète'),node('p','Garde cette carte pour toi. Cette carte ne sera pas conservée dans le navigateur.'),
+    card.cardTheme??=normalizeTheme(document.documentElement.dataset.theme);const page=node('section',undefined,{class:'member-card-page'}),preview=node('div',undefined,{class:'member-card-preview'}),themes=node('div',undefined,{class:'card-theme-picker',role:'group','aria-label':'Thème de cette carte'});
+    const update=()=>{preview.replaceChildren(memberCardPreview(memberCardModel(card),location.origin+location.pathname));for(const b of themes.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.cardTheme===card.cardTheme));};
+    for(const theme of THEME_OPTIONS){const b=this.button(theme.name,()=>{card.cardTheme=theme.id;update();});b.dataset.cardTheme=theme.id;themes.append(b);}page.append(node('h2','Thème de cette carte'),themes,preview);
+    const gallery=visualGallery({type:'member',selected:card.memberVisualId,onChange:id=>{card.memberVisualId=id;update();}});if(gallery)page.append(gallery);const options=visualDisplayOptions({value:card.visualDisplayOptions,onChange:value=>{card.visualDisplayOptions=value;update();}});if(options)page.append(options);update();this.app.append(page);
+    const tools=node('div',undefined,{class:'member-card-tools'});page.append(tools);tools.append(node('p','Garde cette carte pour toi. Cette carte ne sera pas conservée dans le navigateur.',{class:'help'}),
       this.button('Télécharger cette carte (PDF SECRET)',async()=>downloadBlob(await memberCardsPdf([card],location.origin+location.pathname),cardsFilename(card.spaceName,card.displayName))),
       node('p',`Lot disponible sur cet écran : ${this.issued.length} carte(s) — ${this.issued.map(c=>c.displayName).join(', ')}. Seules les cartes créées ou régénérées pendant cette visite sont incluses.`,{class:'space-recap'}),
       this.button(`Télécharger le lot de ${this.issued.length} carte(s) A4 (SECRET)`,async()=>downloadBlob(await memberCardsPdf(this.issued,location.origin+location.pathname),cardsFilename(card.spaceName,null,this.issued.length))),
@@ -223,7 +239,7 @@ export class SpacesUI {
     this.title('Invitation Voti');if(!this.invitation){this.app.append(node('p','Scanne de nouveau ton invitation. Aucun secret n’a été conservé.'));return;}
     const name=textField('Ton nom ou pseudonyme');let registration=null,accepted=false;
     this.app.append(name.element,this.button('Créer ma Carte Voti',async()=>{if(!registration){registration={memberId:crypto.randomUUID(),displayName:memberName(name.input.value),memberCredential:createSpaceCredential('member')};name.input.disabled=true;}
-      if(!accepted){await this.call('acceptInvitation',registration,this.invitation);accepted=true;}this.setMember(registration.memberCredential);const profile=await this.call('getMemberHome',{},registration.memberCredential);this.invitation=null;this.showCard({credential:registration.memberCredential,displayName:profile.displayName,spaceName:profile.space.name});registration=null;this.notify('Invitation acceptée. Télécharge ta carte pour la garder.');}));
+      if(!accepted){await this.call('acceptInvitation',registration,this.invitation);accepted=true;}this.setMember(registration.memberCredential);const profile=await this.call('getMemberHome',{},registration.memberCredential);this.invitation=null;this.showCard({credential:registration.memberCredential,displayName:profile.displayName,spaceName:profile.space.name,groups:profile.groups.map(g=>g.name)});registration=null;this.notify('Invitation acceptée. Télécharge ta carte pour la garder.');}));
   }
   newPoll(data,box){
     box.append(spacePollEditor(data,{button:(...args)=>this.button(...args),groupSelection:(...args)=>this.groupSelection(...args),submit:async values=>{const {poll,pollAudience}=makeSpacePollDraft(values,data.spaceId);const prep=await this.call('prepareSpacePublication',{spaceId:data.spaceId,poll,pollAudience,expectedRevision:data.revision},this.staff(data.spaceId));location.hash=`#space/${data.spaceId}/poll/${prep.pollId}`;}}));

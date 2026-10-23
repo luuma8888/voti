@@ -354,3 +354,23 @@ temporaire et les règles serveur v0.6.1 sont conservés.
 Cette présentation reste locale. La refonte visuelle est validée par Lu’uma avant
 le dernier ajustement des défauts Express ; cela ne constitue pas une publication
 ni une recette physique.
+
+### Polissage local post-commit v0.6.2
+
+Espaces & groupes → **Mes Espaces** → **Ouvrir**. Le retrait de l’accès de cet
+appareil est secondaire dans **Plus d’actions**, avec confirmation. La création
+d’un Espace s’ouvre à la demande ; l’import est séparé et utilise un sélecteur de
+fichier accessible stylisé. Les noms de fichiers sélectionnés restent locaux.
+
+Les transitions internes d’un même Espace gardent la coque header/navigation et
+rechargent seulement la section centrale, sans cache d’autorisation. Les retours
+du navigateur restent utilisables. Quitter ce contexte ou passer au participant
+ne conserve pas le shell de gestion.
+
+Émission/régénération/invitation → aperçu **Ma carte individuelle** → choix éventuel
+d’un des cinq thèmes → PDF individuel ou lot disponible pendant la visite. Le nom
+est dominant ; Espace/groupes secondaires ; le QR reste opaque et contrasté. Le
+thème est uniquement dans la carte en mémoire. Ni coffre de credentials ni nouvelle
+persistance participant. Les galeries des futurs packs prédéfinis sont masquées
+tant que les vrais assets intégrés ne sont pas fournis ; aucune image personnelle
+pour les membres/groupes. Voir `MEMBER_VISUALS_V0.md`.
