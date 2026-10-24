@@ -140,8 +140,9 @@ jusqu’à quatre illustrations intégrées (ordre des groupes, doublons élimin
 une mosaïque fondue et les couleurs du thème. Le décor reste continu sous les
 textes, sans aplat derrière le nom, l’Espace, la liste de groupes ou le message
 inférieur. Le décor couvre toute la hauteur, avec un fondu horizontal : visible
-à gauche puis progressivement invisible à droite, avant le QR. Il ne varie pas
-de haut en bas. Seuls le bandeau Voti et la zone QR gardent un fond opaque.
+uniforme sur la moitié gauche puis progressivement invisible du milieu au bord
+droit. La transparence de base des thèmes est inchangée. Il ne varie pas de haut
+en bas. Seuls le bandeau Voti et la zone QR gardent un fond opaque.
 La liste informative de groupes reste au premier plan. Le QR conserve une réserve
 blanche opaque. `card-backdrop.js` peint le même décor pour l’aperçu et le PDF.
 

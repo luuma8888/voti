@@ -450,3 +450,33 @@ pas relancées pour ce changement graphique ciblé. Aucun changement métier ou
 backend, aucun asset remplacé, aucun secret persisté. Commit et push séparés selon
 l’autorisation de terminer la correction par une publication frontend.
 Build : 1 836 102 octets ; SHA-256 `5dd002032aea95776e81a8ffddc694fe27f288a1c4295ab4d18e2ddb9140f009`.
+
+## Dernier ajustement humain — départ du fondu au milieu
+
+Le décor conserve désormais sa transparence nominale uniformément sur les 50 %
+de gauche. Le fondu horizontal commence exactement à mi-largeur et atteint zéro
+au bord droit. Dans le repère commun 1120×760, il va de x=560 à x=1120. La réserve
+QR reste blanche opaque indépendamment du dégradé. Les paramètres de transparence
+et de teinte des cinq thèmes sont strictement inchangés : seule la répartition
+horizontale du fondu évolue. Même fonction de peinture pour l’écran et le PDF.
+
+Le test impose un plateau d’alpha sur la moitié gauche, puis une décroissance
+progressive sur la droite ; invariance verticale, blocs de texte transparents,
+bandeau opaque, QR blanc et comparaison stricte des textures PDF restent vérifiés.
+Nature à un groupe et carte PDF Pop réellement inspectées : décor présent sur la
+moitié gauche, lisibilité et QR préservés, aucun aplat de texte réintroduit.
+
+- `npm test` : PASS.
+- `npm run check` : PASS.
+- `npm run test:card-background-batch` : PASS.
+- `npm run test:card-background-pdf` : PASS.
+- `npm run build:production` : PASS.
+
+417 tests unitaires ; 175 contrôles Chromium et 31 captures ; 65 contrôles PDF,
+17/17 QR redécodés à 300 dpi. Les autres suites de la livraison initiale ne sont
+pas relancées pour cet ajustement graphique. Fonds utilisant bien les 36 variantes
+LARGE WebP 512×512 originales du pack, sans recompression des assets ; export PDF
+raster PNG sans nouvelle compression avec perte. Aucun changement d’asset/ID,
+de modèle métier, de credential, de Worker ou D1. Livraison en commit correctif
+séparé et push dans la continuité de l’autorisation de publication du polissage.
+Build : 1 836 094 octets ; SHA-256 `f55711b7de553a5e826d590592b10a26d3fbb9c17c3713f7920d1f85f19ae72c`.
