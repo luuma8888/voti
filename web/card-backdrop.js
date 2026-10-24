@@ -28,12 +28,9 @@ export async function paintGroupBackdrop(target,model,layout){
  }
  ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=b.tint;ctx.fillStyle=model.colors.background;ctx.fillRect(0,0,layout.width,layout.height);ctx.globalAlpha=1;
  ctx.globalCompositeOperation='destination-in';const gradient=ctx.createLinearGradient(0,0,0,layout.height);for(const [at,a]of [[0,0],[.28,.25],[.48,1],[.84,.85],[1,0]])gradient.addColorStop(at,`rgba(0,0,0,${a})`);ctx.fillStyle=gradient;ctx.fillRect(0,0,layout.width,layout.height);
- // Ombre douce pour le fondu ; intérieur des zones de lecture entièrement neutre.
- const mask=canvas(layout.width,layout.height),m=mask.getContext('2d');m.fillStyle='#000';m.shadowColor='#000';m.shadowBlur=26;
- const groupReading={...layout.groups,height:Math.min(layout.groups.height,Math.min(model.groups.length,3)*layout.groupRow+(model.groups.length>3?40:0))};
- for(const r of [layout.header,layout.name,layout.space,groupReading,layout.footer]){m.fillRect(r.x-8,r.y-8,r.width+16,r.height+16);}ctx.globalCompositeOperation='destination-out';ctx.drawImage(mask,0,0);
+ // Décor continu sous les textes ; seuls le bandeau et le QR ont un fond opaque.
  final.save();final.beginPath();final.roundRect(0,0,layout.width,layout.height,26);final.clip();final.globalAlpha=b.intensity;final.drawImage(texture,0,0);final.globalAlpha=1;
  // Réserve QR élargie : blanc opaque avant même de peindre le QR au premier plan.
- const q=CARD_LAYOUT.qr;final.clearRect(q.x,q.y,q.width,q.height);final.fillStyle='#fff';final.fillRect(q.x,q.y,q.width,q.height);final.restore();texture.width=texture.height=mask.width=mask.height=1;return target;
+ const q=CARD_LAYOUT.qr;final.clearRect(q.x,q.y,q.width,q.height);final.fillStyle='#fff';final.fillRect(q.x,q.y,q.width,q.height);final.restore();texture.width=texture.height=1;return target;
 }
 export async function groupBackdropCanvas(model,layout){const c=canvas(layout.width,layout.height);return paintGroupBackdrop(c,model,layout);}

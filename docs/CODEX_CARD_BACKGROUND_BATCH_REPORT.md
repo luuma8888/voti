@@ -344,3 +344,37 @@ restent exclus et intacts. Aucun staging de captures/PDF/ZIP/export/secret/runti
 Audit des fichiers livrés : aucun credential réel, clé privée, secret Turnstile,
 jeton GitHub/Cloudflare ou fichier interdit. Aucun push, aucune publication Pages,
 aucune intervention Worker/D1 distante : production inchangée par cette mission.
+
+## Correction après retour humain — décor continu sous les textes
+
+Le retour en ligne signale que le décor reste découpé par des fonds sous le nom,
+l’Espace et les groupes. Cause : les masques canvas ajoutés au décor commun, et non
+un fond CSS propre à ces textes. Ces masques (y compris celui du message inférieur)
+sont supprimés. Le bandeau Voti et la réserve blanche du QR restent opaques ; les
+textes sont directement posés sur le décor continu. Intensités, thèmes, fondu global,
+mosaïques et géométrie de premier plan restent identiques. Le renderer commun
+applique cette correction simultanément à l’écran et au PDF.
+
+Tests renforcés : transparence des quatre blocs DOM, présence réelle du décor sous
+ces mêmes zones dans le canvas, bandeau opaque, réserve QR toujours blanche, texture
+PDF strictement égale à celle de l’aperçu. Les cinq commandes suivantes passent :
+
+- `npm test` : PASS.
+- `npm run check` : PASS.
+- `npm run test:card-background-batch` : PASS.
+- `npm run test:card-background-pdf` : PASS.
+- `npm run build:production` : PASS.
+
+417 tests unitaires ; syntaxe 147 fichiers ; parcours Chromium 175 contrôles et
+30 captures ; PDF 60 contrôles, 16/16 QR redécodés à 300 dpi. Les autres suites de
+la livraison précédente ne sont pas relancées pour cette correction graphique.
+Rendus humain/créature, un groupe/mosaïque inspectés ; plus de plaques rectangulaires
+sous les textes, nom lisible, QR isolé sur blanc. Les fixtures restent locales et
+ignorées par Git. Comparaison locale : `.browser-tests/card-backdrop-continuous-review/`.
+
+Build corrigé : 1 836 230 octets ; SHA-256 `4edae3f7d29a45aa13fe798d1927323ef841d99cb86ef1764e3cb85bfd5a7836`.
+Cinq fichiers du correctif : `web/card-backdrop.js`,
+`scripts/run-card-background-batch.mjs`, `docs/MEMBER_CARDS_V0.md`,
+ce rapport et `index.html`. Aucun changement métier, credential, asset, manifeste,
+shared/relay, Worker ou D1. Commit séparé et push/publication frontend autorisés
+explicitement par Lu’uma après son retour ; aucune réécriture de l’historique.

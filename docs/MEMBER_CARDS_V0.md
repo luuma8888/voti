@@ -137,7 +137,9 @@ maximum puis résumé. Aucun asset, credential ou règle de collecte ne change.
 
 Le fond illustré des groupes est activé par défaut et désactivable. Il combine
 jusqu’à quatre illustrations intégrées (ordre des groupes, doublons éliminés),
-une mosaïque fondue, les couleurs du thème et des zones de lecture neutralisées.
+une mosaïque fondue et les couleurs du thème. Le décor reste continu sous les
+textes, sans aplat derrière le nom, l’Espace, la liste de groupes ou le message
+inférieur. Seuls le bandeau Voti et la zone QR gardent un fond opaque.
 La liste informative de groupes reste au premier plan. Le QR conserve une réserve
 blanche opaque. `card-backdrop.js` peint le même décor pour l’aperçu et le PDF.
 
