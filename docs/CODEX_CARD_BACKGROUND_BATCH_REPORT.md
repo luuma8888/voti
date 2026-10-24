@@ -421,3 +421,32 @@ des cartes y restent à télécharger. Aucun rechargement forcé susceptible de
 faire perdre le registre de cartes, aucune persistance de secrets ajoutée.
 Livraison par commit correctif séparé et push, selon autorisation de Lu’uma.
 Aucune intervention Worker/D1, aucun changement de contrat ni d’asset.
+
+## Clarification humaine finale — fondu horizontal gauche vers droite
+
+Le sens attendu du dégradé était horizontal : décor visible à gauche, invisible
+à droite. Les essais verticaux précédents étaient une mauvaise interprétation.
+Le dégradé commun est désormais orienté de x=0 au bord gauche de la réserve QR,
+sans variation selon y : force 100 % à gauche, décroissance progressive jusqu’à
+zéro avant le QR. Les intensités par thème ne changent pas. Aucun masque de texte
+ni rectangle opaque ne revient ; le bandeau et le QR restent les deux réserves.
+
+Tests adaptés à cette règle explicite : alpha constant à gauche à quatre hauteurs,
+présence forte à gauche, décroissance réelle vers la droite, transparence complète
+au bord droit, QR blanc et blocs de texte CSS transparents. La comparaison stricte
+des textures réellement dessinées dans le PDF et l’aperçu reste active. Captures
+Nature et mosaïque inspectées : fondu latéral visible, aucune bande effacée en haut
+ou en bas. Les PNG restent locaux dans `.browser-tests/voti-card-background-batch/`.
+
+- `npm test` : PASS.
+- `npm run check` : PASS.
+- `npm run test:card-background-batch` : PASS.
+- `npm run test:card-background-pdf` : PASS.
+- `npm run build:production` : PASS.
+
+417 tests unitaires, 175 contrôles Chromium, 31 captures ; 65 contrôles PDF et
+17/17 QR décodés à 300 dpi. Les autres suites de la livraison initiale ne sont
+pas relancées pour ce changement graphique ciblé. Aucun changement métier ou
+backend, aucun asset remplacé, aucun secret persisté. Commit et push séparés selon
+l’autorisation de terminer la correction par une publication frontend.
+Build : 1 836 102 octets ; SHA-256 `5dd002032aea95776e81a8ffddc694fe27f288a1c4295ab4d18e2ddb9140f009`.

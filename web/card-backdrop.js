@@ -27,7 +27,7 @@ export async function paintGroupBackdrop(target,model,layout){
   t.drawImage(img,(img.naturalWidth-sw)/2,(img.naturalHeight-sh)/2,sw,sh,rect.x,rect.y,rect.width,rect.height);if(p)fadeEdges(t,rect,p);ctx.drawImage(tile,0,0);tile.width=tile.height=1;
  }
  ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=b.tint;ctx.fillStyle=model.colors.background;ctx.fillRect(0,0,layout.width,layout.height);ctx.globalAlpha=1;
- ctx.globalCompositeOperation='destination-in';const gradient=ctx.createLinearGradient(0,0,0,layout.height);for(const [at,a]of [[0,.7],[.25,1],[.8,1],[1,.7]])gradient.addColorStop(at,`rgba(0,0,0,${a})`);ctx.fillStyle=gradient;ctx.fillRect(0,0,layout.width,layout.height);
+ ctx.globalCompositeOperation='destination-in';const gradient=ctx.createLinearGradient(0,0,CARD_LAYOUT.qr.x,0);for(const [at,a]of [[0,1],[.15,1],[.7,.3],[1,0]])gradient.addColorStop(at,`rgba(0,0,0,${a})`);ctx.fillStyle=gradient;ctx.fillRect(0,0,layout.width,layout.height);
  // Décor continu sous les textes ; seuls le bandeau et le QR ont un fond opaque.
  final.save();final.beginPath();final.roundRect(0,0,layout.width,layout.height,26);final.clip();final.globalAlpha=b.intensity;final.drawImage(texture,0,0);final.globalAlpha=1;
  // Réserve QR élargie : blanc opaque avant même de peindre le QR au premier plan.
