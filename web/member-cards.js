@@ -1,24 +1,18 @@
 import {PDFDocument} from '../vendor/pdf.js';
-import {createQrMatrix,drawQr} from './qr.js';
-import {buildMemberUrl} from '../shared/spaces.js';
+import {drawQr} from './qr.js';
+import {cardLayout,cardText} from './card-layout.js';
 import {memberCardModel} from './member-card-model.js';
-function lines(context,text,width){const result=[];let line='';for(const character of String(text)){if(context.measureText(line+character).width>width&&line){result.push(line);line='';}line+=character;}if(line)result.push(line);return result;}
-
-export function cardQrGeometry(model,baseUrl){const matrix=createQrMatrix(buildMemberUrl(baseUrl,model.credential)),scale=Math.max(4,Math.floor(400/matrix.size)),size=matrix.size*scale;if(size>400)throw new Error('Le lien est trop long pour une carte A4 lisible.');return{matrix,scale,size,x:Math.round(model.groups.length||model.memberVisual?1120-size-40:(1120-size)/2),y:300};}
+export const cardQrGeometry=(model,baseUrl)=>cardLayout(model,baseUrl).qr;
 async function image(ctx,preset,tier,x,y,width,height=width){if(!preset)return;const img=new Image();await new Promise((yes,no)=>{img.onload=yes;img.onerror=()=>no(new Error('Illustration intégrée indisponible.'));img.src=preset[tier];});const scale=Math.min(width/img.naturalWidth,height/img.naturalHeight),w=img.naturalWidth*scale,h=img.naturalHeight*scale;ctx.drawImage(img,x+(width-w)/2,y+(height-h)/2,w,h);img.src='';}
 export async function drawMemberCard(ctx,model,baseUrl,x=0,y=0){
-  const c=model.colors;ctx.save();ctx.translate(x,y);ctx.textAlign='left';ctx.fillStyle=c.background;ctx.strokeStyle=c.line;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(0,0,1120,760,26);ctx.fill();ctx.stroke();
-  ctx.fillStyle=c.soft;ctx.beginPath();ctx.roundRect(18,18,1084,64,14);ctx.fill();ctx.fillStyle=c.accent;ctx.font='bold 32px system-ui';ctx.fillText('Voti',40,62);ctx.font='26px system-ui';ctx.textAlign='right';ctx.fillText(model.label,1080,61);ctx.textAlign='left';
-  let font=64;ctx.font=`bold ${font}px system-ui`;while(lines(ctx,model.memberDisplayName,1030).length>2&&font>42)ctx.font=`bold ${--font}px system-ui`;
-  ctx.fillStyle=c.ink;for(const[i,line]of lines(ctx,model.memberDisplayName,1030).slice(0,3).entries())ctx.fillText(line,45,145+i*(font+4));
-  let spaceFont=28;ctx.font=`${spaceFont}px system-ui`;while(lines(ctx,model.spaceName,1030).length>2&&spaceFont>18)ctx.font=`${--spaceFont}px system-ui`;
-  ctx.fillStyle=c.muted;for(const[i,line]of lines(ctx,model.spaceName,1030).slice(0,2).entries())ctx.fillText(line,45,260+i*32);
-  await image(ctx,model.memberVisual,'large',45,330,220,330);
-  let gy=360;const gx=model.memberVisual?285:45,gw=model.memberVisual?330:570;ctx.font='28px system-ui';ctx.fillStyle=c.ink;
-  for(const group of model.groups.slice(0,3)){await image(ctx,group.visual,'icon',gx,gy-27,56);const offset=group.visual?68:0,all=lines(ctx,group.name,gw-offset),text=all.slice(0,2);if(all.length>2){while(ctx.measureText(text[1]+'…').width>gw-offset)text[1]=text[1].slice(0,-1);text[1]+='…';}for(const[i,line]of text.entries())ctx.fillText(line,gx+offset,gy+i*32);gy+=Math.max(70,text.length*32+14);}
-  if(model.groups.length>3){const count=model.groups.length-3;ctx.fillStyle=c.muted;ctx.font='25px system-ui';ctx.fillText('Et '+count+' autre'+(count>1?'s groupes':' groupe'),gx,gy);}
-  const qr=cardQrGeometry(model,baseUrl);drawQr(ctx,qr.matrix,qr.x,qr.y,qr.scale);
-  ctx.fillStyle=c.ink;ctx.font='bold 29px system-ui';ctx.textAlign='center';ctx.fillText(model.instruction,560,735);ctx.restore();
+  const l=cardLayout(model,baseUrl),c=model.colors,t=cardText(ctx,model,l);ctx.save();ctx.translate(x,y);ctx.textAlign='left';ctx.fillStyle=c.background;ctx.strokeStyle=c.line;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(0,0,l.width,l.height,26);ctx.fill();ctx.stroke();
+  const h=l.header;ctx.fillStyle=c.soft;ctx.beginPath();ctx.roundRect(h.x,h.y,h.width,h.height,14);ctx.fill();ctx.fillStyle=c.accent;ctx.font='bold 32px system-ui';ctx.fillText('Voti',h.x+22,h.y+44);ctx.font='26px system-ui';ctx.textAlign='right';ctx.fillText(model.label,h.x+h.width-22,h.y+43);ctx.textAlign='left';
+  const text=(r,v,color)=>{ctx.fillStyle=color;ctx.font=`${v.bold?'bold ':''}${v.font}px system-ui`;v.lines.forEach((line,i)=>ctx.fillText(line,r.x,r.y+v.font+i*v.lineHeight));};
+  text(l.name,t.name,c.ink);text(l.space,t.space,c.muted);
+  const m=l.member;await image(ctx,model.memberVisual,'large',m.x,m.y,m.width,m.height);
+  for(const[g,group]of model.groups.slice(0,3).entries()){const y=l.groups.y+g*l.groupRow;await image(ctx,group.visual,'icon',l.groups.x,y,l.groupIcon);text({x:l.groups.x+(group.visual?l.groupIcon+l.groupGap:0),y},t.groups[g],c.ink);}
+  if(model.groups.length>3){ctx.fillStyle=c.muted;ctx.font='24px system-ui';ctx.fillText('Et '+(model.groups.length-3)+' autre(s) groupes',l.groups.x,l.groups.y+3*l.groupRow+24);}
+  drawQr(ctx,l.qr.matrix,l.qr.x,l.qr.y,l.qr.scale);ctx.fillStyle=c.ink;ctx.font='bold 29px system-ui';ctx.textAlign='center';ctx.fillText(model.instruction,l.footer.x+l.footer.width/2,l.footer.y+29);ctx.restore();return l;
 }
 
 /** Même modèle/thème que l'écran ; secret en mémoire et export explicite. */

@@ -1,5 +1,5 @@
 import {withSpaceIcon} from './space-icons.js';
-import {presetThumbnail,VISUAL_PRESETS} from './visual-presets.js';
+import {presetThumbnail,VISUAL_PRESETS,resolveVisual,visualImage} from './visual-presets.js';
 /** Présentation de la gestion uniquement. Les commandes et contrôles restent dans SpacesUI/le relais. */
 const el=(tag,text,attrs={})=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;for(const[k,v]of Object.entries(attrs))n.setAttribute(k,v);return n;};
 const put=(parent,...children)=>{parent.append(...children);return parent;};
@@ -39,6 +39,10 @@ export function renderSpaceManagement(ui,data,section='overview',entity=null,cat
     const article=el('article',undefined,{class:'space-list-row'+(secondary?' is-secondary':'')});
     article.append(put(el('div',undefined,{class:'space-row-title'}),...(visual?[visual]:[]),el('h3',name)),put(el('div',undefined,{class:'space-row-meta'}),...details.map(d=>typeof d==='string'?badge(d):d)),nav(label,href));article.querySelector('a').setAttribute('aria-label',label+' : '+name);return article;
   };
+  const preferenceKey='voti.space.views.v1';let preferences={};try{const saved=JSON.parse(localStorage.getItem(preferenceKey)||'{}');for(const key of ['members','groups'])if(['list','tiles'].includes(saved[key]))preferences[key]=saved[key];}catch{}
+  const tiled=['members','groups'].includes(section)&&preferences[section]==='tiles';
+  const viewControls=()=>{const controls=el('div',undefined,{class:'space-view-controls',role:'group','aria-label':'Affichage des '+(section==='members'?'membres':'groupes')});for(const[value,label]of [['list','Liste'],['tiles','Vignettes']]){const b=el('button',label,{type:'button','aria-pressed':String((tiled?'tiles':'list')===value)});b.addEventListener('click',()=>{preferences[section]=value;try{localStorage.setItem(preferenceKey,JSON.stringify(preferences));}catch{ui.notify('Cette préférence ne peut pas être conservée sur cet appareil.');}renderSpaceManagement(ui,data,section,null,catalog);});controls.append(b);}content.append(controls);};
+  const listVisual=(type,id)=>{const v=resolveVisual(type,id,catalog);if(!v)return null;if(!tiled)return presetThumbnail(type,id,catalog);const img=visualImage(v,'medium','space-tile-visual');img.loading='lazy';img.decoding='async';return img;};
   const empty=(text)=>content.append(el('p',text,{class:'space-empty'}));
   if(entity){
     content.append(nav('← Retour : '+(SECTIONS.find(([key])=>key===section)?.[1]??''),base+'/'+section,'space-back'));
@@ -62,10 +66,10 @@ export function renderSpaceManagement(ui,data,section='overview',entity=null,cat
   }
   if(section==='members'){
     title('Membres',add('+ Ajouter un membre'));content.append(el('p','Ouvre une fiche pour modifier les groupes ou gérer la Carte Voti.',{class:'help'}));
-    const box=list();for(const m of data.members){const groups=data.groups.filter(g=>m.groupIds.includes(g.group_id)).map(g=>g.name);box.append(row(m.display_name,[...groups.length?groups:['Sans groupe'],m.status!=='active'?'Membre révoqué':m.has_card?'Carte active':'Carte révoquée'],base+'/members/'+m.member_id,'Voir',m.status!=='active',presetThumbnail('member',m.visual_id??m.memberVisualId,catalog)));}if(!data.members.length)empty('Ajoute un premier membre pour lui remettre sa Carte Voti.');return;
+    viewControls();const box=list();if(tiled)box.classList.add('space-tiles','member-tiles');for(const m of data.members){const groups=data.groups.filter(g=>m.groupIds.includes(g.group_id)).map(g=>g.name);box.append(row(m.display_name,[...groups.length?groups:['Sans groupe'],m.status!=='active'?'Membre révoqué':m.has_card?'Carte active':'Carte révoquée'],base+'/members/'+m.member_id,'Voir',m.status!=='active',listVisual('member',m.visual_id??m.memberVisualId)));}if(!data.members.length)empty('Ajoute un premier membre pour lui remettre sa Carte Voti.');return;
   }
   if(section==='groups'){
-    title('Groupes',admin?add('+ Nouveau groupe'):null);const box=list();for(const g of data.groups){const details=[admin?count(data.members.filter(m=>m.status==='active'&&m.groupIds.includes(g.group_id)).length,'membre'):'Groupe accessible',...(g.status==='active'?[]:['Archivé'])];box.append(row(g.name,details,base+'/groups/'+g.group_id,admin?'Gérer':'Voir',g.status!=='active',presetThumbnail('group',g.visual_id??g.groupVisualId,catalog)));}if(!data.groups.length)empty('Les groupes permettent de choisir qui participe à chaque sondage.');return;
+    title('Groupes',admin?add('+ Nouveau groupe'):null);viewControls();const box=list();if(tiled)box.classList.add('space-tiles','group-tiles');for(const g of data.groups){const details=[admin?count(data.members.filter(m=>m.status==='active'&&m.groupIds.includes(g.group_id)).length,'membre'):'Groupe accessible',...(g.status==='active'?[]:['Archivé'])];box.append(row(g.name,details,base+'/groups/'+g.group_id,admin?'Gérer':'Voir',g.status!=='active',listVisual('group',g.visual_id??g.groupVisualId)));}if(!data.groups.length)empty('Les groupes permettent de choisir qui participe à chaque sondage.');return;
   }
   if(section==='polls'){
     title('Sondages',add('+ Nouveau sondage'));const box=list(),metadata=[];for(const p of data.polls){const meta=el('span','Audience et résultats…',{class:'space-poll-metadata'});const r=row(p.question,[status(p),meta],base+'/poll/'+p.pollId,'Gérer');box.append(r);metadata.push({p,meta});}if(!data.polls.length)empty('Crée un sondage avec le parcours guidé ou express.');

@@ -74,7 +74,7 @@ try {
   await creator.deletePoll(poll.id); await rejected(voter.getPoll(poll.id), 'NOT_FOUND');
   }
   if (process.argv.includes('--browser')||process.argv.includes('--spaces-browser')) {
-    const browser = spawn(process.execPath, ['scripts/browser-test.mjs',...(process.argv.includes('--spaces-browser')?['--spaces',...(process.argv.includes('--space-layout')?['--space-layout']:[]),...(process.argv.includes('--visual-identities')?['--visual-identities']:[])]:[])], { stdio: 'inherit', env: { ...localEnv,
+    const browser = spawn(process.execPath, ['scripts/browser-test.mjs',...(process.argv.includes('--card-ux')?['--card-ux']:[]),...(process.argv.includes('--spaces-browser')?['--spaces',...(process.argv.includes('--space-layout')?['--space-layout']:[]),...(process.argv.includes('--visual-identities')?['--visual-identities']:[])]:[])], { stdio: 'inherit', env: { ...localEnv,
       VOTI_RELAY_URL: baseUrl, VOTI_RELAY_ID: relayId, VOTI_TURNSTILE_MODE: 'local-test',
       VOTI_REMOTE_ASSETS_ENABLED: 'false', VOTI_TEST_FREE_PILOT: '1', VOTI_TEST_PERSIST: persist[1] } });
     check((await once(browser, 'exit'))[0] === 0);

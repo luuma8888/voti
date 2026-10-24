@@ -33,6 +33,8 @@
     "test:visual-api": "node scripts/free-pilot-integration.mjs --spaces-browser-only --visual-identities",
     "test:visual-identities": "node scripts/free-pilot-integration.mjs --spaces-browser-only --spaces-browser --visual-identities",
     "test:visual-pdf": "node scripts/test-visual-cards.mjs",
+    "test:card-ux": "node scripts/free-pilot-integration.mjs --spaces-browser-only --spaces-browser --card-ux",
+    "test:card-ux-pdf": "node scripts/test-card-ux-pdfs.mjs",
     "test:card-polish": "node scripts/test-card-polish.mjs",
     "test:spaces-migration": "node scripts/spaces-migration-checks.mjs",
     "audit:bundle": "node scripts/audit-bundle.mjs"

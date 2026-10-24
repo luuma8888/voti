@@ -119,3 +119,15 @@ Large membre (humain vertical contain) et petits icon groupes, modèle commun é
 et PDF. Le choix de thème reste temporaire. Les cartes existantes ne deviennent pas
 récupérables : aucun coffre de credentials. Voir `MEMBER_VISUALS_V0.md` pour le
 catalogue, la migration locale et la distribution du dossier offline complet.
+
+
+## Harmonisation Carte/UX après validation humaine
+
+Le DOM et le PDF utilisent `card-layout.js` : même surface logique 1120×760,
+mêmes zones et retours à la ligne. L’aperçu se réduit sur téléphone sans changer
+la composition imprimée. La planche conserve huit cartes A4. Le QR utilise la
+plus grande grille entière dans une zone de 456 ; le lien courant donne 424 pixels
+logiques, soit environ 35,9 mm imprimés. Quiet zone et blanc opaque restent intacts.
+L’illustration membre en contain occupe une zone haute de 448 : corps entier humain,
+créature plus grande ; les groupes restent des icon de 62 avec leur nom, trois
+maximum puis résumé. Aucun asset, credential ou règle de collecte ne change.

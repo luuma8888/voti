@@ -179,3 +179,18 @@ reste possible et aucune attribution automatique n'est faite. Les listes utilise
 les icon compacts ; les fiches les large, humains verticaux sans crop. Le bouton du
 groupe devient Enregistrer le groupe (nom et illustration), commande renameGroup
 inchangée avec champ optionnel visualId. Rôles et périmètres restent inchangés.
+
+
+## Présentation locale et modifications de fiche
+
+Membres et Groupes proposent Liste (icon compact) ou Vignettes (medium en contain,
+lazy/async). Deux préférences locales séparées mémorisent uniquement le mode, pas
+les noms, IDs de membres ou credentials. Aucun large n’est utilisé dans les listes.
+
+Les fiches existantes modifiables comparent nom, illustration et affiliations à
+leur état persisté. Une barre de sauvegarde apparaît dès qu’une valeur diffère,
+sticky en haut sur ordinateur et en bas sur téléphone. Annuler restaure toutes
+les valeurs de cette fiche. Une erreur conserve les saisies et le message dans
+la barre ; une réussite revient clean. Changer de section ou quitter une fiche
+dirty demande de continuer ou d’abandonner ; recharger/fermer utilise la confirmation
+native du navigateur. Les rôles et le CAS serveur existants restent inchangés.

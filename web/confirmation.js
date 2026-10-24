@@ -1,9 +1,9 @@
 /** Confirmation UI uniquement : aucune opération métier, stockage ou requête.
- * @param {{title:string, description:string, actionLabel:string, danger?:boolean,
+ * @param {{title:string, description:string, actionLabel:string, danger?:boolean, cancelLabel?:string,
  *   trigger?:HTMLElement}} options
  * @returns {Promise<boolean>} true uniquement après activation explicite de l'action.
  */
-export function confirmAction({ title, description, actionLabel, danger = false, trigger = document.activeElement }) {
+export function confirmAction({ title, description, actionLabel, danger = false, cancelLabel = 'Annuler', trigger = document.activeElement }) {
   // Une deuxième demande ne remplace jamais un dialogue en attente.
   if (document.querySelector('.confirmation-dialog[open]')) return Promise.resolve(false);
   const dialog = document.createElement('dialog');
@@ -25,7 +25,7 @@ export function confirmAction({ title, description, actionLabel, danger = false,
   const controls = document.createElement('div');
   controls.className = 'actions';
   const cancel = document.createElement('button');
-  cancel.type = 'button'; cancel.textContent = 'Annuler'; cancel.autofocus = true;
+  cancel.type = 'button'; cancel.textContent = cancelLabel; cancel.autofocus = true;
   cancel.dataset.confirmation = 'cancel';
   const accept = document.createElement('button');
   accept.type = 'button'; accept.textContent = actionLabel;
