@@ -10,15 +10,22 @@ Une illustration n'est pas une preuve d'identité. Les images de sondage relève
 
 ## Source et variantes
 
-`web/assets/voti-visuals/assets-manifest.json` est le JSON original fourni :
-132 membres (60 creature, 36 child, 36 adult), 36 groupes, 3 WebP chacun.
-Les 504 fichiers sont copiés sans recompression ; empreintes de référence dans
+`web/assets/voti-visuals/assets-manifest.json` est la source structurée :
+132 membres (60 creature, 36 child, 36 adult) à trois variantes et 36 groupes HD V2
+à quatre variantes, soit 540 WebP. Les fichiers fournis sont copiés sans recompression ; empreintes de référence dans
 `docs/audit/VOTI_VISUAL_CHECKSUMS.sha256`. Les documents de transfert et ZIP restent
 hors runtime, dans byluuma ignoré. Le résidu de feuille exclu n'est pas intégré.
 
 - icon 128×128 : grilles et listes de 40 px ; humains déjà cadrés visage/haut du corps.
-- medium : aperçu ; humains 256×384, autres 256×256.
-- large : fiches et cartes ; humains 384×576, autres 512×512.
+- medium : aperçu/Vignettes ; humains 256×384, créatures 256×256, groupes 384×384.
+- large : fiches et cartes ; humains 384×576, créatures 512×512, groupes 768×768.
+- backdrop : groupes uniquement, 1024×1024, fonds de cartes écran/PDF et mosaïques.
+
+Les groupes HD V2 conservent les 36 IDs métier, l’ordre et les libellés français.
+Le fichier de transfert G01/09 nommé mushroom_village correspond à l’ID existant
+mushroom_village_nook, qui reste inchangé. Les 144 fichiers groupes portent un
+suffixe de hash ; le manifeste fournit leurs chemins. La banque V1 est retirée.
+Les membres et leurs fichiers restent inchangés.
 
 Le build valide inventaire, types, chemins, dimensions et empreintes. Il compile
 uniquement les métadonnées dans le HTML. Les fichiers restent des WebP séparés.
@@ -74,5 +81,18 @@ worker/PWA ou cache de données privées n'est ajouté. Les opérations du relai
 exigent toujours Internet. Les images appartiennent au site/dossier local, sans CDN.
 
 La grille contient 132 icon au maximum, loading=lazy et decoding=async ; medium
-à la demande, large seulement fiche/carte/PDF. Aucun chargement des 132 large à
+à la demande, large seulement fiche/carte ; backdrop uniquement pour les groupes
+effectivement utilisés dans un fond de carte/PDF (quatre au maximum, cache partagé). Aucun chargement des 132 large à
 l'ouverture. Le dev server expose seulement les chemins du pack public.
+
+## Cache des groupes HD V2
+
+Le catalogue expose `getGroupVisual(id).files.{icon,medium,large,backdrop}` et
+conserve les alias plats existants. Une nouvelle image remplace son URL physique
+par un suffixe SHA-256 ; l’ID D1 ne change jamais. Un ancien fichier peut rester
+en cache sans être demandé par le nouveau catalogue. Le serveur local marque ces
+URLs hashées immuables ; Pages conserve ses propres en-têtes, sans dépendance à
+leur durée. Aucun rechargement automatique d’un onglet contenant des cartes secrètes.
+Pour une future mise à jour, ouvrir une nouvelle version du HTML après avoir
+sauvegardé les cartes nécessaires. Le dossier complet reste la distribution offline ;
+aucun préchargement global des backdrops ni service worker ajouté.

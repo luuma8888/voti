@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generatedFor": "Voti",
   "format": "webp",
   "memberFilters": [
@@ -35,8 +35,8 @@
         384
       ],
       "group": [
-        256,
-        256
+        384,
+        384
       ]
     },
     "large": {
@@ -50,8 +50,15 @@
         576
       ],
       "group": [
-        512,
-        512
+        768,
+        768
+      ]
+    },
+    "backdrop": {
+      "usage": "Voti card decorative background and PDF",
+      "group": [
+        1024,
+        1024
       ]
     }
   },
@@ -1915,9 +1922,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_01_enchanted_treehouse.webp",
-        "medium": "groups/medium/group_g01_01_enchanted_treehouse.webp",
-        "large": "groups/large/group_g01_01_enchanted_treehouse.webp"
+        "icon": "groups/icon/group_g01_01_enchanted_treehouse-8d9db31362ca.webp",
+        "medium": "groups/medium/group_g01_01_enchanted_treehouse-95298ac64607.webp",
+        "large": "groups/large/group_g01_01_enchanted_treehouse-01f3437e8dd9.webp",
+        "backdrop": "groups/backdrop/group_g01_01_enchanted_treehouse-98062aa48baf.webp"
       }
     },
     {
@@ -1929,9 +1937,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_02_crystal_cave.webp",
-        "medium": "groups/medium/group_g01_02_crystal_cave.webp",
-        "large": "groups/large/group_g01_02_crystal_cave.webp"
+        "icon": "groups/icon/group_g01_02_crystal_cave-42b4a3ecbfce.webp",
+        "medium": "groups/medium/group_g01_02_crystal_cave-27bfd8608aa7.webp",
+        "large": "groups/large/group_g01_02_crystal_cave-5178d4aa468c.webp",
+        "backdrop": "groups/backdrop/group_g01_02_crystal_cave-17cb77d3ee31.webp"
       }
     },
     {
@@ -1943,9 +1952,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_03_floating_garden.webp",
-        "medium": "groups/medium/group_g01_03_floating_garden.webp",
-        "large": "groups/large/group_g01_03_floating_garden.webp"
+        "icon": "groups/icon/group_g01_03_floating_garden-bb71c7c0d4a2.webp",
+        "medium": "groups/medium/group_g01_03_floating_garden-7c29505b9b65.webp",
+        "large": "groups/large/group_g01_03_floating_garden-ed83eb417e90.webp",
+        "backdrop": "groups/backdrop/group_g01_03_floating_garden-35f698c3e42f.webp"
       }
     },
     {
@@ -1957,9 +1967,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_04_star_observatory.webp",
-        "medium": "groups/medium/group_g01_04_star_observatory.webp",
-        "large": "groups/large/group_g01_04_star_observatory.webp"
+        "icon": "groups/icon/group_g01_04_star_observatory-d3b403034454.webp",
+        "medium": "groups/medium/group_g01_04_star_observatory-6947df7f276d.webp",
+        "large": "groups/large/group_g01_04_star_observatory-86e1dded5fca.webp",
+        "backdrop": "groups/backdrop/group_g01_04_star_observatory-31af645e4349.webp"
       }
     },
     {
@@ -1971,9 +1982,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_05_secret_waterfall.webp",
-        "medium": "groups/medium/group_g01_05_secret_waterfall.webp",
-        "large": "groups/large/group_g01_05_secret_waterfall.webp"
+        "icon": "groups/icon/group_g01_05_secret_waterfall-ec967374a1a0.webp",
+        "medium": "groups/medium/group_g01_05_secret_waterfall-23722f1a8d36.webp",
+        "large": "groups/large/group_g01_05_secret_waterfall-44e10a080598.webp",
+        "backdrop": "groups/backdrop/group_g01_05_secret_waterfall-0b2cbdaa68e3.webp"
       }
     },
     {
@@ -1985,9 +1997,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_06_sunlight_library.webp",
-        "medium": "groups/medium/group_g01_06_sunlight_library.webp",
-        "large": "groups/large/group_g01_06_sunlight_library.webp"
+        "icon": "groups/icon/group_g01_06_sunlight_library-88a1a89d4fdc.webp",
+        "medium": "groups/medium/group_g01_06_sunlight_library-494254f41867.webp",
+        "large": "groups/large/group_g01_06_sunlight_library-d4be78dc7905.webp",
+        "backdrop": "groups/backdrop/group_g01_06_sunlight_library-2e3525da4b28.webp"
       }
     },
     {
@@ -1999,9 +2012,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_07_fantasy_lighthouse.webp",
-        "medium": "groups/medium/group_g01_07_fantasy_lighthouse.webp",
-        "large": "groups/large/group_g01_07_fantasy_lighthouse.webp"
+        "icon": "groups/icon/group_g01_07_fantasy_lighthouse-adb0b652b2ae.webp",
+        "medium": "groups/medium/group_g01_07_fantasy_lighthouse-3bca7ade3074.webp",
+        "large": "groups/large/group_g01_07_fantasy_lighthouse-39438b6f2e65.webp",
+        "backdrop": "groups/backdrop/group_g01_07_fantasy_lighthouse-07116459104c.webp"
       }
     },
     {
@@ -2013,9 +2027,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_08_cloud_cabin.webp",
-        "medium": "groups/medium/group_g01_08_cloud_cabin.webp",
-        "large": "groups/large/group_g01_08_cloud_cabin.webp"
+        "icon": "groups/icon/group_g01_08_cloud_cabin-3316c2585127.webp",
+        "medium": "groups/medium/group_g01_08_cloud_cabin-648c574bd9ae.webp",
+        "large": "groups/large/group_g01_08_cloud_cabin-a1a051c21b96.webp",
+        "backdrop": "groups/backdrop/group_g01_08_cloud_cabin-9e965aadae79.webp"
       }
     },
     {
@@ -2027,9 +2042,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_09_mushroom_village_nook.webp",
-        "medium": "groups/medium/group_g01_09_mushroom_village_nook.webp",
-        "large": "groups/large/group_g01_09_mushroom_village_nook.webp"
+        "icon": "groups/icon/group_g01_09_mushroom_village_nook-496ef8d9f9a8.webp",
+        "medium": "groups/medium/group_g01_09_mushroom_village_nook-435f915d1fa0.webp",
+        "large": "groups/large/group_g01_09_mushroom_village_nook-df566824ed37.webp",
+        "backdrop": "groups/backdrop/group_g01_09_mushroom_village_nook-ecb3ab4df88a.webp"
       }
     },
     {
@@ -2041,9 +2057,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_10_river_glasshouse.webp",
-        "medium": "groups/medium/group_g01_10_river_glasshouse.webp",
-        "large": "groups/large/group_g01_10_river_glasshouse.webp"
+        "icon": "groups/icon/group_g01_10_river_glasshouse-1ff6aee9a036.webp",
+        "medium": "groups/medium/group_g01_10_river_glasshouse-2980d4a95f5e.webp",
+        "large": "groups/large/group_g01_10_river_glasshouse-9bd1859562d1.webp",
+        "backdrop": "groups/backdrop/group_g01_10_river_glasshouse-d14e9f9d1ebf.webp"
       }
     },
     {
@@ -2055,9 +2072,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_11_moon_bridge.webp",
-        "medium": "groups/medium/group_g01_11_moon_bridge.webp",
-        "large": "groups/large/group_g01_11_moon_bridge.webp"
+        "icon": "groups/icon/group_g01_11_moon_bridge-f781d22dfbfb.webp",
+        "medium": "groups/medium/group_g01_11_moon_bridge-51bb07d6fcf6.webp",
+        "large": "groups/large/group_g01_11_moon_bridge-612a5cca6dfc.webp",
+        "backdrop": "groups/backdrop/group_g01_11_moon_bridge-87c8bc1cc201.webp"
       }
     },
     {
@@ -2069,9 +2087,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g01_12_hidden_courtyard.webp",
-        "medium": "groups/medium/group_g01_12_hidden_courtyard.webp",
-        "large": "groups/large/group_g01_12_hidden_courtyard.webp"
+        "icon": "groups/icon/group_g01_12_hidden_courtyard-1eb643258bd3.webp",
+        "medium": "groups/medium/group_g01_12_hidden_courtyard-39490ea0e860.webp",
+        "large": "groups/large/group_g01_12_hidden_courtyard-09cf19d4fd27.webp",
+        "backdrop": "groups/backdrop/group_g01_12_hidden_courtyard-5982a126758c.webp"
       }
     },
     {
@@ -2083,9 +2102,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_01_floating_island.webp",
-        "medium": "groups/medium/group_g02_01_floating_island.webp",
-        "large": "groups/large/group_g02_01_floating_island.webp"
+        "icon": "groups/icon/group_g02_01_floating_island-81cf6c9b9cbf.webp",
+        "medium": "groups/medium/group_g02_01_floating_island-23af1d69c599.webp",
+        "large": "groups/large/group_g02_01_floating_island-1b88c2839305.webp",
+        "backdrop": "groups/backdrop/group_g02_01_floating_island-3644be8ba80c.webp"
       }
     },
     {
@@ -2097,9 +2117,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_02_miniature_sky_city.webp",
-        "medium": "groups/medium/group_g02_02_miniature_sky_city.webp",
-        "large": "groups/large/group_g02_02_miniature_sky_city.webp"
+        "icon": "groups/icon/group_g02_02_miniature_sky_city-1b3c9924630e.webp",
+        "medium": "groups/medium/group_g02_02_miniature_sky_city-3641d0db1826.webp",
+        "large": "groups/large/group_g02_02_miniature_sky_city-09bd7353347e.webp",
+        "backdrop": "groups/backdrop/group_g02_02_miniature_sky_city-5e33962e0f64.webp"
       }
     },
     {
@@ -2111,9 +2132,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_03_aurora_valley.webp",
-        "medium": "groups/medium/group_g02_03_aurora_valley.webp",
-        "large": "groups/large/group_g02_03_aurora_valley.webp"
+        "icon": "groups/icon/group_g02_03_aurora_valley-d0d6934ae30c.webp",
+        "medium": "groups/medium/group_g02_03_aurora_valley-e63807fccf18.webp",
+        "large": "groups/large/group_g02_03_aurora_valley-b06295512703.webp",
+        "backdrop": "groups/backdrop/group_g02_03_aurora_valley-0371a253bb7e.webp"
       }
     },
     {
@@ -2125,9 +2147,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_04_desert_oasis_temple.webp",
-        "medium": "groups/medium/group_g02_04_desert_oasis_temple.webp",
-        "large": "groups/large/group_g02_04_desert_oasis_temple.webp"
+        "icon": "groups/icon/group_g02_04_desert_oasis_temple-903123a7b7d9.webp",
+        "medium": "groups/medium/group_g02_04_desert_oasis_temple-52b05ccbe406.webp",
+        "large": "groups/large/group_g02_04_desert_oasis_temple-9cf0596e73e0.webp",
+        "backdrop": "groups/backdrop/group_g02_04_desert_oasis_temple-e41bca7d91c6.webp"
       }
     },
     {
@@ -2139,9 +2162,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_05_undersea_dome.webp",
-        "medium": "groups/medium/group_g02_05_undersea_dome.webp",
-        "large": "groups/large/group_g02_05_undersea_dome.webp"
+        "icon": "groups/icon/group_g02_05_undersea_dome-e8ba6ea55348.webp",
+        "medium": "groups/medium/group_g02_05_undersea_dome-513094d94cbf.webp",
+        "large": "groups/large/group_g02_05_undersea_dome-d30681a38aed.webp",
+        "backdrop": "groups/backdrop/group_g02_05_undersea_dome-7de6a477cf20.webp"
       }
     },
     {
@@ -2153,9 +2177,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_06_cloud_harbor.webp",
-        "medium": "groups/medium/group_g02_06_cloud_harbor.webp",
-        "large": "groups/large/group_g02_06_cloud_harbor.webp"
+        "icon": "groups/icon/group_g02_06_cloud_harbor-06ebe102389b.webp",
+        "medium": "groups/medium/group_g02_06_cloud_harbor-254a0cfd83ac.webp",
+        "large": "groups/large/group_g02_06_cloud_harbor-204abccf948d.webp",
+        "backdrop": "groups/backdrop/group_g02_06_cloud_harbor-22c766490aba.webp"
       }
     },
     {
@@ -2167,9 +2192,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_07_prism_mountain_pass.webp",
-        "medium": "groups/medium/group_g02_07_prism_mountain_pass.webp",
-        "large": "groups/large/group_g02_07_prism_mountain_pass.webp"
+        "icon": "groups/icon/group_g02_07_prism_mountain_pass-de6a6fb733f9.webp",
+        "medium": "groups/medium/group_g02_07_prism_mountain_pass-3d18a8eafd17.webp",
+        "large": "groups/large/group_g02_07_prism_mountain_pass-36b8fd3193b6.webp",
+        "backdrop": "groups/backdrop/group_g02_07_prism_mountain_pass-812f10f1b586.webp"
       }
     },
     {
@@ -2181,9 +2207,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_08_giant_flower_sanctuary.webp",
-        "medium": "groups/medium/group_g02_08_giant_flower_sanctuary.webp",
-        "large": "groups/large/group_g02_08_giant_flower_sanctuary.webp"
+        "icon": "groups/icon/group_g02_08_giant_flower_sanctuary-6facbab49f82.webp",
+        "medium": "groups/medium/group_g02_08_giant_flower_sanctuary-855945c97703.webp",
+        "large": "groups/large/group_g02_08_giant_flower_sanctuary-b5cbb4d928e1.webp",
+        "backdrop": "groups/backdrop/group_g02_08_giant_flower_sanctuary-e116a3e9ca02.webp"
       }
     },
     {
@@ -2195,9 +2222,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_09_stellar_gate.webp",
-        "medium": "groups/medium/group_g02_09_stellar_gate.webp",
-        "large": "groups/large/group_g02_09_stellar_gate.webp"
+        "icon": "groups/icon/group_g02_09_stellar_gate-50d88b975ddb.webp",
+        "medium": "groups/medium/group_g02_09_stellar_gate-a22bcb127695.webp",
+        "large": "groups/large/group_g02_09_stellar_gate-410cc0fcfdf2.webp",
+        "backdrop": "groups/backdrop/group_g02_09_stellar_gate-4e2b0d5527f6.webp"
       }
     },
     {
@@ -2209,9 +2237,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_10_lava_garden.webp",
-        "medium": "groups/medium/group_g02_10_lava_garden.webp",
-        "large": "groups/large/group_g02_10_lava_garden.webp"
+        "icon": "groups/icon/group_g02_10_lava_garden-35316f4d3bfd.webp",
+        "medium": "groups/medium/group_g02_10_lava_garden-ebfaae2fffda.webp",
+        "large": "groups/large/group_g02_10_lava_garden-d71cbcab1792.webp",
+        "backdrop": "groups/backdrop/group_g02_10_lava_garden-1999c6e31cca.webp"
       }
     },
     {
@@ -2223,9 +2252,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_11_ice_palace_refuge.webp",
-        "medium": "groups/medium/group_g02_11_ice_palace_refuge.webp",
-        "large": "groups/large/group_g02_11_ice_palace_refuge.webp"
+        "icon": "groups/icon/group_g02_11_ice_palace_refuge-b0fe5746a04f.webp",
+        "medium": "groups/medium/group_g02_11_ice_palace_refuge-0f540da7022c.webp",
+        "large": "groups/large/group_g02_11_ice_palace_refuge-ca75c9a0abdf.webp",
+        "backdrop": "groups/backdrop/group_g02_11_ice_palace_refuge-324dab4d13fc.webp"
       }
     },
     {
@@ -2237,9 +2267,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g02_12_celestial_lake.webp",
-        "medium": "groups/medium/group_g02_12_celestial_lake.webp",
-        "large": "groups/large/group_g02_12_celestial_lake.webp"
+        "icon": "groups/icon/group_g02_12_celestial_lake-06b05f30dd55.webp",
+        "medium": "groups/medium/group_g02_12_celestial_lake-372efbf3b254.webp",
+        "large": "groups/large/group_g02_12_celestial_lake-1090d7880f25.webp",
+        "backdrop": "groups/backdrop/group_g02_12_celestial_lake-c51d6fdbf973.webp"
       }
     },
     {
@@ -2251,9 +2282,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_01_clockwork_garden.webp",
-        "medium": "groups/medium/group_g03_01_clockwork_garden.webp",
-        "large": "groups/large/group_g03_01_clockwork_garden.webp"
+        "icon": "groups/icon/group_g03_01_clockwork_garden-e6d18d60dcda.webp",
+        "medium": "groups/medium/group_g03_01_clockwork_garden-a4b294260afa.webp",
+        "large": "groups/large/group_g03_01_clockwork_garden-721518f2b677.webp",
+        "backdrop": "groups/backdrop/group_g03_01_clockwork_garden-0b0b92f79314.webp"
       }
     },
     {
@@ -2265,9 +2297,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_02_floating_book_house.webp",
-        "medium": "groups/medium/group_g03_02_floating_book_house.webp",
-        "large": "groups/large/group_g03_02_floating_book_house.webp"
+        "icon": "groups/icon/group_g03_02_floating_book_house-ef02be34ec0c.webp",
+        "medium": "groups/medium/group_g03_02_floating_book_house-c9a945cde547.webp",
+        "large": "groups/large/group_g03_02_floating_book_house-68c973dc025d.webp",
+        "backdrop": "groups/backdrop/group_g03_02_floating_book_house-17b3cf5f0ed7.webp"
       }
     },
     {
@@ -2279,9 +2312,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_03_color_workshop.webp",
-        "medium": "groups/medium/group_g03_03_color_workshop.webp",
-        "large": "groups/large/group_g03_03_color_workshop.webp"
+        "icon": "groups/icon/group_g03_03_color_workshop-186836c004c5.webp",
+        "medium": "groups/medium/group_g03_03_color_workshop-b70d8fe61bd8.webp",
+        "large": "groups/large/group_g03_03_color_workshop-d2a5e17b5c73.webp",
+        "backdrop": "groups/backdrop/group_g03_03_color_workshop-c11c6c8f84eb.webp"
       }
     },
     {
@@ -2293,9 +2327,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_04_music_pavilion.webp",
-        "medium": "groups/medium/group_g03_04_music_pavilion.webp",
-        "large": "groups/large/group_g03_04_music_pavilion.webp"
+        "icon": "groups/icon/group_g03_04_music_pavilion-c27c0b806236.webp",
+        "medium": "groups/medium/group_g03_04_music_pavilion-71d9f66ab199.webp",
+        "large": "groups/large/group_g03_04_music_pavilion-256196ae0830.webp",
+        "backdrop": "groups/backdrop/group_g03_04_music_pavilion-8c9e02a4201e.webp"
       }
     },
     {
@@ -2307,9 +2342,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_05_giant_teacup_garden.webp",
-        "medium": "groups/medium/group_g03_05_giant_teacup_garden.webp",
-        "large": "groups/large/group_g03_05_giant_teacup_garden.webp"
+        "icon": "groups/icon/group_g03_05_giant_teacup_garden-a0e3ef1c01d6.webp",
+        "medium": "groups/medium/group_g03_05_giant_teacup_garden-57bc6fa884ee.webp",
+        "large": "groups/large/group_g03_05_giant_teacup_garden-024d4dac4bca.webp",
+        "backdrop": "groups/backdrop/group_g03_05_giant_teacup_garden-e768d14801eb.webp"
       }
     },
     {
@@ -2321,9 +2357,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_06_starship_tree.webp",
-        "medium": "groups/medium/group_g03_06_starship_tree.webp",
-        "large": "groups/large/group_g03_06_starship_tree.webp"
+        "icon": "groups/icon/group_g03_06_starship_tree-f4c79b7be4d1.webp",
+        "medium": "groups/medium/group_g03_06_starship_tree-babdbd19aaff.webp",
+        "large": "groups/large/group_g03_06_starship_tree-b4ecde32ad13.webp",
+        "backdrop": "groups/backdrop/group_g03_06_starship_tree-78c9581c6f23.webp"
       }
     },
     {
@@ -2335,9 +2372,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_07_prism_playground.webp",
-        "medium": "groups/medium/group_g03_07_prism_playground.webp",
-        "large": "groups/large/group_g03_07_prism_playground.webp"
+        "icon": "groups/icon/group_g03_07_prism_playground-6d5b439fedd7.webp",
+        "medium": "groups/medium/group_g03_07_prism_playground-283d3ced7bd5.webp",
+        "large": "groups/large/group_g03_07_prism_playground-0bad7bba3c33.webp",
+        "backdrop": "groups/backdrop/group_g03_07_prism_playground-edfcbe4ae4f6.webp"
       }
     },
     {
@@ -2349,9 +2387,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_08_cloud_library.webp",
-        "medium": "groups/medium/group_g03_08_cloud_library.webp",
-        "large": "groups/large/group_g03_08_cloud_library.webp"
+        "icon": "groups/icon/group_g03_08_cloud_library-0f4ad47cc8be.webp",
+        "medium": "groups/medium/group_g03_08_cloud_library-6779e03ef974.webp",
+        "large": "groups/large/group_g03_08_cloud_library-17666e5a930b.webp",
+        "backdrop": "groups/backdrop/group_g03_08_cloud_library-dc5f7a4ea060.webp"
       }
     },
     {
@@ -2363,9 +2402,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_09_bubble_observatory.webp",
-        "medium": "groups/medium/group_g03_09_bubble_observatory.webp",
-        "large": "groups/large/group_g03_09_bubble_observatory.webp"
+        "icon": "groups/icon/group_g03_09_bubble_observatory-083844b5c5f0.webp",
+        "medium": "groups/medium/group_g03_09_bubble_observatory-c41e3f43740e.webp",
+        "large": "groups/large/group_g03_09_bubble_observatory-576ebdb12a34.webp",
+        "backdrop": "groups/backdrop/group_g03_09_bubble_observatory-63e3628db0df.webp"
       }
     },
     {
@@ -2377,9 +2417,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_10_lantern_forest_clearing.webp",
-        "medium": "groups/medium/group_g03_10_lantern_forest_clearing.webp",
-        "large": "groups/large/group_g03_10_lantern_forest_clearing.webp"
+        "icon": "groups/icon/group_g03_10_lantern_forest_clearing-bc64a2ef17e3.webp",
+        "medium": "groups/medium/group_g03_10_lantern_forest_clearing-4eac1e0b4713.webp",
+        "large": "groups/large/group_g03_10_lantern_forest_clearing-77ad02c3cd63.webp",
+        "backdrop": "groups/backdrop/group_g03_10_lantern_forest_clearing-6d5dc941a402.webp"
       }
     },
     {
@@ -2391,9 +2432,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_11_mirror_pool_court.webp",
-        "medium": "groups/medium/group_g03_11_mirror_pool_court.webp",
-        "large": "groups/large/group_g03_11_mirror_pool_court.webp"
+        "icon": "groups/icon/group_g03_11_mirror_pool_court-effb94d0e236.webp",
+        "medium": "groups/medium/group_g03_11_mirror_pool_court-b54212bf006c.webp",
+        "large": "groups/large/group_g03_11_mirror_pool_court-4e7ddab3167d.webp",
+        "backdrop": "groups/backdrop/group_g03_11_mirror_pool_court-18aeab16e0c7.webp"
       }
     },
     {
@@ -2405,9 +2447,10 @@
       "sourceAspect": "square",
       "displayMode": "full-square",
       "files": {
-        "icon": "groups/icon/group_g03_12_impossible_house.webp",
-        "medium": "groups/medium/group_g03_12_impossible_house.webp",
-        "large": "groups/large/group_g03_12_impossible_house.webp"
+        "icon": "groups/icon/group_g03_12_impossible_house-a9fd85a44517.webp",
+        "medium": "groups/medium/group_g03_12_impossible_house-cc8a2e866fb4.webp",
+        "large": "groups/large/group_g03_12_impossible_house-6b69b02f117c.webp",
+        "backdrop": "groups/backdrop/group_g03_12_impossible_house-99fe42e31d3c.webp"
       }
     }
   ],
@@ -2417,6 +2460,9 @@
     "children": 36,
     "adults": 36,
     "groups": 36,
-    "excluded": 1
-  }
+    "excluded": 1,
+    "groupWebp": 144,
+    "webp": 540
+  },
+  "groupAssetSet": "voti-groups-hd-v2"
 }

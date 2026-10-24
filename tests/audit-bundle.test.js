@@ -44,7 +44,7 @@ test('Archive audit : ZIP UTF-8 déterministe, octets/CRC et répertoire correct
   assert.equal(zip.readUInt16LE(zip.length - 12), entries.length); assert.equal(zip.readUInt32LE(zip.length - 6), p);
 });
 test('Audit : pack WebP officiel inclus, transferts privés exclus',async()=>{
- const paths=await auditPaths();assert.equal(paths.filter(p=>/^web\/assets\/voti-visuals\/.*\.webp$/.test(p)).length,504);assert.ok(paths.includes('web/assets/voti-visuals/assets-manifest.json'));assert.ok(!paths.some(p=>p.startsWith('byluuma/')));
+ const paths=await auditPaths();assert.equal(paths.filter(p=>/^web\/assets\/voti-visuals\/.*\.webp$/.test(p)).length,540);assert.ok(paths.includes('web/assets/voti-visuals/assets-manifest.json'));assert.ok(!paths.some(p=>p.startsWith('byluuma/')));
  assert.equal(isPrivateOrTemporaryExport('web/assets/voti-visuals/members/icon/member_human_elven_01.webp'),false);
  assert.equal(isPrivateOrTemporaryExport('web/assets/voti-visuals/photo.png'),true);
 });

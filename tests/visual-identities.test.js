@@ -3,11 +3,11 @@ import {validateVisualManifest,embeddedVisuals,visualIdsSource,VISUAL_ROOT} from
 import {MEMBER_VISUAL_IDS,GROUP_VISUAL_IDS,isVisualId} from '../shared/visual-ids.js';
 import {validateSpaceCommand} from '../shared/space-wire.js';
 const manifest=JSON.parse(await readFile(VISUAL_ROOT+'assets-manifest.json','utf8'));
-test('168 identités originales, 504 WebP intacts, dimensions et catalogue serveur dérivés du JSON',async()=>{
+test('168 identités originales, 540 WebP intacts, dimensions et catalogue serveur dérivés du JSON',async()=>{
  validateVisualManifest(manifest);assert.equal(new Set([...MEMBER_VISUAL_IDS,...GROUP_VISUAL_IDS]).size,168);assert.equal(MEMBER_VISUAL_IDS.length,132);assert.equal(GROUP_VISUAL_IDS.length,36);
  const catalog=await embeddedVisuals(process.cwd());for(const [category,n]of [['creature',60],['child',36],['adult',36]])assert.equal(catalog.member.filter(e=>e.category===category).length,n);
  assert.equal(await readFile('shared/visual-ids.js','utf8'),visualIdsSource(manifest));
- for(const kind of ['members','groups'])for(const tier of ['icon','medium','large'])assert.deepEqual((await readdir(VISUAL_ROOT+kind+'/'+tier)).sort(),manifest[kind].map(e=>e.id+'.webp').sort());
+ for(const kind of ['members','groups'])for(const tier of (kind==='groups'?['icon','medium','large','backdrop']:['icon','medium','large']))assert.deepEqual((await readdir(VISUAL_ROOT+kind+'/'+tier)).sort(),manifest[kind].map(e=>e.files[tier].split('/').at(-1)).sort());
  assert.ok(!JSON.stringify(catalog).includes('base64'));assert.ok(!JSON.stringify(catalog).includes('Asset-13'));assert.ok(!JSON.stringify(catalog).includes('https:'));
 });
 test('IDs métier : uniquement NULL ou un ID du bon type ; ancien payload conservé',()=>{

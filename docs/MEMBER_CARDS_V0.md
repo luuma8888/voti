@@ -171,3 +171,12 @@ persistant. Les PDF téléchargés restent secrets. La session participante de c
 minutes est distincte du registre d’impression de l’administrateur : une carte
 créée par invitation n’y est pas ajoutée. Le profil administrateur ne doit pas être
 prêté comme téléphone collectif participant.
+
+## Fonds groupes HD V2
+
+Le décor et la mosaïque utilisent la variante `backdrop` 1024×1024 des groupes,
+chargée uniquement pour les quatre visuels utilisés au maximum. Les petites
+vignettes restent en icon 128. Les fichiers membres, la transparence, le fondu
+horizontal débutant à mi-largeur, les thèmes et la géométrie écran/PDF sont
+conservés. Les chemins physiques des groupes sont hashés ; aucun ID métier ni
+credential ne change, aucune migration. Voir CODEX_GROUP_VISUALS_HD_V2_REPORT.

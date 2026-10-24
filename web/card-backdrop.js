@@ -21,7 +21,7 @@ function fadeEdges(ctx,rect,padding){
 export async function paintGroupBackdrop(target,model,layout){
  target.width=layout.width;target.height=layout.height;const final=target.getContext('2d'),b=model.groupBackdrop;
  if(!b?.enabled||!b.visuals.length)return target;
- const texture=canvas(layout.width,layout.height),ctx=texture.getContext('2d'),images=await Promise.all(b.visuals.map(v=>load(v.large)));
+ const texture=canvas(layout.width,layout.height),ctx=texture.getContext('2d'),images=await Promise.all(b.visuals.map(v=>load(v.backdrop)));
  for(let i=0;i<images.length;i++){
   const img=images[i],[x,y,w,h]=b.tiles[i],p=images.length===1?0:b.overlap,rect={x:x-p,y:y-p,width:w+2*p,height:h+2*p},tile=canvas(layout.width,layout.height),t=tile.getContext('2d'),scale=Math.max(rect.width/img.naturalWidth,rect.height/img.naturalHeight),sw=rect.width/scale,sh=rect.height/scale;
   t.drawImage(img,(img.naturalWidth-sw)/2,(img.naturalHeight-sh)/2,sw,sh,rect.x,rect.y,rect.width,rect.height);if(p)fadeEdges(t,rect,p);ctx.drawImage(tile,0,0);tile.width=tile.height=1;

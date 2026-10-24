@@ -3,7 +3,7 @@ export const VISUAL_PRESETS = {member:[],group:[]};
 export function resolveVisual(type,id,catalog=VISUAL_PRESETS){
   if(!['member','group'].includes(type)||typeof id!=='string')return null;
   const entry=catalog[type]?.find(e=>e.kind===type&&e.id===id);
-  return entry&&['icon','medium','large'].every(t=>new RegExp(`^web/assets/voti-visuals/${type}s/${t}/[a-z0-9_-]+\\.webp$`).test(entry[t]))?entry:null;
+  return entry&&(type==='group'?['icon','medium','large','backdrop']:['icon','medium','large']).every(t=>new RegExp(`^web/assets/voti-visuals/${type}s/${t}/[a-z0-9_-]+\\.webp$`).test(entry[t]))?entry:null;
 }
 export const getMemberVisual=id=>resolveVisual('member',id);
 export const getGroupVisual=id=>resolveVisual('group',id);
