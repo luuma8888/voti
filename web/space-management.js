@@ -1,3 +1,4 @@
+import {sessionCardsPanel,cardSelectionControls,memberCardSelection} from './card-batch-ui.js';
 import {withSpaceIcon} from './space-icons.js';
 import {presetThumbnail,VISUAL_PRESETS,resolveVisual,visualImage} from './visual-presets.js';
 /** Présentation de la gestion uniquement. Les commandes et contrôles restent dans SpacesUI/le relais. */
@@ -40,8 +41,9 @@ export function renderSpaceManagement(ui,data,section='overview',entity=null,cat
     article.append(put(el('div',undefined,{class:'space-row-title'}),...(visual?[visual]:[]),el('h3',name)),put(el('div',undefined,{class:'space-row-meta'}),...details.map(d=>typeof d==='string'?badge(d):d)),nav(label,href));article.querySelector('a').setAttribute('aria-label',label+' : '+name);return article;
   };
   const preferenceKey='voti.space.views.v1';let preferences={};try{const saved=JSON.parse(localStorage.getItem(preferenceKey)||'{}');for(const key of ['members','groups'])if(['list','tiles'].includes(saved[key]))preferences[key]=saved[key];}catch{}
+  let manageCardsButton=null;
   const tiled=['members','groups'].includes(section)&&preferences[section]==='tiles';
-  const viewControls=()=>{const controls=el('div',undefined,{class:'space-view-controls',role:'group','aria-label':'Affichage des '+(section==='members'?'membres':'groupes')});for(const[value,label]of [['list','Liste'],['tiles','Vignettes']]){const b=el('button',label,{type:'button','aria-pressed':String((tiled?'tiles':'list')===value)});b.addEventListener('click',()=>{preferences[section]=value;try{localStorage.setItem(preferenceKey,JSON.stringify(preferences));}catch{ui.notify('Cette préférence ne peut pas être conservée sur cet appareil.');}renderSpaceManagement(ui,data,section,null,catalog);});controls.append(b);}content.append(controls);};
+  const viewControls=()=>{const controls=el('div',undefined,{class:'space-view-controls',role:'group','aria-label':'Affichage des '+(section==='members'?'membres':'groupes')});for(const[value,label]of [['list','Liste'],['tiles','Vignettes']]){const b=el('button',label,{type:'button','aria-pressed':String((tiled?'tiles':'list')===value)});b.addEventListener('click',()=>{preferences[section]=value;try{localStorage.setItem(preferenceKey,JSON.stringify(preferences));}catch{ui.notify('Cette préférence ne peut pas être conservée sur cet appareil.');}renderSpaceManagement(ui,data,section,null,catalog);});controls.append(b);}if(manageCardsButton){const toolbar=el('div',undefined,{class:'space-list-toolbar'});toolbar.append(controls,manageCardsButton);content.append(toolbar);}else content.append(controls);};
   const listVisual=(type,id)=>{const v=resolveVisual(type,id,catalog);if(!v)return null;if(!tiled)return presetThumbnail(type,id,catalog);const img=visualImage(v,'medium','space-tile-visual');img.loading='lazy';img.decoding='async';return img;};
   const empty=(text)=>content.append(el('p',text,{class:'space-empty'}));
   if(entity){
@@ -57,6 +59,7 @@ export function renderSpaceManagement(ui,data,section='overview',entity=null,cat
   }
   if(section==='overview'){
     title('Bienvenue dans ton Espace');
+    if(admin&&ui.issued?.some(c=>c.spaceId===id))content.append(nav('Cartes disponibles dans cette session',base+'/members'));
     const metrics=el('div',undefined,{class:'space-metrics'}),items=[[data.groups.filter(g=>g.status==='active').length,'groupes'],...(admin?[[data.members.filter(m=>m.status==='active').length,'membres']]:[[data.polls.length,'sondages accessibles']]),[data.polls.filter(p=>p.status==='published').length,'sondages ouverts']];
     for(const[number,label]of items)metrics.append(put(el('div'),el('strong',String(number)),el('span',number>1?label:label.replace('groupes','groupe').replace('membres','membre').replace('sondages ouverts','sondage ouvert').replace('sondages accessibles','sondage accessible'))));content.append(metrics);
     const actions=el('div',undefined,{class:'space-overview-actions'});if(active){actions.append(nav('Nouveau sondage',base+'/polls/new','primary'));if(admin)actions.append(nav('Ajouter un membre',base+'/members/new'),nav('Créer une invitation',base+'/invitations/new'));}content.append(actions);
@@ -65,8 +68,11 @@ export function renderSpaceManagement(ui,data,section='overview',entity=null,cat
     return;
   }
   if(section==='members'){
-    title('Membres',add('+ Ajouter un membre'));content.append(el('p','Ouvre une fiche pour modifier les groupes ou gérer la Carte Voti.',{class:'help'}));
-    viewControls();const box=list();if(tiled)box.classList.add('space-tiles','member-tiles');for(const m of data.members){const groups=data.groups.filter(g=>m.groupIds.includes(g.group_id)).map(g=>g.name);box.append(row(m.display_name,[...groups.length?groups:['Sans groupe'],m.status!=='active'?'Membre révoqué':m.has_card?'Carte active':'Carte révoquée'],base+'/members/'+m.member_id,'Voir',m.status!=='active',listVisual('member',m.visual_id??m.memberVisualId)));}if(!data.members.length)empty('Ajoute un premier membre pour lui remettre sa Carte Voti.');return;
+    title('Membres',add('+ Ajouter un membre'));
+    const cards=sessionCardsPanel(ui,data);if(cards){if(ui.cardSelection?.active&&ui.cardSelection.spaceId===id){const retained=el('details',undefined,{class:'session-cards-disclosure'});retained.append(el('summary','Cartes disponibles dans cette session'),cards);content.append(retained);}else content.append(cards);}
+    if(admin&&active){const manage=withSpaceIcon(ui.button('Gérer les cartes',()=>{ui.cardSelection={spaceId:id,active:true,ids:new Set()};renderSpaceManagement(ui,data,section,null,catalog);content.querySelector('[data-card-selection] button')?.focus();}), 'card');manage.dataset.manageCards='';manage.hidden=Boolean(ui.cardSelection?.active&&ui.cardSelection.spaceId===id);manageCardsButton=manage;const controls=cardSelectionControls(ui,data,()=>renderSpaceManagement(ui,data,section,null,catalog));if(controls)content.append(controls);}
+content.append(el('p','Ouvre une fiche pour modifier les groupes ou gérer la Carte Voti.',{class:'help'}));
+    viewControls();const box=list();if(tiled)box.classList.add('space-tiles','member-tiles');for(const m of data.members){const groups=data.groups.filter(g=>m.groupIds.includes(g.group_id)).map(g=>g.name);const item=row(m.display_name,[...groups.length?groups:['Sans groupe'],m.status!=='active'?'Membre révoqué':m.has_card?'Carte active':'Carte révoquée'],base+'/members/'+m.member_id,'Voir',m.status!=='active',listVisual('member',m.visual_id??m.memberVisualId));const choice=memberCardSelection(ui,data,m);if(choice){item.querySelector('.space-row-title').prepend(choice);item.classList.toggle('is-selected',choice.querySelector('input').checked);}box.append(item);}if(!data.members.length)empty('Ajoute un premier membre pour lui remettre sa Carte Voti.');return;
   }
   if(section==='groups'){
     title('Groupes',admin?add('+ Nouveau groupe'):null);viewControls();const box=list();if(tiled)box.classList.add('space-tiles','group-tiles');for(const g of data.groups){const details=[admin?count(data.members.filter(m=>m.status==='active'&&m.groupIds.includes(g.group_id)).length,'membre'):'Groupe accessible',...(g.status==='active'?[]:['Archivé'])];box.append(row(g.name,details,base+'/groups/'+g.group_id,admin?'Gérer':'Voir',g.status!=='active',listVisual('group',g.visual_id??g.groupVisualId)));}if(!data.groups.length)empty('Les groupes permettent de choisir qui participe à chaque sondage.');return;

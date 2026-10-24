@@ -43,8 +43,8 @@ propres traces : Voti ne promet pas de nettoyer tout l’historique système.
 Le secret brut est montré uniquement à la création/régénération, en mémoire.
 Téléchargement explicite de plusieurs cartes sur A4 : huit cartes par page,
 nom/pseudo, Espace, QR M avec quiet zone, « Garde cette carte pour toi. ».
-La file d’impression est effacée en quittant la gestion ; aucun coffre permanent de
-cartes dans le navigateur. Perte avant téléchargement : régénérer, pas récupérer
+La file d’impression reste en mémoire jusqu’au rechargement, à la fermeture réelle
+ou à son effacement explicite ; aucun coffre permanent de cartes dans le navigateur. Perte avant téléchargement : régénérer, pas récupérer
 un ancien secret depuis le serveur. Rechargement d’une invitation acceptée ne
 reconstitue pas sa carte : demander une régénération à l’administrateur si perdue.
 
@@ -97,7 +97,8 @@ dominant, Espace et groupes secondaires. Un thème de cette carte peut être cho
 parmi Voti Pop, Nature, Douceur, Nuit et Minimal. Le choix vit dans la carte en
 mémoire de cette visite, sans stockage navigateur ou serveur, et s’applique au PDF
 individuel et à son entrée dans le lot disponible. Les autres cartes gardent leurs
-propres choix. Quitter efface toujours la file, sans coffre permanent.
+propres choix pour l’export individuel ; les exports de lot ont un réglage commun.
+La file reste temporaire, sans coffre permanent, et survit aux navigations SPA.
 
 `memberCardModel` fournit les mêmes nom, Espace, groupes, thème et options aux
 renderers écran/PDF. Le DOM est responsive ; le PDF garde huit cartes A4 par page.
@@ -131,3 +132,37 @@ logiques, soit environ 35,9 mm imprimés. Quiet zone et blanc opaque restent int
 L’illustration membre en contain occupe une zone haute de 448 : corps entier humain,
 créature plus grande ; les groupes restent des icon de 62 avec leur nom, trois
 maximum puis résumé. Aucun asset, credential ou règle de collecte ne change.
+
+## Fonds de groupes et impression par lot
+
+Le fond illustré des groupes est activé par défaut et désactivable. Il combine
+jusqu’à quatre illustrations intégrées (ordre des groupes, doublons éliminés),
+une mosaïque fondue, les couleurs du thème et des zones de lecture neutralisées.
+La liste informative de groupes reste au premier plan. Le QR conserve une réserve
+blanche opaque. `card-backdrop.js` peint le même décor pour l’aperçu et le PDF.
+
+Dans Membres, **Cartes disponibles dans cette session** donne accès aux cartes déjà
+émises : PDF, aperçu et effacement explicite. Le registre unique de l’administrateur
+survit aux navigations SPA, y compris hors de cet Espace ; il est cloisonné par
+Espace et visible uniquement après une lecture de gestion administrateur autorisée.
+Un rechargement/départ réel détruit ce registre. Effacer de cette session ne révoque
+pas les cartes imprimées. Une régénération remplace l’entrée du même membre.
+L’oubli de l’accès local et l’archivage effacent aussi le lot concerné ; une révocation
+locale de carte/membre retire sa carte de la file d’impression.
+
+**Gérer les cartes** sélectionne volontairement les membres en Liste ou Vignettes.
+Après confirmation, les cartes sont créées/remplacées séquentiellement par les
+commandes existantes avec CAS. Chaque commande est atomique ; le lot entier ne
+l’est pas. Au premier échec, arrêt et compteurs de réussites/échecs/non-traités.
+Une réponse perdue conserve le candidat en mémoire mais l’exclut du PDF jusqu’à
+vérification. Le PDF du nouveau lot est distinct du PDF de toutes les cartes de
+la session ; tous utilisent le renderer commun, huit cartes A4/page (200 maximum).
+Le thème et l’option de fond du lot s’appliquent à toutes ses cartes, sans modifier
+le serveur. Depuis l’émission individuelle, le thème/fond affichés s’appliquent
+également au bouton PDF de son lot.
+
+Les credentials bruts ne quittent jamais la mémoire d’émission pour un stockage
+persistant. Les PDF téléchargés restent secrets. La session participante de cinq
+minutes est distincte du registre d’impression de l’administrateur : une carte
+créée par invitation n’y est pas ajoutée. Le profil administrateur ne doit pas être
+prêté comme téléphone collectif participant.

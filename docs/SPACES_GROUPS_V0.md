@@ -194,3 +194,12 @@ les valeurs de cette fiche. Une erreur conserve les saisies et le message dans
 la barre ; une réussite revient clean. Changer de section ou quitter une fiche
 dirty demande de continuer ou d’abandonner ; recharger/fermer utilise la confirmation
 native du navigateur. Les rôles et le CAS serveur existants restent inchangés.
+
+## Cartes d’une session administrateur
+
+Membres distingue le lot de cartes déjà disponibles (réimpression sans mutation)
+et **Gérer les cartes** (sélection volontaire pour créer/remplacer après confirmation).
+La sélection survit au changement Liste/Vignettes. L’émission s’arrête au premier
+échec et affiche les réussites partielles ; une carte non confirmée est exclue du
+PDF jusqu’à vérification. Le lot mémoire reste disponible après navigation SPA,
+pas après rechargement. Aucun credential brut n’est persisté. Voir MEMBER_CARDS_V0.

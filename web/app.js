@@ -860,7 +860,7 @@ async function render() {
   try{const member=consumeMemberFragment(location,history);if(member)spacesUI.setMember(member);}catch{spacesUI.clearMember();}
   const invitation=consumeInvitation();if(invitation)spacesUI.invitation=invitation;
   if (!state) return;
-  if(spacesUI.activeEdit?.root.isConnected&&spacesUI.activeEdit.dirty&&!await spacesUI.beforeNavigate(location.hash||'#home'))return;
+  if((spacesUI.activeEdit?.root.isConnected&&spacesUI.activeEdit.dirty||spacesUI.cardJob?.running)&&!await spacesUI.beforeNavigate(location.hash||'#home'))return;
   const sequence = ++renderSequence;
   if(disposeView){const dispose=disposeView;disposeView=null;dispose();}
   app.setAttribute('aria-busy', 'true');

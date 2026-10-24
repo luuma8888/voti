@@ -1,3 +1,4 @@
+import {groupBackdrop} from './card-backdrop.js';
 import {memberName,spaceName,isSpaceCredential} from '../shared/spaces.js';
 import {normalizeTheme} from './themes.js';
 import {resolveVisual,VISUAL_PRESETS} from './visual-presets.js';
@@ -11,6 +12,6 @@ export const CARD_THEMES=Object.freeze({
 });
 export function memberCardModel(card,catalog=VISUAL_PRESETS){
   if(!isSpaceCredential(card.credential,'member'))throw new Error('Carte Voti invalide.');
-  const cardTheme=normalizeTheme(card.cardTheme),groups=(card.groups??[]).map((g,i)=>({name:spaceName(typeof g==='string'?g:g.name),visual:card.visualDisplayOptions?.groups===false?null:resolveVisual('group',card.groupVisualIds?.[i]??g.visualId,catalog)}));
-  return{credential:card.credential,memberDisplayName:memberName(card.memberDisplayName??card.displayName),spaceName:spaceName(card.spaceName),groups,cardTheme,colors:CARD_THEMES[cardTheme],memberVisual:card.visualDisplayOptions?.member===false?null:resolveVisual('member',card.memberVisualId,catalog),label:'Ma carte individuelle',instruction:'Garde cette carte pour toi.'};
+  const cardTheme=normalizeTheme(card.cardTheme),groups=(card.groups??[]).map((g,i)=>({name:spaceName(typeof g==='string'?g:g.name),visual:resolveVisual('group',card.groupVisualIds?.[i]??g.visualId,catalog)}));
+  return{credential:card.credential,memberDisplayName:memberName(card.memberDisplayName??card.displayName),spaceName:spaceName(card.spaceName),groups:groups.map(g=>({...g,visual:card.visualDisplayOptions?.groups===false?null:g.visual})),groupBackdrop:groupBackdrop(groups,cardTheme,card.groupBackdropEnabled!==false),cardTheme,colors:CARD_THEMES[cardTheme],memberVisual:card.visualDisplayOptions?.member===false?null:resolveVisual('member',card.memberVisualId,catalog),label:'Ma carte individuelle',instruction:'Garde cette carte pour toi.'};
 }
