@@ -378,3 +378,46 @@ Cinq fichiers du correctif : `web/card-backdrop.js`,
 ce rapport et `index.html`. Aucun changement métier, credential, asset, manifeste,
 shared/relay, Worker ou D1. Commit séparé et push/publication frontend autorisés
 explicitement par Lu’uma après son retour ; aucune réécriture de l’historique.
+
+## Vérification du haut de carte après nouveau retour humain
+
+La suppression des masques était insuffisante : le fondu global précédent
+commençait à zéro puis à 25 % de sa force nominale à 28 % de hauteur. Le décor
+restait donc presque absent derrière le nom et l’Espace. Les mosaïques à plusieurs
+groupes commençaient à y=250, sous les deux textes. Le critère précédent « alpha
+supérieur à zéro » ne détectait pas cette insuffisance visuelle.
+
+Le décor/mosaïque couvre désormais toute la surface logique. Le fondu conserve
+70 à 100 % de sa force nominale, sans blanc ni trou derrière les textes ; les
+intensités et teintes des cinq thèmes restent inchangées. Seuls le bandeau et
+le QR conservent leurs fonds opaques. Le personnage, les miniatures, les textes
+et la géométrie de premier plan ne changent pas. Une vignette de mosaïque peut
+être partiellement masquée par la réserve QR, qui reste prioritaire.
+
+Le test exige maintenant une présence mesurable du décor sous le nom, l’Espace,
+les groupes et le message inférieur (au moins 55 % de la force nominale dans
+les points contrôlés), en plus de leur transparence CSS. Les mosaïques sont
+vérifiées du haut au bas de la carte. Ajout d’une fixture Nature à un groupe,
+proche du cas remonté. Captures Nature, trois groupes et Nuit inspectées réellement :
+le décor apparaît sous le nom et l’Espace, sans rectangle uniforme ni nouvelle
+perte de lisibilité. Le PDF de recette transmis a été examiné en lecture seule,
+sans décoder ses QR ; original et rendus privés restent hors Git.
+
+- `npm test` : PASS.
+- `npm run check` : PASS.
+- `npm run test:card-background-batch` : PASS.
+- `npm run test:card-background-pdf` : PASS.
+- `npm run build:production` : PASS.
+
+417 tests unitaires ; 175 contrôles Chromium et 31 captures ; 65 contrôles PDF,
+17/17 QR de fixtures redécodés à 300 dpi. Parité des textures écran/PDF conservée.
+Les autres suites de la livraison initiale ne sont pas relancées pour ce correctif.
+Build : 1 836 102 octets  SHA-256 `4969bda1b27ed8f2523937a68d9c1707b0571a94233cb35b4d754c9047063a54`.
+
+Une SPA déjà chargée continue d’utiliser son ancien code, y compris pour les
+PDF : une mise à jour Pages ne recharge pas automatiquement cet onglet. Pour
+charger le correctif, ouvrir Voti dans un nouvel onglet ; conserver l’ancien si
+des cartes y restent à télécharger. Aucun rechargement forcé susceptible de
+faire perdre le registre de cartes, aucune persistance de secrets ajoutée.
+Livraison par commit correctif séparé et push, selon autorisation de Lu’uma.
+Aucune intervention Worker/D1, aucun changement de contrat ni d’asset.

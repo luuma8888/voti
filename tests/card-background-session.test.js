@@ -3,7 +3,7 @@ import {groupBackdrop} from '../web/card-backdrop.js';
 import {availableCards,rememberCard,clearCards,issueSelectedCards,verifyPendingCards} from '../web/card-session.js';
 const visual=i=>({id:'local-fixture-'+i,large:'not-loaded-in-unit-'+i});
 test('Décor : 0/1/2/3/4/>4, doublons, OFF et paramètres des cinq thèmes',()=>{
- for(const n of [0,1,2,3,4,7]){const b=groupBackdrop(Array.from({length:n},(_,i)=>({visual:visual(i)})),'pop');assert.equal(b.enabled,true);assert.equal(b.visuals.length,Math.min(n,4));assert.equal(b.tiles.length,Math.min(n,4));assert.deepEqual(b.visualIds,Array.from({length:Math.min(n,4)},(_,i)=>'local-fixture-'+i));}
+ for(const n of [0,1,2,3,4,7]){const b=groupBackdrop(Array.from({length:n},(_,i)=>({visual:visual(i)})),'pop');assert.equal(b.enabled,true);assert.equal(b.visuals.length,Math.min(n,4));assert.equal(b.tiles.length,Math.min(n,4));if(n){assert.equal(Math.min(...b.tiles.map(t=>t[1])),0);assert.equal(Math.max(...b.tiles.map(t=>t[1]+t[3])),760);}assert.deepEqual(b.visualIds,Array.from({length:Math.min(n,4)},(_,i)=>'local-fixture-'+i));}
  assert.equal(groupBackdrop([{visual:visual(1)},{visual:null},{visual:visual(1)}],'nature').tiles.length,1);assert.equal(groupBackdrop([{visual:visual(1)}],'pop',false).enabled,false);
  const values=['pop','nature','douceur','dark','minimal'].map(theme=>groupBackdrop([{visual:visual(1)}],theme));assert(values.every(v=>v.intensity>0&&v.intensity<=.12&&v.tint>0));assert(values[4].intensity<values[0].intensity);
 });

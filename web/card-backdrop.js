@@ -4,8 +4,8 @@ const pictures=new Map();
 const PARAMETERS={pop:[.12,.15],nature:[.10,.20],douceur:[.09,.22],dark:[.09,.40],minimal:[.055,.30]};
 export function groupBackdrop(groups,theme,enabled=true){
  const visuals=[...new Map(groups.filter(g=>g.visual).map(g=>[g.visual.id,g.visual])).values()].slice(0,4),n=visuals.length;
- const W=CARD_LAYOUT.width,H=CARD_LAYOUT.height,y=CARD_LAYOUT.member.y-10,w=CARD_LAYOUT.qr.x+18,h=CARD_LAYOUT.footer.y-y-8;
- const tiles=n===1?[[0,0,W,H]]:n===2?[[0,y,w,h/2],[0,y+h/2,w,h/2]]:n===3?[[0,y,w,h/3],[0,y+h/3,w,h/3],[0,y+2*h/3,w,h/3]]:n===4?[[0,y,w/2,h/2],[w/2,y,w/2,h/2],[0,y+h/2,w/2,h/2],[w/2,y+h/2,w/2,h/2]]:[];
+ const W=CARD_LAYOUT.width,H=CARD_LAYOUT.height;
+ const tiles=n===1?[[0,0,W,H]]:n===2?[[0,0,W,H/2],[0,H/2,W,H/2]]:n===3?[[0,0,W,H/3],[0,H/3,W,H/3],[0,2*H/3,W,H/3]]:n===4?[[0,0,W/2,H/2],[W/2,0,W/2,H/2],[0,H/2,W/2,H/2],[W/2,H/2,W/2,H/2]]:[];
  const [intensity,tint]=PARAMETERS[theme]??PARAMETERS.pop;
  return{enabled,visuals,visualIds:visuals.map(v=>v.id),tiles,layout:n===1?'single':n===4?'grid-2x2':`bands-${n}`,intensity,tint,theme,overlap:80};
 }
@@ -27,7 +27,7 @@ export async function paintGroupBackdrop(target,model,layout){
   t.drawImage(img,(img.naturalWidth-sw)/2,(img.naturalHeight-sh)/2,sw,sh,rect.x,rect.y,rect.width,rect.height);if(p)fadeEdges(t,rect,p);ctx.drawImage(tile,0,0);tile.width=tile.height=1;
  }
  ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=b.tint;ctx.fillStyle=model.colors.background;ctx.fillRect(0,0,layout.width,layout.height);ctx.globalAlpha=1;
- ctx.globalCompositeOperation='destination-in';const gradient=ctx.createLinearGradient(0,0,0,layout.height);for(const [at,a]of [[0,0],[.28,.25],[.48,1],[.84,.85],[1,0]])gradient.addColorStop(at,`rgba(0,0,0,${a})`);ctx.fillStyle=gradient;ctx.fillRect(0,0,layout.width,layout.height);
+ ctx.globalCompositeOperation='destination-in';const gradient=ctx.createLinearGradient(0,0,0,layout.height);for(const [at,a]of [[0,.7],[.25,1],[.8,1],[1,.7]])gradient.addColorStop(at,`rgba(0,0,0,${a})`);ctx.fillStyle=gradient;ctx.fillRect(0,0,layout.width,layout.height);
  // Décor continu sous les textes ; seuls le bandeau et le QR ont un fond opaque.
  final.save();final.beginPath();final.roundRect(0,0,layout.width,layout.height,26);final.clip();final.globalAlpha=b.intensity;final.drawImage(texture,0,0);final.globalAlpha=1;
  // Réserve QR élargie : blanc opaque avant même de peindre le QR au premier plan.
