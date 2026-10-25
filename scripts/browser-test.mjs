@@ -22,7 +22,7 @@ import {runGroupsHdV2} from './run-groups-hd-v2.mjs';
 import {runCardBackgroundBatch} from './run-card-background-batch.mjs';
 import {runCardUx} from './run-card-ux.mjs';
 import {runVisualReview} from './run-visual-review.mjs';
-import {browserSpacesUx,browserScannerUx} from './browser-spaces-ux.mjs';
+import {browserSpacesUx,browserScannerUx,browserPollUx} from './browser-spaces-ux.mjs';
 
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
@@ -426,6 +426,15 @@ try {
     if(!process.env.VOTI_TEST_FREE_PILOT)throw new Error('Capture locale uniquement.');
     await startDevServer();await navigateReady(sessionId,'http://127.0.0.1:4173/voti/#home');
     const fixture=await evaluate(sessionId,`(${spaceLayoutSetup.toString()})()`);let checks=await evaluate(sessionId,`(${spaceCreationChecks.toString()})(${JSON.stringify(fixture)})`);
+    const pollReview=resolve(ROOT,'.browser-tests/poll-ux');await mkdir(pollReview,{recursive:true});
+    for(const width of [1440,390]){await command('Emulation.setDeviceMetricsOverride',{width,height:width===1440?900:844,deviceScaleFactor:1,mobile:width<500},sessionId);const result=await evaluate(sessionId,`(${browserPollUx.toString()})(${width})`);checks+=result.checks;const shot=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);await writeFile(resolve(pollReview,'management-'+width+'.png'),Buffer.from(shot.data,'base64'));
+      checks+=await evaluate(sessionId,`(()=>{const d=document.querySelector('.poll-edit');d.open=true;for(const sub of d.querySelectorAll('details'))sub.open=true;const input=d.querySelector('input');input.value+=' — aperçu';input.dispatchEvent(new Event('input',{bubbles:true}));d.querySelector('input[type=number]').scrollIntoView({block:'center',behavior:'instant'});const bar=d.querySelector('.edit-action-bar'),r=bar.getBoundingClientRect();if(r.top<0||r.bottom>innerHeight||getComputedStyle(bar).position!=='sticky')throw Error('Barre de sauvegarde hors écran');return 1;})()`);
+      const editShot=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);await writeFile(resolve(pollReview,'editing-'+width+'.png'),Buffer.from(editShot.data,'base64'));
+      await evaluate(sessionId,`(()=>{document.querySelector('.poll-edit .edit-action-bar button').click();location.hash=${JSON.stringify('#space/'+result.spaceId+'/polls/new')};})()`);
+      await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const tick=()=>{const b=[...document.querySelectorAll('.space-create-choice button')].find(b=>b.textContent==='Création express');if(b){b.click();window.scrollTo(0,0);return resolve();}if(Date.now()-start>15000)return reject(Error('Express absent'));requestAnimationFrame(tick);};tick();})`);
+      const expressShot=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);await writeFile(resolve(pollReview,'express-'+width+'.png'),Buffer.from(expressShot.data,'base64'));
+      await evaluate(sessionId,`(async()=>{const{SpaceAccessStorage}=await import('voti/web/space-storage.js'),{RELAY_CONFIG}=await import('voti/web/relay-config.js');await new SpaceAccessStorage(localStorage).delete(RELAY_CONFIG.relayId,${JSON.stringify(result.spaceId)});})()`);
+    }
     const directory=resolve(ROOT,'.browser-tests/v062-postcommit-review');await mkdir(directory,{recursive:true});const files=[];
     const views=[['overview',''],['polls','/polls'],['members','/members'],['member-detail','/members/'+fixture.memberId],['groups','/groups'],['invitations','/invitations'],['access','/access'],...['creation-choice','guided-question','guided-participants','guided-participation','guided-results','guided-review','express','advanced'].map(v=>[v,'/polls/new'])];
     for(const [width,height]of [[1440,900],[390,844],[360,800],[1200,800],[1920,1080]]){

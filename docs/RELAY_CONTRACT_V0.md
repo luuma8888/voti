@@ -423,3 +423,17 @@ Les nouveaux validateurs acceptent aussi les anciennes réponses sans ID.
 Pas de modification des projections vote/résultats, audience, noms publics ou
 credentials. Ordre d'un **futur** déploiement : migration 0005, Worker compatible,
 puis frontend. Aucun de ces déploiements n'est effectué dans ce lot local.
+
+## Lecture agrégée pour la recommandation Sondage Espace
+
+Commande additive locale : `getAudienceSize` (même transport Espace en POST/Bearer).
+Entrée : `{ spaceId, pollAudience }`, audience validée selon le contrat existant.
+Réponse : `{ kind: 'audienceSize', eligible: N }`, entier de 0 à 200.
+
+Authentification staff et périmètre Admin/Créateur contrôlés comme pour la
+préparation d’un sondage. Une Carte Voti ne permet pas cette lecture. La requête
+compte les membres actifs distincts par union, sans écrire ni exposer de noms,
+listes de membres, credentials ou données de bulletins. Aucun droit d’édition
+supplémentaire ; les anciennes projections et commandes restent compatibles.
+Cette addition n’a pas été déployée ; le futur Worker compatible doit précéder
+la publication du frontend qui la demande à la création.

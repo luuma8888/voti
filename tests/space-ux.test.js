@@ -1,22 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {resultsState,accessFilename,cardsFilename,makeSpacePollDraft,SPACE_RELEASE_LABELS,SPACE_EXPRESS_DEFAULTS,spaceCreationValues} from '../web/space-ux.js';
+import {recommendedMinimum,audienceMemberCount,MinimumRecommendation} from '../web/space-poll-minimum.js';
 import {scanRegion} from '../web/member-scanner.js';
 import {groupResultsAvailable} from '../shared/spaces.js';
 
 const poll=(mode='threshold',available=false,audience='poll_audience')=>({status:'published',resultRules:{minimumResponses:2,releaseMode:mode},accessRules:{pollAudience:{resultsAudience:audience}},results:{available}});
-test('Express impose un vote simple au minimum 2 sans détruire les réglages Guidée/Avancé',()=>{
+test('Express impose un vote simple sans détruire le minimum personnalisé ni les réglages Guidée/Avancé',()=>{
   const values={question:'Sortie ?',answers:'Parc\nCinéma',groupIds:['00000000-0000-4000-8000-000000000002'],identity:'identified',comments:'optional',visibility:'public_with_results',release:'closed',minimum:'7',audience:'admins_only'},initial=structuredClone(values);
   assert.deepEqual(spaceCreationValues(values,'express'),{...values,...SPACE_EXPRESS_DEFAULTS});assert.deepEqual(values,initial);
   assert.deepEqual(spaceCreationValues(values,'guided'),spaceCreationValues(values,'advanced'));
   const result=makeSpacePollDraft(spaceCreationValues(values,'express'),'00000000-0000-4000-8000-000000000001');
-  assert.equal(result.poll.definition.participationIdentityMode,'anonymous');assert.equal(result.poll.definition.commentMode,'disabled');assert.equal(result.poll.definition.commentVisibility,'private');assert.equal(result.poll.resultRules.minimumResponses,2);assert.equal(result.poll.resultRules.releaseMode,'threshold');assert.equal(result.pollAudience.resultsAudience,'poll_audience');
+  assert.equal(result.poll.definition.participationIdentityMode,'anonymous');assert.equal(result.poll.definition.commentMode,'disabled');assert.equal(result.poll.definition.commentVisibility,'private');assert.equal(result.poll.resultRules.minimumResponses,7);assert.equal(result.poll.resultRules.releaseMode,'threshold');assert.equal(result.pollAudience.resultsAudience,'poll_audience');
   assert.deepEqual(spaceCreationValues(values,'guided'),initial);assert.deepEqual(spaceCreationValues(values,'advanced'),initial);
 });
-test('Express : snapshots 1, 2 et 8, minimum fixe 2 et résultats selon les règles communes',()=>{
+test('Express : petites audiences 1, 2 et 8, recommandation 2 et règles communes',()=>{
   const space='00000000-0000-4000-8000-000000000001';
   for(const eligible of [1,2,8]){
-    const {poll:p}=makeSpacePollDraft(spaceCreationValues({question:'Sortie ?',answers:'Parc\nCinéma',groupIds:[]},'express'),space);
+    const {poll:p}=makeSpacePollDraft(spaceCreationValues({question:'Sortie ?',answers:'Parc\nCinéma',groupIds:[],minimum:String(recommendedMinimum(eligible))},'express'),space);
     assert.equal(p.resultRules.minimumResponses,2,'ni réduction à 1, ni ancien minimum 5');
     for(let total=0;total<=eligible;total++)for(const status of ['published','closed'])assert.equal(groupResultsAvailable(status,p.resultRules,total,eligible),total>=2,`snapshot ${eligible}, ${total} votes, ${status}`);
   }
@@ -29,7 +30,7 @@ test('Résultats : audience prioritaire, pas de faux motif de seuil ni compteur 
   for(const [mode,code]of [['all_eligible','all'],['closed','closed'],['all_eligible_or_closed','all_or_closed']]){
     assert.equal(resultsState(poll(mode)).code,code);
     assert.doesNotMatch(resultsState(poll(mode)).detail,/est atteint/);
-    assert.match(resultsState(poll(mode),{admin:true,attendance:{consumed:2,eligible:3}}).detail,/est atteint/);
+    assert.match(resultsState(poll(mode),{admin:true,attendance:{consumed:2,eligible:3}}).detail,/2 personnes sur 3/);
   }
   assert.match(resultsState(poll('threshold',true,'admins_only'),{admin:true}).detail,/administration/);
   for(const mode of ['closed','all_eligible_or_closed']){const closed=poll(mode);closed.status='closed';assert.equal(resultsState(closed).code,'minimum','ne pas demander de fermer un sondage déjà fermé');}
@@ -62,4 +63,24 @@ test('Scanner : mémoire bornée, centre et plein cadre, sans déformation',()=>
     const region=scanRegion(w,h,attempt);assert.ok(region.width<=1280&&region.height<=1280);assert.ok(region.x>=0&&region.y>=0);assert.ok(region.x+region.w<=w&&region.y+region.h<=h);assert.ok(Math.abs(region.width/region.height-region.w/region.h)<.01);
   }
   assert.ok(scanRegion(1920,1080,1).w<scanRegion(1920,1080,0).w);
+});
+
+test('Minimum recommandé : 25 %, plancher 2 et arrondi supérieur',()=>{
+ for(const [n,expected]of [[0,2],[1,2],[3,2],[8,2],[9,3],[12,3],[20,5],[21,6],[100,25]])assert.equal(recommendedMinimum(n),expected);
+ for(const n of [-1,1.5,NaN])assert.throws(()=>recommendedMinimum(n));
+});
+test('Audience dédoublonnée : actifs distincts et union des groupes ciblés',()=>{
+ const a={member_id:'a',status:'active',groupIds:['soleil','lune']},b={member_id:'b',status:'active',groupIds:['lune']},c={member_id:'c',status:'revoked',groupIds:['soleil']},d={member_id:'d',status:'active',groupIds:[]};
+ assert.equal(audienceMemberCount([a,a,b,c,d],['soleil','lune']),2);assert.equal(audienceMemberCount([a,b,c,d],['soleil']),1);assert.equal(audienceMemberCount([a,b,c,d]),3);
+});
+test('Recommandation suit l’audience avant personnalisation, jamais après sans action explicite',()=>{
+ const model=new MinimumRecommendation();assert.equal(model.audience(8),'2');assert.equal(model.audience(21),'6');model.personalize('4');assert.equal(model.audience(100),'4');assert.equal(model.recommend(),'25');assert.equal(model.audience(12),'3');
+ const saved=new MinimumRecommendation(7);assert.equal(saved.audience(100),'7','valeur enregistrée conservée, y compris à la réouverture d’un brouillon');
+});
+test('Messages : motifs distincts, compteur uniquement gestion, aucun faux message de fermeture',()=>{
+ const state=(mode,done=2,status='published')=>resultsState({...poll(mode),status},{admin:true,attendance:{consumed:done,eligible:3}});
+ assert.equal(state('all_eligible_or_closed').detail,'2 personnes sur 3 ont participé. Les résultats seront disponibles après la dernière participation, ou si tu fermes le sondage.');
+ assert.doesNotMatch(state('all_eligible').detail,/si tu fermes/);assert.match(state('closed').detail,/quand le sondage sera fermé/);assert.doesNotMatch(state('threshold',1).detail,/dernière participation|si tu fermes/);
+ assert.equal(state('all_eligible_or_closed',1,'closed').code,'minimum');assert.doesNotMatch(resultsState(poll('all_eligible_or_closed')).detail,/2 personnes sur 3/);
+ const reserved=resultsState(poll('threshold',false,'admins_only'),{attendance:{consumed:2,eligible:3}});assert.equal(reserved.code,'reserved');assert.doesNotMatch(reserved.detail,/personnes|participation/);
 });

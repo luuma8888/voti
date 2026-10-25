@@ -7,7 +7,7 @@ import {isVisualId} from './visual-ids.js';
 
 /** Contrat fournisseur-neutre ; les credentials transitent exclusivement en Bearer. */
 export const SPACE_COMMAND_FIELDS=Object.freeze({
-  createSpace:['spaceId','name','expectedRevision'],getSpace:['spaceId'],
+  createSpace:['spaceId','name','expectedRevision'],getSpace:['spaceId'],getAudienceSize:['spaceId','pollAudience'],
   renameSpace:['spaceId','name','expectedRevision'],archiveSpace:['spaceId','expectedRevision'],
   createGroup:['spaceId','groupId','name','expectedRevision'],renameGroup:['spaceId','groupId','name','expectedRevision'],archiveGroup:['spaceId','groupId','expectedRevision'],
   createMember:['spaceId','memberId','displayName','groupIds','memberCredential','expectedRevision'],
@@ -43,9 +43,10 @@ export function validateSpaceResponse(value,relayId=null,pollId=null){
     member:['kind','memberId','displayName','space','groups','polls'],mutation:['kind','spaceId','revision'],
     prepared:['kind','pollId','revision'],acceptedInvitation:['kind','spaceId','memberId'],
     poll:['kind','poll'],memberPoll:['kind','poll','alreadyParticipated'],results:['kind','results'],comments:['kind','page'],
-    vote:['kind','receipt'],attendance:['kind','identityMode','consumed','eligible','members']};
+    audienceSize:['kind','eligible'],vote:['kind','receipt'],attendance:['kind','identityMode','consumed','eligible','members']};
   need(Object.hasOwn(keys,value.kind),'RELAY_UNAVAILABLE');
   try{object(value,[...keys[value.kind],...(value.kind==='member'&&Object.hasOwn(value,'visualId')?['visualId']:[])],'Réponse Espace');}catch{need(false,'RELAY_UNAVAILABLE');}
+  if(value.kind==='audienceSize')need(Number.isSafeInteger(value.eligible)&&value.eligible>=0&&value.eligible<=200,'RELAY_UNAVAILABLE');
   if(value.kind==='member'&&Object.hasOwn(value,'visualId'))need(isVisualId('member',value.visualId),'RELAY_UNAVAILABLE');
   if(['mutation','prepared','acceptedInvitation'].includes(value.kind)){
     for(const key of ['spaceId','pollId','memberId'])if(Object.hasOwn(value,key))need(isPublicPollId(value[key]),'RELAY_UNAVAILABLE');

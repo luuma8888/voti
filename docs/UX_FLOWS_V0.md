@@ -383,3 +383,38 @@ le membre/groupe. Fermer/Escape annule ; Aucune illustration puis validation eff
 le choix. Images large verticales pour les humains sur fiche/carte ; groupes en
 petites vignettes sur carte. Aucun upload ou image personnelle. Le choix reste
 facultatif. Voir `MEMBER_VISUALS_V0.md` pour les conditions offline et de déploiement.
+
+## Sondages Espace — améliorations après recette humaine (octobre 2026)
+
+Les deux recettes humaines Guidée et Express décrites dans
+`CODEX_SPACE_POLL_HUMAN_RECIPE_REPORT.md` restent acquises pour leurs configurations.
+Les observations d’origine restent historiques ; le nouveau lot local traite
+UX-01 à UX-09 sans changer les conditions de publication des résultats.
+
+La gestion montre d’abord l’état et le suivi X/Y, les actions principales et une
+zone Résultats associant son action à sa disponibilité et à son motif. Lorsque
+les résultats sont bloqués, « Comprendre la disponibilité » reste accessible ;
+lorsqu’ils sont disponibles, « Voir les résultats » devient l’action principale
+de cette zone. Les compteurs détaillés ne sont jamais demandés côté participant.
+Le résumé est séparé de « Modifier le sondage », replié par défaut. L’édition
+sépare L’essentiel et Participation et résultats. Une barre d’enregistrement
+signale les modifications, l’envoi et les erreurs ; Annuler restaure les valeurs.
+La sauvegarde garde la page et son titre montés et confirme son succès.
+
+Les trois parcours proposent désormais un minimum de **max(2, ceil(25 % × N))**,
+N étant le nombre de membres actifs distincts de l’audience ciblée. Le défaut suit
+les changements d’audience tant qu’il n’a pas été personnalisé. Un minimum
+personnalisé est conservé ; « Utiliser la recommandation » réactive volontairement
+le suivi automatique. Les petites audiences et les minimums inatteignables sont
+expliqués, sans abaissement automatique à 1. Express annonce aussi que les réglages
+peuvent être ajustés sur l’écran suivant, avant publication.
+
+L’origine automatique/personnalisée est gardée seulement en mémoire pendant la
+visite. À la réouverture d’un brouillon enregistré après reload, sa valeur fait
+autorité : elle n’est pas remplacée sur une supposition ; l’utilisateur peut
+explicitement reprendre la recommandation. Les sondages publiés/fermés ne sont
+jamais recalculés. Aucun champ métier ou stockage de préférence n’est ajouté.
+
+Pour les Créateurs, le nombre est lu via `getAudienceSize`, sans liste des membres
+et avec les contrôles d’audience existants. Cela nécessite une future publication
+coordonnée du Worker compatible avant le frontend ; aucun déploiement dans ce lot.

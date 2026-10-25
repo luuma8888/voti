@@ -11,7 +11,8 @@ import {scanMemberCard} from './member-scanner.js';
 import {memberCardsPdf} from './member-cards.js';
 import {sharingPanel} from './sharing.js';
 import {posterStudio,resultsPdfPanel} from './poster-studio.js';
-import {SPACE_RELEASE_LABELS,resultsState,accessFilename,cardsFilename,fileLabel,makeSpacePollDraft} from './space-ux.js';
+import {resultsState,accessFilename,cardsFilename,fileLabel,makeSpacePollDraft} from './space-ux.js';
+import {renderSpacePoll} from './space-poll-management.js';
 import {spacePollEditor} from './space-poll-editor.js';
 import {renderSpaceManagement} from './space-management.js';
 import {withSpaceIcon} from './space-icons.js';
@@ -25,6 +26,7 @@ import {resolveVisual,visualImage} from './visual-presets.js';
 
 const node=(tag,text,attrs={})=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;for(const[k,v]of Object.entries(attrs))n.setAttribute(k,String(v));return n;};
 const append=(parent,...children)=>{parent.append(...children);return parent;};
+const pollActions=(...children)=>append(node('div',undefined,{class:'actions poll-actions'}),...children);
 const link=(label,href)=>{const a=node('a',label.replace(/^←\s*/,''),{href,class:'button space-navigation-link'});return label.startsWith('←')?withSpaceIcon(a,'back'):a;};
 function field(label,input){const id='space-'+crypto.randomUUID();input.id=id;return append(node('div',undefined,{class:'field'}),node('label',label,{for:id}),input);}
 function textField(label,value=''){const input=node('input',undefined,{type:'text',autocomplete:'off'});input.value=value;return{element:field(label,input),input};}
@@ -61,12 +63,13 @@ export class SpacesUI {
   returnToSpace(id){const a=link('Retour à l’Espace',`#space/${id}`);a.addEventListener('click',event=>{if(event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();this.navigate(a.hash).catch(this.error);});return a;}
   ownsRoute(hash){const [view,id]=hash.replace(/^#\/?/,'').split('/');return ['spaces','space','member','invite'].includes(view)||Boolean(this.session.credential)||view==='p'&&this.outcome?.pollId===id;}
   canKeepShell(hash){const [view,id,section]=hash.replace(/^#\/?/,'').split('/');return !this.session.credential&&view==='space'&&(!section||['polls','members','groups','invitations','access','settings'].includes(section))&&this.shell?.spaceId===id&&this.shell.root.isConnected;}
-  leaveRoute(){if(this.currentCard&&!this.currentCard.spaceId)eraseCard(this.currentCard);this.currentCard=null;this.activeEdit?.dispose();this.activeEdit=null;this.shell=null;document.body.removeAttribute('data-space-management');this.epoch++;this.disposePanel?.();this.disposePanel=null;this.clearMember();this.outcome=null;this.invitation=null;delete document.body.dataset.votiRole;}
+  leaveRoute(){this.app.classList.remove('space-poll-page');if(this.currentCard&&!this.currentCard.spaceId)eraseCard(this.currentCard);this.currentCard=null;this.activeEdit?.dispose();this.activeEdit=null;this.shell=null;document.body.removeAttribute('data-space-management');this.epoch++;this.disposePanel?.();this.disposePanel=null;this.clearMember();this.outcome=null;this.invitation=null;delete document.body.dataset.votiRole;}
   async handleRoute(hash){
     if(this.currentCard&&!this.currentCard.spaceId)eraseCard(this.currentCard);this.currentCard=null;
     this.activeEdit?.dispose();this.activeEdit=null;
     this.epoch++;
     document.body.toggleAttribute('data-space-management',/^#\/?space\//.test(hash)&&!this.session.credential);
+    this.app.classList.toggle('space-poll-page',/^#\/?p\//.test(hash)||/^#\/?space\/[^/]+\/poll\//.test(hash));
     const parts=hash.replace(/^#\/?/,'').split('/'),[view,id,sub,pollId,last]=parts;
     if((['member','invite','spaces'].includes(view)&&parts.length>1)||(view==='space'&&(parts.length>5||(sub&&!['poll','polls','members','groups','invitations','access','settings'].includes(sub))||(last&&(sub!=='poll'||!['share','poster','results'].includes(last)))||(sub==='settings'&&pollId)))||(view==='p'&&sub&&!['choice','results'].includes(sub)))throw new Error('Lien Voti invalide.');
     if(view!=='invite')this.invitation=null;
@@ -100,34 +103,34 @@ export class SpacesUI {
     this.outcome=null;
     this.app.replaceChildren();this.title('Présente ta Carte Voti');this.intent=pollId?{pollId,extra,choiceId}:null;
     this.app.append(node('p','Ta carte ouvre seulement ton espace participant. Elle ne sera pas conservée sur cet appareil.'),
-      this.button('Scanner ma Carte Voti',async b=>{const credential=await scanMemberCard(b);if(!credential||!b.isConnected)return;this.setMember(credential);
+      pollActions(this.button('Scanner ma Carte Voti',async b=>{const credential=await scanMemberCard(b);if(!credential||!b.isConnected)return;this.setMember(credential);
         try{const profile=await this.call('getMemberHome',{},credential);if(!b.isConnected||this.session.credential!==credential)return;this.profile=profile;
           if(pollId){const response=await this.call('getMemberPoll',{pollId},credential);if(!b.isConnected||this.session.credential!==credential)return;if(extra==='results')await this.showResults(response.poll,null);else this.participantPoll(response.poll,choiceId,response.alreadyParticipated);}
           else{history.replaceState(null,'',location.pathname+location.search+'#member');this.memberHome();}
         }catch(e){if(this.session.credential===credential)this.clearMember();throw e;}
-      },'primary'),link('Accueil','#home'));
+      },'primary'),link('Accueil','#home')));
   }
   memberHome(){
     document.body.dataset.votiRole='member';
     this.app.replaceChildren();this.title('Mon espace');const p=this.profile;
     this.app.append(node('p',`${p.displayName} · ${p.space.name}`),node('p',p.groups.map(g=>g.name).join(' · ')),node('p','Une participation maximum par membre. Ta carte est secrète : garde-la pour toi.',{class:'help'}));
     const list=node('ul',undefined,{class:'poll-list'});for(const poll of p.polls){const status=poll.status==='closed'?'Fermé':poll.alreadyParticipated?'Déjà participé':'À toi de participer';
-      const row=append(node('li'),node('h2',poll.question),node('p',status));if(!poll.alreadyParticipated&&poll.status==='published')row.append(link('Voter',`#/p/${poll.pollId}`));
-      if(poll.resultsAvailable)row.append(link('Résultats disponibles',`#/p/${poll.pollId}/results`));list.append(row);}
+      const row=append(node('li'),node('h2',poll.question),node('p',status)),buttons=pollActions();if(!poll.alreadyParticipated&&poll.status==='published')buttons.append(link('Voter',`#/p/${poll.pollId}`));
+      if(poll.resultsAvailable)buttons.append(link('Résultats disponibles',`#/p/${poll.pollId}/results`));if(buttons.children.length)row.append(buttons);list.append(row);}
     this.app.append(list,this.button('Terminer',()=>{this.clearMember();location.hash='#home';}));
   }
   participantPoll(poll,qrChoice=null,alreadyParticipated=false){
     document.body.dataset.votiRole='member';
     this.app.replaceChildren();this.title(poll.definition.question);const id=poll.remoteRef.pollId;
     const finish=this.button('Terminer',()=>{this.clearMember();location.hash='#home';});
-    if(poll.status==='closed'){this.app.append(node('p','Ce sondage est fermé.'),link('Résultats',`#/p/${id}/results`),finish);return;}
-    if(alreadyParticipated){this.app.append(node('p','Déjà participé. Aucun nouveau vote ne peut être envoyé avec cette carte.'),link('Résultats',`#/p/${id}/results`),this.button('Participant suivant',()=>this.cardPrompt(id),'primary'),finish);return;}
+    if(poll.status==='closed'){this.app.append(node('p','Ce sondage est fermé.'),pollActions(link('Résultats',`#/p/${id}/results`),finish));return;}
+    if(alreadyParticipated){this.app.append(node('p','Déjà participé. Aucun nouveau vote ne peut être envoyé avec cette carte.'),pollActions(link('Résultats',`#/p/${id}/results`),this.button('Participant suivant',()=>this.cardPrompt(id),'primary'),finish));return;}
     if(qrChoice&&poll.definition.choices.some(c=>c.id===qrChoice)){this.confirmVote(poll,qrChoice,true);return;}
     this.recognizedMember();
     if(qrChoice)this.app.append(node('p','Le choix du QR n’est plus disponible. Choisis une réponse.'));
     const form=node('form'),choices=node('fieldset',undefined,{class:'vote-choices'});choices.append(node('legend','Choisis une réponse'));
     for(const choice of poll.definition.choices){const input=node('input',undefined,{type:'radio',name:'space-choice',value:choice.id,required:''});choices.append(append(node('label',undefined,{class:'vote-choice'}),input,node('span',choice.label)));}
-    const next=node('button','Continuer',{type:'submit',class:'primary'});form.append(choices,next);form.addEventListener('submit',e=>{e.preventDefault();this.confirmVote(poll,form.querySelector('input:checked').value,false);});this.app.append(form);
+    const next=node('button','Continuer',{type:'submit',class:'primary'});form.append(choices,pollActions(next));form.addEventListener('submit',e=>{e.preventDefault();this.confirmVote(poll,form.querySelector('input:checked').value,false);});this.app.append(form);
   }
   confirmVote(poll,choiceId,fromQr){
     this.app.replaceChildren();this.title('Tu choisis : '+poll.definition.choices.find(c=>c.id===choiceId).label);
@@ -149,7 +152,7 @@ export class SpacesUI {
   success(pollId,commentSent){
     this.epoch++;
     this.app.replaceChildren();this.title('Merci !');this.app.append(node('p','Ton vote a bien été enregistré.'),...(commentSent?[node('p','Ton commentaire a aussi été envoyé.')]:[]),node('p','Ta carte et ton identité ont été oubliées sur cet appareil.'),
-      this.button('Participant suivant',()=>{this.outcome=null;this.cardPrompt(pollId);},'primary'),link('Accueil','#home'));
+      pollActions(this.button('Participant suivant',()=>{this.outcome=null;this.cardPrompt(pollId);},'primary'),link('Accueil','#home')));
   }
   recognizedMember(){if(this.profile&&this.session.credential)this.app.append(node('p',`Carte reconnue : ${this.profile.displayName}`,{class:'recognized-member',role:'status'}));}
   async listSpaces(){
@@ -251,43 +254,20 @@ export class SpacesUI {
       if(!accepted){await this.call('acceptInvitation',registration,this.invitation);accepted=true;}this.setMember(registration.memberCredential);const profile=await this.call('getMemberHome',{},registration.memberCredential);this.invitation=null;this.showCard({credential:registration.memberCredential,displayName:profile.displayName,memberVisualId:profile.visualId??null,spaceName:profile.space.name,groups:profile.groups.map(g=>({name:g.name,visualId:g.visual_id??null}))});registration=null;this.notify('Invitation acceptée. Télécharge ta carte pour la garder.');}));
   }
   newPoll(data,box){
-    box.append(spacePollEditor(data,{button:(...args)=>this.button(...args),groupSelection:(...args)=>this.groupSelection(...args),submit:async values=>{const {poll,pollAudience}=makeSpacePollDraft(values,data.spaceId);const prep=await this.call('prepareSpacePublication',{spaceId:data.spaceId,poll,pollAudience,expectedRevision:data.revision},this.staff(data.spaceId));location.hash=`#space/${data.spaceId}/poll/${prep.pollId}`;}}));
+    box.append(spacePollEditor(data,{readAudienceSize:async ids=>(await this.call('getAudienceSize',{spaceId:data.spaceId,pollAudience:{spaceId:data.spaceId,mode:ids.length?'groups':'space',groupIds:ids,resultsAudience:'poll_audience'}},this.staff(data.spaceId))).eligible,button:(...args)=>this.button(...args),groupSelection:(...args)=>this.groupSelection(...args),submit:async(values,metadata)=>{const {poll,pollAudience}=makeSpacePollDraft(values,data.spaceId);const prep=await this.call('prepareSpacePublication',{spaceId:data.spaceId,poll,pollAudience,expectedRevision:data.revision},this.staff(data.spaceId));(this.pollMinimumModes??=new Map()).set(prep.pollId,metadata?.automaticMinimum===true);location.hash=`#space/${data.spaceId}/poll/${prep.pollId}`;}}));
   }
   async managePoll(poll,spaceId){
-    this.title(poll.definition.question);this.app.append(link('← Retour aux sondages',`#space/${spaceId}/polls`));const id=poll.remoteRef.pollId,credential=this.staff(spaceId);
-    const card=append(node('section',undefined,{class:'card','data-accent':poll.style.themeId}),node('p',poll.status==='draft'?'Brouillon · Publication en attente':poll.status==='closed'?'Fermé · En ligne · Espace':'Ouvert · En ligne · Espace'),node('p',poll.locked?'Le premier vote a verrouillé la question, les choix et les règles.':'Aucun vote accepté. La définition peut encore être modifiée.'),node('h2','Réponses proposées'));
-    const answers=node('ol',undefined,{class:'management-answer-list'});for(const c of poll.definition.choices)answers.append(node('li',c.label));card.append(answers);
-    if(poll.status!=='draft'){
-      const actions=append(node('section',undefined,{class:'space-poll-actions'}),node('h2','Diffuser et consulter')),vote=link('Ouvrir le vote',`#/p/${id}`),share=link('QR & partager le sondage',`#space/${spaceId}/poll/${id}/share`),resultLink=link('Résultats',`#space/${spaceId}/poll/${id}/results`);vote.className='button primary';share.className=resultLink.className='button';actions.append(append(node('div',undefined,{class:'actions'}),vote,share,resultLink));card.append(actions);
-    }
-    const mutate=async(method,fields={})=>{const current=(await this.call('getSpacePoll',{pollId:id},credential)).poll;await this.adapter[method]({pollId:id,adminCapability:credential,expectedRevision:current.remoteRef.revision,...fields});await this.refresh();};
-    if(poll.status==='draft')card.append(this.button('Publier pour les membres',async()=>{await this.call('publishSpacePoll',{pollId:id,expectedRevision:poll.remoteRef.revision},credential);await this.refresh();},'primary'),this.button('Abandonner le brouillon',async b=>{if(await this.confirmAction({trigger:b,title:'Abandonner ce brouillon ?',description:'Ce sondage non publié sera supprimé du relais.',actionLabel:'Abandonner',danger:true})){await this.adapter.discardPublication({pollId:id,adminCapability:credential,expectedRevision:poll.remoteRef.revision});location.hash=`#space/${spaceId}`;}},'danger'));
-    if(poll.status==='published')card.append(this.button('Fermer le sondage',async b=>{if(await this.confirmAction({trigger:b,title:'Fermer ce sondage ?',description:'Il n’acceptera plus de vote. Le minimum de confidentialité reste obligatoire.',actionLabel:'Fermer le sondage'}))await mutate('closePoll');}));
-    const style=selectField('Apparence',[['mint','Menthe'],['lavender','Lavande'],['peach','Pêche']],poll.style.themeId);card.append(style.element,this.button('Enregistrer l’apparence',()=>mutate('updateStyle',{style:{...poll.style,themeId:style.input.value}})));
-    if(!poll.locked&&poll.status!=='closed'){
-      const q=textField('Modifier la question',poll.definition.question),identity=selectField('Participation',[['anonymous','Anonyme'],['identified','Identifiée avec la Carte Voti']],poll.definition.participationIdentityMode),comments=selectField('Commentaires',[['optional','Vote + commentaire facultatif'],['disabled','Vote simple']],poll.definition.commentMode),visibility=selectField('Visibilité des commentaires',[['private','Privés'],['public_with_results','Approuvés avec les résultats']],poll.definition.commentVisibility),release=selectField('Quand montrer les résultats ?',SPACE_RELEASE_LABELS,poll.resultRules.releaseMode),audience=selectField('Audience des résultats',[['poll_audience','Membres ciblés'],['admins_only','Administration uniquement']],poll.accessRules.pollAudience.resultsAudience),minimum=node('input',undefined,{type:'number',min:1,max:100000,value:poll.resultRules.minimumResponses});
-      const syncVisibility=()=>visibility.input.disabled=comments.input.value==='disabled';comments.input.addEventListener('change',syncVisibility);syncVisibility();
-      const choices=node('textarea',undefined,{rows:4});choices.value=poll.definition.choices.map(c=>c.label).join('\n');const description=node('textarea',undefined,{rows:2});description.value=poll.definition.description;
-      const space=poll.status==='draft'?await this.getSpace(spaceId):null,groups=space?this.groupSelection(space.groups,poll.accessRules.pollAudience.groupIds):null;
-      card.append(q.element,field('Description',description),field('Réponses (2 à 6, une par ligne)',choices));if(groups)card.append(groups.element,node('p','Aucun groupe coché : tout l’Espace. Après publication, cette audience et son snapshot sont figés.'));
-      card.append(identity.element,comments.element,visibility.element,release.element,field('Minimum de confidentialité',minimum),audience.element,this.button('Enregistrer les règles',async()=>{const labels=choices.value.split('\n').map(s=>s.trim()).filter(Boolean),ids=groups?.values();await this.call('updateSpacePoll',{pollId:id,expectedRevision:poll.remoteRef.revision,definition:{...poll.definition,question:q.input.value,description:description.value.trim()||null,choices:labels.map((label,i)=>({...poll.definition.choices[i],id:poll.definition.choices[i]?.id??crypto.randomUUID(),label,shortLabel:null,emoji:null,imageRef:null,order:i})),participationIdentityMode:identity.input.value,privacy:identity.input.value==='identified'?'named':'anonymous',commentMode:comments.input.value,commentVisibility:visibility.input.value},resultRules:{...poll.resultRules,releaseMode:release.input.value,minimumResponses:Number(minimum.value)},pollAudience:{...poll.accessRules.pollAudience,...(ids?{mode:ids.length?'groups':'space',groupIds:ids}:{}),resultsAudience:audience.input.value}},credential);await this.refresh();}));
-    }
-    if(poll.status!=='draft')for(const everywhere of [false,true])card.append(this.button(everywhere?'Supprimer partout':'Supprimer en ligne',async b=>{if(!await this.confirmAction({trigger:b,title:everywhere?'Supprimer partout ?':'Supprimer ce sondage en ligne ?',description:everywhere?'Le sondage en ligne et le design de cet appareil seront supprimés. Les PDF téléchargés restent sur leurs appareils.':'Votes, commentaires et éligibilités seront supprimés. Le design local peut être retiré dans Sauvegarde.',actionLabel:everywhere?'Supprimer partout':'Supprimer en ligne',danger:true}))return;let remoteDeleted=false;
-      try{const current=(await this.call('getSpacePoll',{pollId:id},credential)).poll;await this.adapter.deletePoll({pollId:id,adminCapability:credential,expectedRevision:current.remoteRef.revision});remoteDeleted=true;if(everywhere)await this.posters.remove(id);location.hash=`#space/${spaceId}`;}
-      catch(error){if(remoteDeleted)throw new Error('Suppression en ligne réussie. Le design local reste à retirer dans Sauvegarde.',{cause:error});throw error;}
-    },'danger'));this.app.append(card);
-    if(poll.status==='draft')return;
-    const attendance=await this.call('getPollAttendance',{pollId:id},credential),summary=append(node('section',undefined,{class:'card'}),node('h2',`${attendance.consumed} participations sur ${attendance.eligible}`));
-    const presentation=resultsState(poll,{admin:true,attendance});card.prepend(append(node('section',undefined,{class:'space-results-state','data-result-state':presentation.code}),node('h2',presentation.title),node('p',presentation.detail)));
-    if(attendance.identityMode==='identified'){const filter=selectField('Participants',[['all','Tous'],['voted','A participé'],['pending','À relancer']]),list=node('ul');const draw=()=>{list.replaceChildren();for(const m of attendance.members.filter(m=>filter.input.value==='all'||Boolean(m.consumed)===(filter.input.value==='voted')))list.append(node('li',`${m.display_name} · ${m.consumed?'A participé':'À relancer'}${m.choice_id?' · '+poll.definition.choices.find(c=>c.id===m.choice_id)?.label:''}`));};filter.input.addEventListener('change',draw);draw();summary.append(filter.element,list);}else summary.append(node('p','Aucune liste nominative de votants ou non-votants n’est disponible pour ce sondage anonyme.'));
-    this.app.append(summary);
-    const panel=commentsAdministration(poll,{load:cursor=>this.adapter.getParticipations({pollId:id,adminCapability:credential,cursor}),mutate:async(_node,c,action)=>{const current=(await this.call('getSpacePoll',{pollId:id},credential)).poll;await this.adapter[action==='delete'?'deleteComment':'updateCommentStatus']({pollId:id,adminCapability:credential,expectedRevision:current.remoteRef.revision,commentId:c.commentId,expectedCommentRevision:c.revision,...(action==='delete'?{}:{moderationStatus:action})});},error:this.error});this.app.append(panel.element);this.disposePanel=panel.dispose;
+    const id=poll.remoteRef.pollId,credential=this.staff(spaceId);let panelElement;
+    const onChange=value=>{this.disposePanel?.();this.disposePanel=null;panelElement?.remove();if(value.status==='draft')return;
+    const panel=commentsAdministration(value,{load:cursor=>this.adapter.getParticipations({pollId:id,adminCapability:credential,cursor}),mutate:async(_node,c,action)=>{const current=(await this.call('getSpacePoll',{pollId:id},credential)).poll;await this.adapter[action==='delete'?'deleteComment':'updateCommentStatus']({pollId:id,adminCapability:credential,expectedRevision:current.remoteRef.revision,commentId:c.commentId,expectedCommentRevision:c.revision,...(action==='delete'?{}:{moderationStatus:action})});},error:this.error});panelElement=panel.element;this.app.append(panel.element);this.disposePanel=panel.dispose;
+    };
+    await renderSpacePoll(this,poll,spaceId,{onChange});
   }
   share(poll,spaceId){if(poll.status==='draft')throw new Error('Publie d’abord ce sondage pour créer ses QR.');this.title('Partager le sondage');const id=poll.remoteRef.pollId;const panel=sharingPanel(poll,{baseUrl:location.origin+location.pathname,error:this.error,notify:this.notify,openStudio:()=>location.hash=`#space/${spaceId}/poll/${id}/poster`});this.app.append(panel,link('Gérer',`#space/${spaceId}/poll/${id}`));}
   studio(poll,spaceId){if(poll.status==='draft')throw new Error('Publie d’abord ce sondage pour créer son affiche.');this.title('Studio d’affiche');this.app.append(link('← Gérer le sondage',`#space/${spaceId}/poll/${poll.remoteRef.pollId}`));const panel=posterStudio(poll,{repository:this.posters,pollAssets:this.assets,error:this.error,notify:this.notify,refreshPoll:async()=>(await this.call('getSpacePoll',{pollId:poll.remoteRef.pollId},this.staff(spaceId))).poll});this.app.append(panel.element);this.disposePanel=panel.dispose;}
   async showResults(poll,spaceId){
     this.app.replaceChildren();this.title('Les résultats');const result=poll.results,id=poll.remoteRef.pollId;if(spaceId)this.app.append(link('← Gérer le sondage',`#space/${spaceId}/poll/${id}`));
-    if(!spaceId)this.app.append(this.button('Terminer',()=>{this.clearMember();location.hash='#home';}));
+    if(!spaceId)this.app.append(pollActions(this.button('Terminer',()=>{this.clearMember();location.hash='#home';})));
     if(!result.available||!spaceId&&poll.accessRules.pollAudience.resultsAudience==='admins_only'){const attendance=spaceId?await this.call('getPollAttendance',{pollId:id},this.staff(spaceId)):null,state=resultsState(poll,{admin:Boolean(spaceId),attendance});this.app.append(append(node('section',undefined,{class:'space-results-state','data-result-state':state.code}),node('h2',state.title),node('p',state.detail)));return;}
     this.app.append(node('h2',poll.definition.question),node('p',`${result.totalBallots} réponses`));
     for(const c of result.choices){const section=append(node('section',undefined,{class:'result-row'}),node('h3',c.label),node('p',`${c.count} · ${c.percentage.toFixed(1)} %`));for(const comment of result.comments?.items?.filter(m=>m.choiceId===c.id)||[])section.append(node('p',comment.text));this.app.append(section);}

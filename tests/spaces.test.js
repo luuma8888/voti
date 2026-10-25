@@ -85,3 +85,11 @@ test('consentement : empreinte des règles affichées requise, style exclu et co
   assert.throws(()=>validateSpaceCommand('castMemberVote',{...input,expectedDefinitionHash:'invalid'}),{code:'INVALID_REQUEST'});
   const {expectedDefinitionHash:_hash,...legacy}=input;assert.throws(()=>validateSpaceCommand('castMemberVote',legacy),{code:'INVALID_REQUEST'});
 });
+
+test('Lecture audience : contrat agrégé borné, sans champs de membre',()=>{
+ const spaceId='00000000-0000-4000-8000-000000000001',pollAudience={spaceId,mode:'space',groupIds:[],resultsAudience:'poll_audience'};
+ assert.deepEqual(validateSpaceCommand('getAudienceSize',{spaceId,pollAudience}),{spaceId,pollAudience});
+ for(const eligible of [0,1,200])assert.equal(validateSpaceResponse({kind:'audienceSize',eligible}).eligible,eligible);
+ for(const eligible of [-1,1.5,201])assert.throws(()=>validateSpaceResponse({kind:'audienceSize',eligible}));
+ assert.throws(()=>validateSpaceResponse({kind:'audienceSize',eligible:2,members:[]}));
+});

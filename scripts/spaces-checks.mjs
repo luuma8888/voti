@@ -26,6 +26,14 @@ export async function spacesChecks({adapter,sql}) {
   await reject(call('getMemberHome',{},staff),'INVALID_CAPABILITY');
   const creator=createSpaceCredential('staff'),accessId=crypto.randomUUID();
   await call('createAccess',{spaceId,accessId,role:'creator',groupIds:[groups[0]],staffCredential:creator,expectedRevision:await fresh()});
+  // Recommandation de minimum : lecture agrégée, sans noms ni mutation de révision.
+  const size=(ids=[],credential=staff)=>call('getAudienceSize',{spaceId,pollAudience:{spaceId,mode:ids.length?'groups':'space',groupIds:ids,resultsAudience:'poll_audience'}},credential);
+  await call('updateMember',{spaceId,memberId:members[0].memberId,displayName:'Pseudo fictif 0',groupIds:[groups[0],groups[1]],expectedRevision:await fresh()});
+  const beforeSize=await fresh();assert.deepEqual(await size(),{kind:'audienceSize',eligible:10});checks++;
+  ok((await size([groups[0],groups[1]])).eligible===10,'union sans double comptage');ok((await size([groups[2]])).eligible===0,'audience vide');
+  ok((await size([groups[0]],creator)).eligible===10,'créateur : agrégat autorisé, sans roster');
+  await reject(size([groups[1]],creator),'ACCESS_DENIED');await reject(size([],creator),'ACCESS_DENIED');await reject(size([],members[0].card),'INVALID_CAPABILITY');
+  ok((await fresh())===beforeSize,'lecture sans modification de l’Espace');
   async function prepare({identity='anonymous',release='threshold',minimum=1,audienceGroup=groups[0],credential=staff,resultsAudience='poll_audience'}={}){
     const poll=createPoll(emptyState(),{question:'Sondage Espace fictif',choices:['Oui','Non'],participationIdentityMode:identity,commentVisibility:'public_with_results'}).polls[0];poll.resultRules.minimumResponses=minimum;poll.resultRules.releaseMode=release;
     const prep=await call('prepareSpacePublication',{spaceId,poll,pollAudience:{spaceId,mode:'groups',groupIds:[audienceGroup],resultsAudience},expectedRevision:await fresh()},credential);

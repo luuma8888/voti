@@ -203,3 +203,18 @@ La sélection survit au changement Liste/Vignettes. L’émission s’arrête au
 échec et affiche les réussites partielles ; une carte non confirmée est exclue du
 PDF jusqu’à vérification. Le lot mémoire reste disponible après navigation SPA,
 pas après rechargement. Aucun credential brut n’est persisté. Voir MEMBER_CARDS_V0.
+
+## Minimum recommandé et gestion après recette Sondage
+
+Évolution locale après les recettes Guidée et Express : le défaut de création est
+`max(2, ceil(0.25 × N))`, calculé sur les membres actifs distincts ciblés. La valeur
+reste personnalisable ; elle n’est pas une nouvelle condition de résultats.
+Un changement d’audience suit la recommandation tant que l’utilisateur ne l’a pas
+personnalisée. À la réouverture d’un brouillon dont l’origine du minimum n’est plus
+connue, conserver le minimum enregistré ; le retour au calcul est explicite.
+Aucun recalcul rétroactif d’un sondage publié/fermé ; snapshots et permissions inchangés.
+
+`getAudienceSize` est une lecture agrégée autorisée aux accès de gestion pour leur
+seule audience permise. Elle renvoie uniquement `eligible`, jamais les membres,
+leurs noms ou des credentials ; les projections historiques getSpace restent
+inchangées. Aucune migration. Voir `CODEX_SPACE_POLL_UX_IMPLEMENTATION_REPORT.md`.

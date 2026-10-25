@@ -120,6 +120,13 @@ export class SpacesService {
       }
       return this.publish(row);
     }
+    if(command==='getAudienceSize'){
+      const access=await this.staff(data.spaceId,credential),audience=validatePollAudience(data.pollAudience);
+      need(audience.spaceId===data.spaceId&&creatorAllowsAudience(access,audience),'ACCESS_DENIED');await this.groupIds(data.spaceId,audience.groupIds);
+      const groupClause=audience.mode==='space'?'1':`EXISTS(SELECT 1 FROM group_memberships g WHERE g.member_id=m.member_id AND g.space_id=m.space_id AND g.group_id IN (${audience.groupIds.map(()=>'?').join(',')}))`;
+      const row=await this.sql(`SELECT count(*) n FROM space_members m WHERE m.space_id=? AND m.status='active' AND ${groupClause}`,data.spaceId,...(audience.mode==='space'?[]:audience.groupIds)).first();
+      return{kind:'audienceSize',eligible:row.n};
+    }
     const access=await this.staff(data.spaceId,credential,data.expectedRevision, !['getSpace','prepareSpacePublication'].includes(command));
     if(command==='getSpace')return this.view(access,data.includeVisuals===true);
     if(command==='prepareSpacePublication')return this.prepare(access,data);

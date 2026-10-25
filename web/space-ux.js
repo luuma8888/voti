@@ -10,8 +10,8 @@ export const SPACE_RELEASE_LABELS = [
   ['all_eligible_or_closed','Quand tous ont participé, ou dès la fermeture']
 ];
 
-/** Express crée un vote simple au minimum 2, sans écraser les réglages saisis. */
-export const SPACE_EXPRESS_DEFAULTS=Object.freeze({identity:'anonymous',comments:'disabled',visibility:'private',release:'threshold',minimum:'2',audience:'poll_audience'});
+/** Express conserve le minimum recommandé/personnalisé commun aux trois présentations. */
+export const SPACE_EXPRESS_DEFAULTS=Object.freeze({identity:'anonymous',comments:'disabled',visibility:'private',release:'threshold',audience:'poll_audience'});
 export function spaceCreationValues(values,mode){return mode==='express'?{...values,...SPACE_EXPRESS_DEFAULTS}:{...values};}
 
 /** Présentation seulement : available reste exclusivement décidé par le relais.
@@ -23,10 +23,15 @@ export function resultsState(poll,{admin=false,attendance=null}={}) {
   if(poll.results.available)return{code:'available',title:'Résultats disponibles',detail:'Les conditions de publication des résultats sont remplies.'+suffix};
   if(poll.status==='draft')return{code:'draft',title:'Résultats après publication',detail:'Ce sondage est encore un brouillon.'+suffix};
   const {minimumResponses:n,releaseMode}=poll.resultRules;
-  const minimum=`Au moins ${n} participation${n>1?'s sont nécessaires':' est nécessaire'} pour protéger la confidentialité.`;
-  if(admin&&attendance&&attendance.consumed<n||releaseMode==='threshold'||poll.status==='closed'&&['closed','all_eligible_or_closed'].includes(releaseMode))return{code:'minimum',title:'Minimum de confidentialité non atteint',detail:minimum+suffix};
-  const condition={all_eligible:['all','Participation de tous nécessaire','Les résultats attendent que tous les membres ciblés à la publication aient participé.'],closed:['closed','Fermeture du sondage nécessaire','Les résultats seront accessibles après la fermeture du sondage.'],all_eligible_or_closed:['all_or_closed','Participation de tous ou fermeture nécessaire','Les résultats attendent que tous les membres ciblés aient participé, ou que le sondage soit fermé.']}[releaseMode];
-  if(condition)return{code:condition[0],title:condition[1],detail:(admin&&attendance&&attendance.consumed>=n?'Le minimum de confidentialité est atteint. ':minimum+' ')+condition[2]+suffix};
+  const known=admin&&attendance,done=attendance?.consumed,total=attendance?.eligible;
+  const count=known?`${done} personne${done>1?'s':''} sur ${total} ${done>1?'ont':'a'} participé. `:'';
+  const minimum=`Minimum de confidentialité : ${n} participation${n>1?'s':''}.`;
+  const enough=known&&done>=n;
+  const pending=known?Math.max(0,total-done):null;
+  const all=pending===1?'la dernière participation':'toutes les participations attendues';
+  const condition={threshold:['minimum','Minimum de confidentialité non atteint',`Les résultats seront disponibles après au moins ${n} participations.`],all_eligible:['all','Participation de tous nécessaire',`Les résultats seront disponibles après ${all}.`],closed:['closed','Fermeture du sondage nécessaire','Les résultats seront disponibles quand le sondage sera fermé.'],all_eligible_or_closed:['all_or_closed','Participation de tous ou fermeture nécessaire',`Les résultats seront disponibles après ${all}, ou ${admin?'si tu fermes le sondage':'à la fermeture du sondage'}.`]}[releaseMode];
+  if((known&&!enough)||poll.status==='closed'&&['closed','all_eligible_or_closed'].includes(releaseMode))return{code:'minimum',title:'Minimum de confidentialité non atteint',detail:count+minimum+' '+(poll.status==='closed'?'Ce minimum reste nécessaire après la fermeture.':releaseMode==='threshold'?'Les résultats seront disponibles quand ce minimum sera atteint.':'Ce minimum doit être atteint. '+condition[2])+suffix};
+  if(condition)return{code:condition[0],title:condition[1],detail:count+condition[2]+(!enough?' '+minimum:'')+suffix};
   return{code:'minimum',title:'Résultats pas encore disponibles',detail:minimum+suffix};
 }
 
