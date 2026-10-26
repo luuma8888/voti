@@ -12,6 +12,7 @@
     "dev": "node scripts/dev.mjs",
     "test": "node --test --test-reporter=dot tests/*.test.js",
     "test:browser": "node scripts/browser-test.mjs",
+    "test:pwa": "node --test tests/pwa.test.js && node scripts/browser-pwa.mjs",
     "check": "node scripts/check.mjs",
     "worker:local": "node scripts/relay-local.mjs dev",
     "worker:migrate": "node scripts/relay-local.mjs migrate",

@@ -1,5 +1,13 @@
 # Voti
 
+## Installation sur un appareil compatible — évolution post-baseline
+
+Voti peut être installé sur un appareil compatible pour un accès plus direct.
+La PWA est une évolution après la baseline `pilot-2026-10-25` :
+même application Web, sans APK ni nouveau mode offline métier.
+Voir [l’installation et les limites PWA](docs/PWA.md). Cette mention est destinée
+à être reprise dans les futurs guides terrain ; le tag pilote reste inchangé.
+
 ## v0.6 — Espaces & groupes
 
 v0.6 publiée et validée humainement ; historique dans le rapport de déploiement.

@@ -8,7 +8,7 @@ import { crc32 } from '../relay/cloudflare/image-validation.js';
 
 export const AUDIT_NAME = 'VOTI_AUDIT_V0_6_2.zip';
 export function isAuditArchive(path) { return /\.zip$/i.test(path); }
-export function isPrivateOrTemporaryExport(path) { return /^assets\/branding\/source\//.test(path) || /(?:^|\/)voti-(?:admin|space-access|member-card|invitation)[^/]*\.(?:json|svg|png|pdf)$/i.test(path) || /\.(?:pdf|sql\.gz|sqlite|sqlite3|db|log)$/i.test(path) || (/\.(?:png|jpe?g|webp)$/i.test(path)&&!path.startsWith('assets/branding/')&&!/^web\/assets\/voti-visuals\/(?:members\/(?:icon|medium|large)|groups\/(?:icon|medium|large|backdrop))\/[a-z0-9_-]+\.webp$/.test(path)) || /(?:^|\/)(?:\.env(?:\.[^/]*)?|\.dev\.vars[^/]*)$/i.test(path); }
+export function isPrivateOrTemporaryExport(path) { return /^assets\/branding\/source\//.test(path) || /(?:^|\/)voti-(?:admin|space-access|member-card|invitation)[^/]*\.(?:json|svg|png|pdf)$/i.test(path) || /\.(?:pdf|sql\.gz|sqlite|sqlite3|db|log)$/i.test(path) || (/\.(?:png|jpe?g|webp)$/i.test(path)&&!path.startsWith('assets/branding/')&&!/^assets\/pwa\/voti-(?:192|512|maskable-512)\.png$/.test(path)&&!/^web\/assets\/voti-visuals\/(?:members\/(?:icon|medium|large)|groups\/(?:icon|medium|large|backdrop))\/[a-z0-9_-]+\.webp$/.test(path)) || /(?:^|\/)(?:\.env(?:\.[^/]*)?|\.dev\.vars[^/]*)$/i.test(path); }
 export async function auditPaths() {
   const { stdout } = await promisify(execFile)('git', ['ls-files', '-co', '--exclude-standard', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 8_000_000 });
   // Exclure aussi les anciennes archives déjà suivies par Git : jamais de ZIP récursif.

@@ -6,7 +6,13 @@ import { build, ROOT } from '../scripts/build.mjs';
 
 test('build autonome : tous les modules embarqués, aucun script/CSS externe', async () => {
   const html = await build();
-  assert.doesNotMatch(html, /<script[^>]+src=|<link[^>]+(?:href|rel)=|@import|url\(https?:/i);
+  assert.doesNotMatch(html, /<script[^>]+src=|<link[^>]+rel=["']stylesheet|@import|url\(https?:/i);
+  const metadataLinks=[...html.matchAll(/<link\b[^>]+>/g)].map(([tag])=>tag);
+  assert.equal(metadataLinks.length,3);
+  for(const tag of metadataLinks){
+    assert.match(tag,/rel="(?:manifest|icon|apple-touch-icon)"/);
+    assert.match(tag,/href="\.\/(?:manifest\.webmanifest|assets\/pwa\/voti-192\.png)"/);
+  }
   const match = html.match(/<script type="importmap">(.*?)<\/script>/s);
   const { imports } = JSON.parse(match[1]);
   assert.ok(Object.keys(imports).length >= 41);
