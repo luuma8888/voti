@@ -1,0 +1,547 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Guide Voti — Comprendre et utiliser</title><meta name="author" content="Voti"><meta name="description" content="Documentation Voti, édition du 26 octobre 2026"><link rel="stylesheet" href="guides.css"></head><body class="guide" data-title="Guide Voti — Comprendre et utiliser"><header class="running-title">Guide Voti — Comprendre et utiliser</header><main><h1 id="guide-voti-comprendre-et-utiliser">Guide Voti — Comprendre et utiliser</h1>
+<p><strong>D2 · Guide de référence · 26 octobre 2026</strong></p>
+<p>Voti permet de participer à des choix ou sondages avec des Cartes Voti individuelles. Chaque personne choisit une réponse, puis confirme son vote. Les résultats s’ouvrent selon les règles du sondage.</p>
+<p>On peut choisir une activité en famille, une sortie dans une classe ou un groupe, recueillir un avis dans une association ou un collectif, ou organiser une consultation dans une structure jeunesse. Aucun de ces contextes n’est nécessaire pour utiliser Voti.</p>
+<p><strong>Exemple fictif : La Cabane Voti.</strong> Cet Espace comprend les groupes <strong>Soleil</strong> et <strong>Lune</strong>, avec Soleil A/B/C et Lune A/B. Question : <strong>Quelle activité vendredi ?</strong> Réponses : <strong>Parc</strong>, <strong>Cinéma</strong>, <strong>Jeux</strong>. Les captures ne contiennent aucune donnée réelle et leurs QR sont inutilisables.</p>
+<h2 id="trouver-rapidement-une-action" class="toc-title">Trouver rapidement une action</h2>
+<ul class="toc">
+<li><a href="#decouvrir">Découvrir Voti et son organisation</a></li>
+<li><a href="#roles">Comprendre son rôle</a></li>
+<li><a href="#espace">Créer, retrouver et parcourir un Espace</a></li>
+<li><a href="#groupes">Préparer les groupes</a></li>
+<li><a href="#membres">Créer et modifier les membres</a></li>
+<li><a href="#cartes">Télécharger et gérer les Cartes Voti</a></li>
+<li><a href="#creer-sondage">Créer un sondage</a></li>
+<li><a href="#modifier">Modifier et enregistrer</a></li>
+<li><a href="#publier">Publier et partager</a></li>
+<li><a href="#participer">Participer à un sondage</a></li>
+<li><a href="#suivre">Suivre les participations et fermer</a></li>
+<li><a href="#resultats">Comprendre les résultats</a></li>
+<li><a href="#acces">Gérer les invitations et les accès</a></li>
+<li><a href="#installer">Installer Voti sur son appareil</a></li>
+<li><a href="#confidentialite">Protéger les données et les fichiers</a></li>
+<li><a href="#avance">Utiliser les actions avancées</a></li>
+<li><a href="#aide">Trouver de l’aide</a></li>
+</ul>
+<p class="toc-note">Les repères <strong>P01–P36</strong> identifient les procédures, <strong>Cxx</strong> les captures et <strong>S1–S4</strong> les schémas.</p>
+<p class="related">Pour commencer : <a href="VOTI_DEMARRAGE_RAPIDE.pdf">Démarrage rapide</a> · Un problème : <a href="VOTI_AIDE_DEPANNAGE.pdf">Aide &amp; dépannage</a></p><h2 id="decouvrir">1. Découvrir Voti</h2>
+<h3 id="p01">P01 · Ouvrir et se repérer</h3>
+<p><strong>Tous les rôles.</strong> Internet est nécessaire aux Espaces.</p>
+<ol type="1">
+<li>Ouvrez <a href="https://luuma8888.github.io/voti/">Voti</a> dans votre navigateur.</li>
+<li>Depuis <strong>Mes sondages</strong>, choisissez <strong>Espaces &amp; groupes</strong> pour gérer un Espace, ou <strong>Présenter ma Carte Voti</strong> pour participer.</li>
+<li>Avec un accès de gestion enregistré, choisissez <strong>Mes Espaces → Ouvrir</strong> sur votre Espace.</li>
+</ol>
+<p><strong>Résultat :</strong> l’Espace s’ouvre avec vos permissions. Sans accès enregistré, créez un Espace ou importez l’accès reçu, au <a href="#espace">chapitre 3</a>.</p>
+<blockquote class="notice info">
+<p><strong>À savoir — Le Mode libre</strong> Le bouton <strong>Nouveau sondage</strong> de l’accueil général concerne le Mode libre. Pour créer dans un Espace, ouvrez cet Espace puis <strong>Sondages</strong>. Ce guide décrit ce parcours ; les accès et sauvegardes du Mode libre sont différents.</p>
+</blockquote>
+<h3 id="s1-comprendre-lorganisation">S1 — Comprendre l’organisation</h3>
+<figure class="diagram schema-1"><img src="diagrams/S1.svg" alt="Schéma S1"></figure><p>Un Espace rassemble personnes et sondages. Une Carte appartient à un membre. Un membre peut appartenir à plusieurs groupes. Un sondage peut cibler ces groupes ou tout l’Espace ; viennent ensuite la participation et les résultats.</p>
+<h2 id="roles">2. Comprendre son rôle</h2>
+<p><strong>Un rôle Voti décrit ce que la personne peut faire dans l’application. Il ne dépend ni de son âge ni de son métier.</strong> Un Participant peut être enfant, adolescent ou adulte.</p>
+<h3 id="s3-trois-rôles-trois-permissions">S3 — Trois rôles, trois permissions</h3>
+<figure class="diagram schema-3"><img src="diagrams/S3.svg" alt="Schéma S3"></figure><ul>
+<li><strong>Administrateur :</strong> gère l’Espace, les membres, les groupes, les Cartes et les accès. Il peut aussi créer et gérer les sondages.</li>
+<li><strong>Créateur :</strong> crée et suit les sondages dans le périmètre qui lui est autorisé. Il ne reçoit pas automatiquement les droits de gestion des membres ou des accès.</li>
+<li><strong>Participant :</strong> utilise sa Carte Voti pour répondre aux sondages auxquels il peut participer et consulter les résultats autorisés.</li>
+</ul>
+<p><strong>Ne confondez pas les accès :</strong> le fichier de gestion donne les droits Administrateur/Créateur ; la Carte permet de participer, sans administrer. Avec un accès Créateur, importez-le puis passez au <a href="#creer-sondage">chapitre 7</a>. L’Administrateur prépare membres, groupes et Cartes. Avec une Carte seule, allez au <a href="#participer">chapitre 10</a>.</p>
+<h2 id="espace">3. Créer ou retrouver un Espace</h2>
+<h3 id="p03">P03 · Créer un Espace</h3>
+<p><strong>Rôle obtenu : Administrateur.</strong> Prévoyez Internet et un endroit privé pour conserver l’accès.</p>
+<ol type="1">
+<li>Dans <strong>Espaces &amp; groupes</strong>, dépliez <strong>Créer un Espace</strong>.</li>
+<li>Saisissez <strong>Nom de l’Espace</strong>, puis <strong>Créer un Espace</strong>. Effectuez la vérification humaine si elle est demandée.</li>
+<li>Dans le nouvel Espace, conservez votre accès avec P05.</li>
+</ol>
+<p><strong>Résultat :</strong> l’Aperçu s’ouvre ; membres et sondages restent à préparer.</p>
+<h3 id="p04">P04 · Importer un accès et retrouver son Espace</h3>
+<p><strong>Administrateur ou Créateur, fichier d’accès valide reçu en privé.</strong></p>
+<ol type="1">
+<li>Ouvrez <strong>Espaces &amp; groupes</strong>.</li>
+<li>Sous <strong>Importer un accès SECRET à un Espace</strong>, choisissez <strong>Choisir un fichier</strong>, puis votre fichier d’accès de gestion.</li>
+<li>Si un remplacement d’accès est proposé, vérifiez rôle et périmètre avant confirmation.</li>
+</ol>
+<p><strong>Résultat :</strong> l’accès vérifié ouvre l’Espace. Lors d’une prochaine visite, utilisez <strong>Mes Espaces → Ouvrir</strong>.</p>
+<figure class="screenshot cap-02" data-capture="C02">
+<img src="../guide-assets/02-mes-espaces.png" alt="C02 — Mes Espaces, ouverture et import d’un accès." loading="eager">
+<figcaption><em>Ouvrir retrouve l’Espace ; l’import ajoute sur cet appareil l’accès reçu.</em></figcaption>
+</figure>
+<h3 id="p05">P05 · Conserver son accès de gestion</h3>
+<p><strong>Administrateur ou Créateur, Espace accessible.</strong> Ouvrez <strong>Réglages → Exporter mon accès SECRET</strong>. Gardez le fichier dans un emplacement privé : il permettra l’import sur un autre appareil, mais ne sauvegarde pas toutes les données. Ne le distribuez pas aux Participants comme une Carte.</p>
+<h3 id="parcourir-lespace">Parcourir l’Espace</h3>
+<p><strong>Aperçu</strong> donne les repères ; <strong>Sondages</strong> rassemble les sondages. L’Administrateur accède aussi à <strong>Membres</strong>, <strong>Groupes</strong>, <strong>Invitations</strong> et <strong>Accès</strong>. Le Créateur voit les sections et groupes autorisés. <strong>Réglages</strong> permet d’exporter son accès.</p>
+<h2 id="groupes">4. Préparer les groupes</h2>
+<h3 id="p09">P09 · Créer un groupe</h3>
+<p><strong>Administrateur, Espace actif.</strong></p>
+<ol type="1">
+<li>Ouvrez <strong>Groupes → Nouveau groupe</strong>.</li>
+<li>Saisissez le nom, par exemple « Soleil ».</li>
+<li>Choisissez une illustration si vous le souhaitez, puis <strong>Créer le groupe</strong>.</li>
+</ol>
+<p><strong>Résultat :</strong> le groupe apparaît dans la liste. Pour lui associer des membres, utilisez leurs fiches : il n’existe pas d’étape « ajouter un membre » depuis la fiche du groupe.</p>
+<h3 id="p10">P10 · Modifier un groupe</h3>
+<p><strong>Administrateur, groupe actif.</strong> Ouvrez <strong>Groupes → Gérer</strong>. Modifiez le nom ou <strong>Changer l’illustration</strong>, puis <strong>Enregistrer</strong>. Attendez la confirmation. <strong>Annuler</strong> restaure les valeurs enregistrées. Renommer ne change pas les affiliations.</p>
+<h3 id="p15">P15 · Choisir Liste ou Vignettes</h3>
+<p>Dans une section accessible, choisissez <strong>Liste</strong> pour une vue compacte, ou <strong>Vignettes</strong> pour les illustrations. La préférence reste sur l’appareil, séparément pour Membres et Groupes. Les données et permissions ne changent pas.</p>
+<h2 id="membres">5. Créer et modifier les membres</h2>
+<h3 id="p12">P12 · Créer un membre et sa Carte</h3>
+<p><strong>Administrateur.</strong> Préparez d’abord les groupes utiles.</p>
+<ol type="1">
+<li>Ouvrez <strong>Membres → Ajouter un membre</strong>.</li>
+<li>Saisissez le <strong>Nom ou pseudonyme du nouveau membre</strong>, par exemple « Soleil A ».</li>
+<li>Cochez ses groupes. Un membre peut en avoir plusieurs ou aucun.</li>
+<li>Choisissez éventuellement une illustration, puis <strong>Créer le membre et sa carte</strong>.</li>
+<li>Téléchargez la Carte qui apparaît, selon P16.</li>
+</ol>
+<p><strong>Résultat :</strong> le membre existe et sa Carte est déjà active. Aucune activation supplémentaire n’est nécessaire.</p>
+<figure class="screenshot cap-06" data-capture="C06">
+<img src="../guide-assets/06-nouveau-membre.png" alt="C06 — Préparer Soleil A avant de créer le membre et sa Carte." loading="eager">
+<figcaption><em>Nom, illustration facultative et groupes sont réunis sur le même écran.</em></figcaption>
+</figure>
+<h3 id="p13">P13 · Modifier un membre ou ses groupes</h3>
+<p><strong>Administrateur, membre actif.</strong></p>
+<ol type="1">
+<li>Dans <strong>Membres</strong>, choisissez <strong>Voir</strong> sur la bonne personne.</li>
+<li>Modifiez nom, illustration ou cases de groupes.</li>
+<li>Dans <strong>Modifications non enregistrées</strong>, choisissez <strong>Enregistrer</strong> et attendez la confirmation. <strong>Annuler</strong> restaure les valeurs précédentes.</li>
+</ol>
+<p>La barre reste accessible pendant le défilement ; sur téléphone, elle est en bas. Les affiliations enregistrées servent aux prochains sondages : elles ne changent pas les personnes déjà retenues pour un sondage publié.</p>
+<h3 id="p14">P14 · Choisir une illustration</h3>
+<p><strong>Administrateur, création ou fiche modifiable.</strong></p>
+<ol type="1">
+<li>Choisissez <strong>Choisir une illustration</strong> ou <strong>Changer l’illustration</strong>.</li>
+<li>Pour un membre, filtrez si utile par <strong>Tous</strong>, <strong>Créatures</strong>, <strong>Enfants</strong> ou <strong>Adultes</strong>. Ce sont des catégories de dessins, pas des rôles.</li>
+<li>Sélectionnez une vignette et vérifiez l’aperçu ; les contrôles sont aussi utilisables au clavier. Sur téléphone, touchez la vignette.</li>
+<li>Choisissez <strong>Valider mon choix</strong>, puis enregistrez la fiche ou terminez la création.</li>
+</ol>
+<p><strong>Aucune illustration</strong> enlève le visuel. Voti propose uniquement les dessins intégrés : aucune photo personnelle n’est importable ici.</p>
+<h2 id="cartes">6. Télécharger et gérer les Cartes Voti</h2>
+<p>Une Carte Voti correspond à un membre et permet de participer en son nom. Son QR est un accès personnel : une personne qui en possède une copie peut l’utiliser. Ce n’est ni un accès de gestion, ni le QR d’un sondage.</p>
+<h3 id="p16">P16 · Télécharger, imprimer et remettre une Carte</h3>
+<p><strong>Administrateur, Carte encore disponible dans la session.</strong></p>
+<ol type="1">
+<li>Dans <strong>Carte Voti créée</strong>, vérifiez pseudonyme, Espace et groupes.</li>
+<li>Choisissez <strong>Voti Pop</strong>, <strong>Nature</strong>, <strong>Douceur</strong>, <strong>Nuit</strong> ou <strong>Minimal</strong>. Les options d’illustration et de fond sont graphiques, sans effet sur les droits.</li>
+<li>Choisissez <strong>Télécharger cette carte (PDF SECRET)</strong> et imprimez si nécessaire. Le QR entier doit rester net et non coupé.</li>
+<li>Remettez la Carte à son titulaire ; gardez les copies privées.</li>
+</ol>
+<figure class="screenshot cap-14" data-capture="C14">
+<img src="crops/14-carte-exemple.png" alt="C14 — Aperçu individuel, thèmes, fond et téléchargement." loading="eager">
+<figcaption><em>Le QR du guide est masqué ; seule la véritable Carte permet de participer.</em></figcaption>
+</figure>
+<h3 id="p17">P17 · Retrouver le lot de cette session</h3>
+<p><strong>Administrateur, au moins une Carte exportable dans l’onglet.</strong></p>
+<ol type="1">
+<li>Dans <strong>Membres</strong>, ouvrez <strong>Cartes disponibles dans cette session</strong>.</li>
+<li>Utilisez <strong>Voir les cartes</strong> ou <strong>PDF des … cartes</strong>. Choisissez thème et fond avant l’export.</li>
+<li>Après conservation des fichiers, <strong>Effacer de cette session</strong> oublie ce lot, après confirmation.</li>
+</ol>
+<blockquote class="notice info">
+<p><strong>À savoir — Lot temporaire</strong> Naviguer dans l’Espace conserve le lot. Recharger ou fermer l’onglet le fait disparaître : téléchargez les PDF avant. Effacer la session <strong>ne révoque pas</strong> les exemplaires déjà téléchargés ou imprimés.</p>
+</blockquote>
+<h3 id="p18">P18 · Créer ou remplacer plusieurs Cartes</h3>
+<p><strong>Administrateur, membres actifs à sélectionner.</strong></p>
+<ol type="1">
+<li>Dans <strong>Membres</strong>, choisissez <strong>Gérer les cartes</strong>.</li>
+<li>Cochez uniquement les membres concernés, ou utilisez <strong>Tout sélectionner</strong> / <strong>Tout désélectionner</strong>. La sélection reste présente en passant de Liste à Vignettes.</li>
+<li>Choisissez <strong>Créer / remplacer … cartes</strong> et lisez la confirmation.</li>
+<li>Confirmez seulement après avoir vérifié les personnes et les remplacements annoncés.</li>
+<li>Lisez le bilan, puis téléchargez le PDF du nouveau lot.</li>
+</ol>
+<figure class="screenshot cap-16" data-capture="C16">
+<img src="../guide-assets/16-gerer-cartes-liste.png" alt="C16 — Sélectionner Soleil B et Soleil C, sans modifier les autres membres." loading="eager">
+<figcaption><em>Les cases cochées définissent les Cartes qui seront créées ou remplacées.</em></figcaption>
+</figure>
+<blockquote class="notice attention">
+<p><strong>Attention — Les anciennes Cartes seront invalidées</strong> Pour chaque membre sélectionné, une nouvelle Carte est émise. S’il en avait déjà une, l’ancienne ne fonctionne plus. Les membres non sélectionnés ne changent pas. Cette opération n’est pas une simple réimpression.</p>
+</blockquote>
+<p>Le <strong>PDF de ces … cartes</strong> contient le nouveau lot. Le <strong>PDF des … cartes</strong> contient l’ensemble disponible dans la session. Une nouvelle Carte s’ajoute au lot ; remplacer celle d’un membre remplace son ancienne entrée.</p>
+<figure class="screenshot cap-19" data-capture="C19">
+<img src="../guide-assets/19-pdf-nouveau-lot-session.png" alt="C19 — Deux nouvelles Cartes, quatre Cartes disponibles dans la session." loading="eager">
+<figcaption><em>Les deux boutons PDF correspondent à des ensembles différents.</em></figcaption>
+</figure>
+<p>Si le lot est interrompu, conservez le PDF des réussites et lisez les nombres <strong>échecs</strong>, <strong>à vérifier</strong> et <strong>non traitées</strong>. Si <strong>Vérifier les cartes</strong> apparaît, utilisez-le avant de relancer une émission incertaine. N’en déduisez pas que toute la sélection a réussi, ni que toute l’opération a été annulée.</p>
+<h3 id="p19">P19 · Remplacer ou révoquer une seule Carte</h3>
+<p><strong>Administrateur, fiche du bon membre ouverte avec Voir.</strong> Regardez aussi dans <strong>Actions à utiliser avec précaution</strong>.</p>
+<ul>
+<li><strong>Remplacer :</strong> choisissez <strong>Régénérer la carte</strong>, confirmez <strong>Régénérer</strong>, puis téléchargez la nouvelle Carte.</li>
+<li><strong>Révoquer :</strong> choisissez <strong>Révoquer la carte</strong>, puis confirmez. Aucune nouvelle Carte n’est émise ; une régénération reste possible pour ce membre actif.</li>
+</ul>
+<blockquote class="notice attention">
+<p><strong>Attention — Trois actions différentes</strong> Remplacer invalide l’ancienne Carte et en fournit une nouvelle. Révoquer coupe son accès sans fournir de Carte. Réimprimer utilise un PDF conservé sans changer sa validité. Les votes passés restent ; aucun second vote n’est donné au membre.</p>
+</blockquote>
+<p>Le serveur ne permet pas de reconstituer une Carte perdue. Sans PDF conservé ni lot temporaire, il faut la remplacer.</p>
+<h2 id="creer-sondage">7. Créer un sondage dans l’Espace</h2>
+<p><strong>Administrateur ou Créateur autorisé, membres et groupes prêts.</strong></p>
+<p>Ouvrez l’Espace puis <strong>Sondages → Nouveau sondage</strong>. Express, Guidée et Réglages avancés proposent le même fonctionnement avec un accompagnement différent. Aucune présentation n’est meilleure pour tout le monde. Toutes créent un <strong>brouillon</strong>, pas un vote ouvert.</p>
+<h3 id="p23">P23 · Créer un brouillon Express</h3>
+<ol type="1">
+<li>Choisissez <strong>Création express</strong>.</li>
+<li>Saisissez la question « Quelle activité vendredi ? » et les réponses Parc, Cinéma, Jeux. Vous pouvez proposer de <strong>2 à 6 réponses</strong>.</li>
+<li>Pour <strong>Qui peut participer ?</strong>, choisissez <strong>Certains groupes</strong>, puis <strong>Soleil</strong>. Vérifiez que <strong>3 membres concernés</strong> est indiqué.</li>
+<li>Lisez les réglages recommandés, puis choisissez <strong>Créer le brouillon</strong>.</li>
+</ol>
+<p><strong>Résultat :</strong> la gestion du brouillon s’ouvre. Express propose un vote <strong>anonyme</strong>, <strong>sans commentaire</strong>, avec résultats pour les membres concernés après le minimum requis. Pour les trois membres de Soleil, la recommandation est <strong>2</strong>. Vous pourrez ajuster les réglages sur cet écran de gestion, avant publication.</p>
+<figure class="screenshot cap-22 mobile" data-capture="C22">
+<img src="../guide-assets/22-express-audience.png" alt="C22 — Audience et note des réglages Express, sur téléphone." loading="eager">
+<figcaption><em>Express annonce les réglages appliqués et la possibilité de les ajuster ensuite.</em></figcaption>
+</figure>
+<h3 id="p24">P24 · Créer un brouillon Guidé</h3>
+<p>Choisissez <strong>Création guidée</strong>, puis avancez avec <strong>Continuer</strong> :</p>
+<ol type="1">
+<li><strong>Ta question :</strong> saisissez « Quelle activité vendredi ? ».</li>
+<li><strong>Tes réponses :</strong> saisissez Parc, Cinéma et Jeux ; ajoutez, retirez ou ordonnez les réponses si nécessaire.</li>
+<li><strong>Qui peut participer ? :</strong> sélectionnez <strong>Certains groupes → Soleil</strong> ; vérifiez les trois membres concernés.</li>
+<li><strong>Comment participer ? :</strong> choisissez <strong>Anonyme</strong> et <strong>Vote simple</strong> pour notre exemple.</li>
+<li><strong>Quand montrer les résultats ? :</strong> choisissez <strong>Quand tout le monde a répondu ou que je ferme le sondage</strong>. Conservez le minimum 2 et les membres concernés comme personnes pouvant voir les résultats.</li>
+<li><strong>Vérifie ton sondage :</strong> relisez le résumé. Les boutons <strong>Modifier</strong> ramènent au réglage correspondant. Choisissez ensuite <strong>Créer le brouillon</strong>.</li>
+</ol>
+<p><strong>Résultat :</strong> le brouillon est enregistré avec vos choix. Dans cet exemple Guidé, les résultats attendront tous les participants ou la fermeture, même avec deux votes. Il s’agit d’un sondage distinct de l’exemple Express.</p>
+<figure class="screenshot cap-27" data-capture="C27">
+<img src="../guide-assets/27-guidee-resultats.png" alt="C27 — Règle, minimum et personnes autorisées sont trois réglages distincts." loading="eager">
+<figcaption><em>La règle « tout le monde ou fermeture » conserve un minimum de confidentialité.</em></figcaption>
+</figure>
+<h3 id="p25">P25 · Utiliser Réglages avancés</h3>
+<p>Choisissez <strong>Réglages avancés</strong>. Renseignez question, réponses, audience, participation, commentaires et résultats ; relisez puis <strong>Créer le brouillon</strong>.</p>
+<p>Visiter une autre présentation conserve les saisies. Soumettre <strong>en Express</strong> applique cependant ses réglages recommandés de participation et résultats. Pour garder vos choix détaillés, soumettez en Guidée/Avancé, ou ajustez le brouillon.</p>
+<h3 id="comprendre-le-minimum-recommandé">Comprendre le minimum recommandé</h3>
+<p>Voti propose <strong>25 % des personnes pouvant participer, arrondi au supérieur, avec un minimum recommandé de 2</strong>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Personnes concernées</th>
+<th>Minimum recommandé</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>3</td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td>9</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<p>Un membre appartenant à plusieurs groupes sélectionnés ne compte qu’une fois. La proposition s’adapte à l’audience tant que vous ne l’avez pas personnalisée. Une valeur saisie manuellement est conservée quand les groupes changent. <strong>Utiliser la recommandation</strong> permet de revenir au calcul automatique. À la réouverture d’un brouillon, Voti préserve prudemment la valeur enregistrée.</p>
+<blockquote class="notice info">
+<p><strong>À savoir — Minimum et résultats</strong> Le minimum est une recommandation ajustable avant publication. Une fois enregistré pour le sondage, il reste une condition de disponibilité des résultats. Il aide à protéger la confidentialité des petits résultats, mais l’atteindre ne suffit pas toujours : la règle choisie compte aussi.</p>
+</blockquote>
+<p>Pour zéro ou une personne éligible, la recommandation reste 2. Cette audience ne peut donc pas l’atteindre, même après fermeture. Vérifiez les membres et les groupes avant publication ; Voti ne réduit pas automatiquement la recommandation à 1.</p>
+<h2 id="modifier">8. Modifier et enregistrer un sondage</h2>
+<h3 id="p26">P26 · Ajuster un sondage encore modifiable</h3>
+<p><strong>Administrateur ou Créateur autorisé, brouillon ou sondage ouvert sans vote.</strong></p>
+<ol type="1">
+<li>Dans <strong>Sondages → Gérer</strong>, lisez l’état et le résumé, puis dépliez <strong>Modifier le sondage</strong>, fermé par défaut.</li>
+<li>Dans <strong>L’essentiel</strong>, ajustez question, description ou réponses. L’audience n’est modifiable que dans le brouillon.</li>
+<li>Dépliez <strong>Participation et résultats</strong> pour <strong>Affiner les réglages</strong>.</li>
+<li>Dans la barre des modifications, choisissez <strong>Enregistrer les règles</strong>. Attendez <strong>Modifications enregistrées.</strong></li>
+</ol>
+<figure class="screenshot cap-30" data-capture="C30">
+<img src="crops/30-editer-sondage-reglages.png" alt="Barre des modifications non enregistrées : Annuler et Enregistrer les règles." loading="eager">
+<figcaption><em>La barre de sauvegarde reste accessible pendant le défilement.</em></figcaption>
+</figure>
+<p><strong>Annuler</strong> restaure les valeurs enregistrées. Avant de partir sans sauvegarder, Voti propose de continuer l’édition ou d’abandonner. En cas d’erreur, gardez la saisie, vérifiez la connexion et réessayez ; attendez une confirmation de succès.</p>
+<table>
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>État</th>
+<th>Ce qui peut changer</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Brouillon</td>
+<td>Contenu, audience et réglages autorisés</td>
+</tr>
+<tr class="even">
+<td>Ouvert, aucun vote</td>
+<td>Contenu et réglages autorisés ; personnes retenues à publication inchangées</td>
+</tr>
+<tr class="odd">
+<td>Premier vote reçu</td>
+<td>Question, réponses et règles verrouillées ; apparence distincte</td>
+</tr>
+<tr class="even">
+<td>Fermé</td>
+<td>Plus de vote ni d’édition du fond ; apparence encore accessible</td>
+</tr>
+</tbody>
+</table>
+<h2 id="publier">9. Publier et partager</h2>
+<h3 id="p27">P27 · Publier pour les membres</h3>
+<p><strong>Administrateur ou Créateur autorisé, brouillon vérifié.</strong></p>
+<ol type="1">
+<li>Ouvrez <strong>Gérer</strong> et relisez le résumé : question, réponses, groupes, participation, règle de résultats et minimum.</li>
+<li>Vérifiez que les bons membres sont actifs et dans les bons groupes.</li>
+<li>Choisissez <strong>Publier pour les membres</strong>.</li>
+</ol>
+<p><strong>Résultat :</strong> le sondage passe à <strong>Ouvert</strong> ; le suivi des participations apparaît. Créer ou enregistrer le brouillon n’avait pas encore ouvert le vote.</p>
+<figure class="screenshot cap-29" data-capture="C29">
+<img src="../guide-assets/29-brouillon-gestion.png" alt="C29 — Un brouillon n’accepte pas encore de votes." loading="eager">
+<figcaption><em>Publier ouvre le sondage ; abandonner supprime ce brouillon non publié.</em></figcaption>
+</figure>
+<blockquote class="notice info">
+<p><strong>À savoir — Les personnes retenues au moment de la publication</strong> Voti fixe alors les membres pouvant participer. Modifier ensuite leurs groupes n’ajoute ni ne retire rétroactivement des personnes de cette audience. Publier fixe cette liste ; le premier vote verrouille ensuite le contenu et les règles.</p>
+</blockquote>
+<h3 id="p28">P28 · Partager le bon accès au sondage</h3>
+<p><strong>Administrateur ou Créateur autorisé, sondage publié.</strong></p>
+<ol type="1">
+<li>Choisissez <strong>QR &amp; partager le sondage</strong> dans la gestion.</li>
+<li>Copiez le lien de vote ou téléchargez le QR. Les entrées <strong>Un QR pour chaque choix</strong>, <strong>QR résultats</strong> et <strong>Créer une affiche PDF</strong> répondent à d’autres besoins.</li>
+<li>Partagez le lien ou l’affiche avec les personnes concernées.</li>
+</ol>
+<p>Le QR du sondage ouvre le parcours ; celui d’une réponse propose un choix à confirmer. Les Participants doivent encore présenter leur Carte. Ne partagez à leur place ni un accès de gestion ni une invitation.</p>
+<h2 id="participer">10. Participer à un sondage</h2>
+<h3 id="s2-du-sondage-au-vote">S2 — Du sondage au vote</h3>
+<figure class="diagram schema-2"><img src="diagrams/S2.svg" alt="Schéma S2"></figure><h3 id="p29">P29 · Présenter sa Carte, choisir et confirmer</h3>
+<p><strong>Participant, Carte active, sondage ouvert et participation autorisée.</strong> Sur un appareil partagé, utilisez un profil sans accès de gestion enregistré.</p>
+<ol type="1">
+<li>Ouvrez le lien ou le QR du sondage, puis <strong>Scanner ma Carte Voti</strong>. Autre entrée : accueil <strong>Présenter ma Carte Voti</strong>, puis <strong>Voter</strong> dans <strong>Mon espace</strong>.</li>
+<li>Choisissez <strong>Scanner avec la caméra</strong>, autorisez-la si demandé et présentez le QR entier. <strong>Choisir un fichier</strong> accepte aussi une photo de votre Carte ; gardez-la privée.</li>
+</ol>
+<ol start="3" type="1" style="counter-reset:list-item 2;">
+<li>Vérifiez <strong>Carte reconnue : …</strong>. Mauvais pseudo ? Ne confirmez pas ; quittez puis présentez votre propre Carte.</li>
+<li>Choisissez une réponse, puis <strong>Continuer</strong>.</li>
+</ol>
+<ol start="5" type="1" style="counter-reset:list-item 4;">
+<li>Vérifiez <strong>Tu choisis : …</strong>. <strong>Autre choix</strong> permet de revenir. Un commentaire facultatif peut être proposé selon le sondage.</li>
+<li>Choisissez <strong>Oui, je confirme</strong>. Attendez <strong>Merci ! Ton vote a bien été enregistré.</strong></li>
+<li>Choisissez <strong>Accueil</strong>, ou <strong>Participant suivant</strong> sur un appareil partagé. Dans Mon espace ou les résultats, <strong>Terminer</strong> quitte la participation.</li>
+</ol>
+<div class="screen-pair"><figure class="screenshot cap-35 mobile" data-capture="C35">
+<img src="../guide-assets/35-carte-reconnue-choix.png" alt="C35 — Soleil A reconnu, avant tout vote." loading="eager">
+<figcaption><em>Présenter sa Carte et choisir une réponse n’envoie pas de vote.</em></figcaption>
+</figure>
+<figure class="screenshot cap-36 mobile" data-capture="C36">
+<img src="../guide-assets/36-confirmer-vote.png" alt="C36 — Vérifier avant d’envoyer." loading="eager">
+<figcaption><em>La confirmation envoie le vote.</em></figcaption>
+</figure>
+</div><p><strong>Résultat :</strong> le vote est enregistré et l’identité temporaire est oubliée au succès. <strong>Terminer</strong> met aussi fin à l’accès temporaire ; la Carte reste valable pour d’autres sondages. Un même membre ne peut pas voter deux fois à ce sondage, même après remplacement de sa Carte. Aucun vote n’est accepté après fermeture.</p>
+<h2 id="suivre">11. Suivre les participations et fermer</h2>
+<h3 id="p31">P31 · Lire le suivi</h3>
+<p><strong>Administrateur ou Créateur autorisé.</strong> Dans <strong>Sondages → Gérer</strong>, le haut de page indique <strong>X participations sur Y</strong>. Y est le nombre de personnes retenues à publication, sans recalcul selon les groupes actuels.</p>
+<p>Dans l’exemple Guidé, <strong>2 participations sur 3</strong> atteint le minimum, mais la règle attend la dernière participation ou la fermeture. En anonyme, aucune liste nominative de votants ou non-votants n’est disponible.</p>
+<figure class="screenshot cap-31" data-capture="C31">
+<img src="../guide-assets/31-suivi-attente-resultats.png" alt="C31 — Compteur et raison d’attente dans la gestion." loading="eager">
+<figcaption><em>Le motif près de Résultats indique ce qui manque encore.</em></figcaption>
+</figure>
+<h3 id="p32">P32 · Fermer le sondage</h3>
+<p><strong>Administrateur ou Créateur autorisé, sondage ouvert.</strong></p>
+<ol type="1">
+<li>Dans la gestion, choisissez <strong>Fermer le sondage</strong>.</li>
+<li>Lisez la confirmation, puis confirmez avec <strong>Fermer le sondage</strong>.</li>
+<li>Vérifiez l’état <strong>Fermé</strong> et la disponibilité des résultats.</li>
+</ol>
+<p><strong>Résultat :</strong> plus aucun vote n’est accepté. Les votes déjà reçus sont conservés. Fermer ne supprime pas le sondage et <strong>ne contourne jamais le minimum</strong>.</p>
+<h2 id="resultats">12. Comprendre et consulter les résultats</h2>
+<h3 id="s4-pourquoi-attendre-les-résultats">S4 — Pourquoi attendre les résultats ?</h3>
+<figure class="diagram schema-4"><img src="diagrams/S4.svg" alt="Schéma S4"></figure><p>Si l’une des réponses est non, les résultats ne sont pas accessibles à cette personne. Il faut distinguer <strong>combien de votes</strong>, <strong>à quel moment</strong> et <strong>pour qui</strong>.</p>
+<table>
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Règle choisie</th>
+<th>Condition, en plus du droit de consultation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>À partir du minimum de participations</td>
+<td>Le minimum enregistré est atteint</td>
+</tr>
+<tr class="even">
+<td>Quand tous les membres concernés ont participé</td>
+<td>Tous ont participé <strong>et</strong> le minimum est atteint</td>
+</tr>
+<tr class="odd">
+<td>Quand le sondage est fermé</td>
+<td>Le sondage est fermé <strong>et</strong> le minimum est atteint</td>
+</tr>
+<tr class="even">
+<td>Quand tous ont participé, ou dès la fermeture</td>
+<td>Tous ont participé <strong>ou</strong> le sondage est fermé ; le minimum reste nécessaire</td>
+</tr>
+</tbody>
+</table>
+<p>Le réglage <strong>Administration uniquement</strong> réserve la consultation aux personnes ayant les droits de gestion de ce sondage. Leurs droits ne leur permettent pas de contourner le minimum ni la règle choisie.</p>
+<h3 id="p30">P30 · Lire les résultats</h3>
+<p><strong>Gestion autorisée ; Participant si la consultation lui est ouverte.</strong></p>
+<ol type="1">
+<li>Dans la gestion, lisez <strong>Résultats</strong> et son motif. Choisissez <strong>Voir les résultats</strong> si disponibles, sinon <strong>Comprendre la disponibilité</strong>. Cliquer ne les débloque pas.</li>
+<li>Côté Participant, présentez votre Carte si nécessaire. Dans <strong>Mon espace</strong>, <strong>Résultats disponibles</strong> apparaît quand la consultation est permise.</li>
+<li>Lisez le total et la répartition ; terminez le parcours sur un appareil partagé.</li>
+</ol>
+<p><strong>Guidée :</strong> à 2/3, notre exemple attend. Après fermeture, le minimum étant atteint, les résultats s’ouvrent : <strong>Parc 1, Cinéma 1, Jeux 0</strong>. Le troisième membre peut les consulter s’il y est autorisé, mais ne peut plus voter. <strong>Express :</strong> la règle du minimum seul autorise ici les résultats dès deux votes, même pendant l’ouverture. Ce sont deux sondages distincts.</p>
+<figure class="screenshot cap-33" data-capture="C33">
+<img src="../guide-assets/33-resultats-disponibles.png" alt="C33 — Les deux votes de l’exemple Guidé fermé." loading="eager">
+<figcaption><em>Totaux et pourcentages, sans nom de Participant.</em></figcaption>
+</figure>
+<h3 id="anonyme-ou-identifié-que-voit-la-gestion">Anonyme ou identifié : que voit la gestion ?</h3>
+<ul>
+<li><strong>Anonyme :</strong> la gestion voit le nombre de participations, sans association directe entre un membre et sa réponse, ni liste nominative des votants/non-votants.</li>
+<li><strong>Identifiée avec la Carte Voti :</strong> la gestion autorisée peut relier le membre à sa participation et à sa réponse. Les résultats destinés aux membres ne publient pas ces identités.</li>
+</ul>
+<p>Annoncez ce choix avant de faire participer. Le mode anonyme de Voti ne promet pas un anonymat absolu sur le réseau ou l’infrastructure. Dans un petit groupe, le contexte ou un commentaire peut aussi permettre de reconnaître quelqu’un.</p>
+<h2 id="acces">13. Invitations et accès de gestion</h2>
+<h3 id="p21">P21 · Créer ou fermer une invitation</h3>
+<p><strong>Administrateur.</strong> Une invitation crée un nouveau membre et sa Carte, pas un accès de gestion.</p>
+<ol type="1">
+<li>Ouvrez <strong>Invitations → Nouvelle invitation</strong>.</li>
+<li>Choisissez groupes, maximum d’utilisations et expiration.</li>
+<li>Vérifiez le récapitulatif, puis <strong>Créer une invitation</strong> et confirmez.</li>
+<li>Copiez le lien secret ou téléchargez le QR immédiatement. Il ne pourra plus être réaffiché après avoir quitté cet écran. Partagez-le seulement en privé.</li>
+</ol>
+<p>Pour arrêter les inscriptions, ouvrez l’invitation et <strong>Fermer l’invitation</strong>. Cela ne supprime pas les membres déjà créés. Une invitation expirée ou épuisée ne permet plus de rejoindre l’Espace.</p>
+<h3 id="p22">P22 · Rejoindre avec une invitation</h3>
+<p><strong>Participant, invitation valide reçue en privé.</strong> Ouvrez son lien/QR, renseignez <strong>Ton nom ou pseudonyme</strong>, puis <strong>Créer ma Carte Voti</strong>. Téléchargez immédiatement la Carte ; <strong>Ouvrir Mon espace</strong> mène à la participation.</p>
+<p><strong>Résultat :</strong> un nouveau membre rejoint les groupes prévus. Pour retrouver un membre existant, utilisez sa Carte plutôt qu’une invitation : cela évite un doublon.</p>
+<h3 id="p06">P06 · Déléguer un accès de gestion</h3>
+<p><strong>Administrateur, groupes prêts si périmètre limité.</strong></p>
+<ol type="1">
+<li>Ouvrez <strong>Accès → Créer un accès</strong> ; choisissez <strong>Créateur</strong> ou <strong>Administrateur</strong>.</li>
+<li>Pour un Créateur, cochez les groupes autorisés. Aucun coché signifie tout l’Espace ; l’Administrateur a accès à tout l’Espace.</li>
+<li>Choisissez <strong>Créer un accès de gestion SECRET</strong>. Conservez le fichier téléchargé et transmettez-le en privé. La personne l’importe avec P04.</li>
+</ol>
+<p><strong>Résultat :</strong> elle reçoit les permissions choisies, pas seulement un droit de vote.</p>
+<h3 id="p07">P07 · Révoquer un accès de gestion</h3>
+<p><strong>Administrateur, accès concerné clairement identifié.</strong></p>
+<p>Dans <strong>Accès</strong>, ouvrez sa fiche, choisissez <strong>Révoquer cet accès</strong>, puis confirmez.</p>
+<blockquote class="notice attention">
+<p><strong>Attention — Retrait des droits de gestion</strong> Cet accès ne pourra plus gérer l’Espace. Cela ne supprime ni l’Espace ni ses sondages. Le dernier accès Administrateur est protégé contre la révocation. Vérifiez qu’un accès Administrateur utilisable reste disponible.</p>
+</blockquote>
+<h3 id="p08">P08 · Retirer l’accès de cet appareil</h3>
+<p><strong>Administrateur ou Créateur, fichier exporté et conservé ailleurs.</strong></p>
+<p>Dans <strong>Espaces &amp; groupes → Mes Espaces → Plus d’actions</strong>, choisissez <strong>Retirer cet accès de cet appareil</strong>, puis confirmez <strong>Oublier cet accès</strong>. Cela oublie la copie locale et les Cartes temporaires de cet Espace, sans le supprimer ni révoquer l’accès côté serveur. Pour revenir, importez le fichier P04.</p>
+<h2 id="installer">14. Installer Voti sur son appareil</h2>
+<h3 id="p02">P02 · Installer et lancer Voti</h3>
+<p><strong>Tous les rôles, navigateur compatible et installation autorisée.</strong> Voti fonctionne dans le navigateur. Installer est facultatif : une icône ouvre le même Voti dans une fenêtre dédiée, sans store ni application Android native.</p>
+<ol type="1">
+<li>Ouvrez <a href="https://luuma8888.github.io/voti/">Voti</a>.</li>
+<li>Sur <strong>Android/Chrome</strong>, menu ⋮ → <strong>Installer l’application</strong> ou <strong>Ajouter à l’écran d’accueil</strong>. Sur <strong>Chromebook</strong>, utilisez l’installation dans la barre d’adresse ou le menu Chrome. Sur <strong>ordinateur</strong>, Chrome/Edge peuvent la proposer.</li>
+<li>Confirmez, puis lancez Voti depuis son icône.</li>
+</ol>
+<p><strong>Résultat :</strong> l’accueil s’ouvre dans une fenêtre dédiée. Si l’installation n’est pas proposée, gardez le navigateur. Les libellés varient ; un appareil géré peut nécessiter une autorisation.</p>
+<!-- C39/C40 : vues natives à ajouter ultérieurement si disponibles ; procédure textuelle complète ci-dessus. -->
+<p><strong>Installer ne crée pas un compte, ne transfère pas les accès entre appareils, ne sauvegarde pas les Cartes et ne rend pas les Espaces utilisables hors connexion.</strong> Les mises à jour suivent le site Web. Pour retrouver la version publiée, rechargez ou fermez puis rouvrez l’application, hors vote ou modification en cours et après avoir téléchargé les Cartes temporaires utiles. Un lien reçu peut s’ouvrir dans le navigateur plutôt que la fenêtre installée.</p>
+<h2 id="confidentialite">15. Données, confidentialité et précautions</h2>
+<h3 id="utiliser-des-pseudonymes">Utiliser des pseudonymes</h3>
+<p>Les données des Espaces sont enregistrées en ligne : noms/pseudos, groupes, illustrations choisies et sondages. Les réponses et éventuels commentaires sont conservés avec le sondage. Saisissez seulement ce qui est utile. Un pseudo n’est pas une identité vérifiée ; des doublons restent possibles.</p>
+<h3 id="protéger-les-cartes-voti">Protéger les Cartes Voti</h3>
+<p>PDF, photos et impressions restent privés : une copie du QR permet d’utiliser la Carte. Ne l’envoyez pas dans une demande d’aide publique. En cas de perte ou copie, l’Administrateur peut la remplacer, pas récupérer son secret d’origine.</p>
+<h3 id="protéger-les-accès-de-gestion">Protéger les accès de gestion</h3>
+<p>Le navigateur garde l’accès importé. Protégez appareil et fichiers ; évitez ce profil pour un appareil de vote partagé. <strong>Retirer cet accès de cet appareil</strong> oublie la copie locale ; <strong>Révoquer cet accès</strong> retire les droits côté serveur.</p>
+<h3 id="comprendre-le-mode-anonyme">Comprendre le mode anonyme</h3>
+<p>Le compteur n’offre pas de lien direct nom/réponse. Un nom ou détail dans un commentaire peut pourtant identifier quelqu’un. Expliquez identité, commentaires et résultats avant le vote ; la fermeture ne change pas la confidentialité.</p>
+<h3 id="supprimer-révoquer-et-archiver">Supprimer, révoquer et archiver</h3>
+<p>Révoquer retire un accès sans effacer les votes antérieurs. Archiver arrête des usages actifs en conservant l’historique. Supprimer un sondage efface ses données en ligne, mais pas les PDF/impressions déjà distribués. Voir les actions ci-dessous.</p>
+<h3 id="conserver-les-fichiers-avec-précaution">Conserver les fichiers avec précaution</h3>
+<p>Accès de gestion, Cartes et résultats sont des fichiers distincts. L’export JSON général du Mode libre ne sauvegarde pas Espaces, accès, Cartes ou historique distant. Installer Voti n’est pas une sauvegarde.</p>
+<p>Le brouillon distant d’Espace a une préparation limitée à <strong>24 heures</strong> : ce n’est pas une archive. Un sondage publié/fermé n’expire pas automatiquement ; fermer ne l’efface pas. Les personnes responsables de l’Espace décident de la conservation des données et copies selon leur usage. Ce guide ne fixe pas une durée universelle et ne promet pas l’effacement de toutes les sauvegardes de l’hébergeur.</p>
+<h2 id="avance">16. Actions avancées</h2>
+<h3 id="p33">P33 · Participation identifiée et commentaires</h3>
+<p><strong>Administrateur ou Créateur autorisé, avant verrouillage pour les réglages.</strong> Dans la création ou <strong>Modifier le sondage → Participation et résultats</strong>, choisissez <strong>Anonyme</strong> ou <strong>Identifiée avec la Carte Voti</strong>, puis <strong>Vote simple</strong> ou <strong>Vote + commentaire facultatif</strong>. Enregistrez avant de faire voter.</p>
+<p>Les commentaires <strong>Privés</strong> restent en gestion ; <strong>Approuvés avec les résultats</strong> permet de publier les commentaires approuvés lorsque les résultats sont disponibles. Le commentaire reste facultatif. Évitez les informations personnelles.</p>
+<p>Dans la gestion publiée, ouvrez <strong>Commentaires</strong> ou <strong>Participations &amp; commentaires</strong> :</p>
+<ol type="1">
+<li>Lisez les entrées. Pour un commentaire publiable, <strong>Afficher</strong> approuve, <strong>Masquer</strong> retire de l’affichage. Un commentaire privé n’est pas publiable.</li>
+<li><strong>Supprimer</strong> demande confirmation : seul le commentaire est supprimé, pas le vote. Son texte n’est pas éditable.</li>
+</ol>
+<p>La gestion peut lire les commentaires avant le minimum sans ouvrir les résultats à tous. En identifié, <strong>Suivi des participants</strong> filtre aussi ceux qui ont participé ou restent à relancer ; cette liste n’existe pas en anonyme.</p>
+<h3 id="p34">P34 · Apparence, affiche et export des résultats</h3>
+<p><strong>Administrateur ou Créateur autorisé.</strong></p>
+<ul>
+<li><strong>Apparence du sondage :</strong> ouvrez le bloc dans la gestion, choisissez puis <strong>Enregistrer l’apparence</strong>. Le contenu verrouillé ne change pas.</li>
+<li><strong>Affiche :</strong> <strong>QR &amp; partager le sondage → Créer une affiche PDF</strong> ouvre le Studio. Préparez et vérifiez l’aperçu avant export/impression.</li>
+<li><strong>Résultats disponibles :</strong> ouvrez <strong>Télécharger les résultats en PDF</strong> ; choisissez synthèse ou rapport et les options proposées, puis exportez.</li>
+</ul>
+<p>Les commentaires publiés peuvent être inclus sur option. Les identités sont réservées à la gestion identifiée, sur choix explicite désactivé par défaut. Vérifiez les destinataires : un rapport nominatif n’est ni une synthèse sans identité ni un PDF de Cartes secrètes.</p>
+<h3 id="p11">P11 · Archiver un groupe</h3>
+<p><strong>Administrateur, fiche d’un groupe actif.</strong></p>
+<p>Ouvrez <strong>Groupes → Gérer → Actions à utiliser avec précaution</strong>, choisissez <strong>Archiver le groupe</strong>, puis confirmez. Voti refuse l’archivage si des sondages actifs le bloquent. Les membres et l’historique ne sont pas supprimés ; ce groupe ne sert plus aux usages actifs comme auparavant.</p>
+<h3 id="p20">P20 · Révoquer un membre</h3>
+<p><strong>Administrateur, fiche du membre concerné.</strong></p>
+<p>Ouvrez <strong>Membres → Voir → Actions à utiliser avec précaution</strong>, choisissez <strong>Révoquer le membre</strong>, puis confirmez.</p>
+<blockquote class="notice attention">
+<p><strong>Attention — Retrait de la participation du membre</strong> Sa Carte est invalidée et il ne peut plus participer. Son historique, ses votes antérieurs et les personnes retenues pour les sondages publiés sont conservés. Ce n’est pas une suppression complète de ses données.</p>
+</blockquote>
+<h3 id="p35">P35 · Abandonner ou supprimer un sondage</h3>
+<p><strong>Administrateur ou Créateur autorisé, bon sondage vérifié.</strong></p>
+<ul>
+<li><strong>Brouillon :</strong> dans la gestion, choisissez <strong>Abandonner le brouillon</strong>, puis confirmez <strong>Abandonner</strong>. Le sondage non publié est supprimé.</li>
+<li><strong>Publié ou fermé :</strong> dépliez <strong>Suppression du sondage</strong>. Choisissez <strong>Supprimer en ligne</strong>, ou <strong>Supprimer partout</strong> pour retirer aussi le design de cet appareil. Lisez et confirmez l’action choisie.</li>
+</ul>
+<blockquote class="notice attention">
+<p><strong>Attention — Suppression du sondage</strong> Le sondage, ses votes, commentaires et liens de participation associés sont supprimés en ligne. Cette action est irréversible dans l’interface. Les PDF et impressions déjà diffusés ne sont pas retirés. « Partout » ne signifie pas effacer à distance les fichiers des autres personnes.</p>
+</blockquote>
+<h3 id="p36">P36 · Renommer ou archiver un Espace</h3>
+<p><strong>Administrateur.</strong></p>
+<p>Pour corriger le nom, ouvrez <strong>Réglages</strong>, modifiez <strong>Nom de l’Espace</strong>, puis <strong>Renommer l’Espace</strong>.</p>
+<p>Pour arrêter ses usages actifs, dépliez <strong>Actions à utiliser avec précaution</strong>, choisissez <strong>Archiver l’Espace</strong>, puis confirmez.</p>
+<blockquote class="notice attention">
+<p><strong>Attention — Archivage de l’Espace</strong> Les Cartes et les accès Créateur sont désactivés ; l’Administrateur peut encore consulter l’historique. Ce n’est pas une suppression totale. Cette version ne propose pas de réactivation dans l’interface : n’archivez pas pour faire une pause.</p>
+</blockquote>
+<h2 id="aide">17. Retrouver de l’aide</h2>
+<p>Commencez par relever <strong>l’écran</strong>, <strong>le message affiché</strong> et <strong>votre rôle</strong>. Contactez la personne responsable de votre Espace ou le support Voti s’il vous a été communiqué. N’envoyez pas de Carte, de lien secret ou de fichier d’accès sur un canal public.</p>
+<table>
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Situation</th>
+<th>Première action utile</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Mes Espaces est vide sur un nouvel appareil</td>
+<td>Importer le fichier d’accès de gestion, P04 ; installer Voti ne le transfère pas</td>
+</tr>
+<tr class="even">
+<td>Le fichier d’accès est perdu, mais l’Espace s’ouvre encore</td>
+<td>Exporter l’accès depuis Réglages, P05</td>
+</tr>
+<tr class="odd">
+<td>Le pseudo reconnu n’est pas le bon</td>
+<td>Ne pas confirmer ; quitter puis présenter la bonne Carte, P29</td>
+</tr>
+<tr class="even">
+<td>Le sondage n’apparaît pas pour un membre</td>
+<td>Vérifier publication et personnes retenues ; changer de groupe après publication ne suffit pas</td>
+</tr>
+<tr class="odd">
+<td>Résultats indisponibles</td>
+<td>Lire le motif ; distinguer minimum, règle et personnes autorisées, P30</td>
+</tr>
+<tr class="even">
+<td>La saisie n’est pas enregistrée</td>
+<td>Utiliser la barre Enregistrer et attendre la confirmation, P26/P13</td>
+</tr>
+<tr class="odd">
+<td>Le lot de Cartes a disparu après rechargement</td>
+<td>Retrouver un PDF conservé ou remplacer les Cartes nécessaires, P17/P19</td>
+</tr>
+<tr class="even">
+<td>Installation absente</td>
+<td>Continuer dans le navigateur, P02</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Limites de récupération :</strong> il n’existe pas de récupération automatique par courriel. Si tous les accès de gestion sont perdus, une procédure d’intervention extérieure n’est pas définie dans l’application. Ne recréez pas un Espace en pensant retrouver ses données. Une Carte peut être remplacée, mais pas reconstituée depuis son secret serveur ; un Espace archivé n’a pas de restauration documentée par l’interface.</p>
+</main></body></html>

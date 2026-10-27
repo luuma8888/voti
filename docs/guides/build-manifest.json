@@ -1,0 +1,391 @@
+{
+  "reference": "601aeb04c171fae6b4f4928d694f9ce8c4ddf190",
+  "date": "26 octobre 2026",
+  "tools": {
+    "weasyprint": "62.3",
+    "pypdf": "5.4.0",
+    "pandoc": "pandoc 3.1.11.1"
+  },
+  "documents": [
+    {
+      "source": "VOTI_DEMARRAGE_RAPIDE.md",
+      "sourceSha256": "340c0c53821e0997b62a8b26277a6b14ddeb5b776f9f3b7809fcfe04f4a452c2",
+      "images": [
+        {
+          "path": "diagrams/S1.svg",
+          "sha256": "8fbd562979a1ae979b28947acaa360e70ea7c10ee2772ee02c25d3409b557ce1"
+        },
+        {
+          "path": "crops/14-carte-exemple.png",
+          "sha256": "250ed476b99124c51fa385e1a648fb4abaf5be7841a061eb0810f747ede5abcd"
+        },
+        {
+          "path": "crops/31-suivi-attente-resultats.png",
+          "sha256": "0a090543063a9bd4da0734775320fdcca6edbb57f96abf723efd13fb17ae4c62"
+        },
+        {
+          "path": "../guide-assets/35-carte-reconnue-choix.png",
+          "sha256": "93b8a4c4b2ce8392145ab423257e23ef5feeba4c8c3dc316445eddc0b1b7ea0c"
+        },
+        {
+          "path": "../guide-assets/36-confirmer-vote.png",
+          "sha256": "449403cb8099b9488fb9cf457063bbe36d1abd6372de0a9f26595854b6ec1d72"
+        }
+      ],
+      "name": "VOTI_DEMARRAGE_RAPIDE",
+      "title": "Démarrage rapide Voti",
+      "pages": 4,
+      "bytes": 332990,
+      "sha256": "0ea1eb6392cb44b0e6e84278b0ec2b1511c56a89e95143f5ca7918c6d0e9c329",
+      "layout": [
+        {
+          "page": 1,
+          "captures": []
+        },
+        {
+          "page": 2,
+          "captures": [
+            {
+              "id": "C14",
+              "x": 385.1,
+              "y": 615.1,
+              "w": 325.0,
+              "h": 278.0
+            }
+          ]
+        },
+        {
+          "page": 3,
+          "captures": [
+            {
+              "id": "C31",
+              "x": 79.8,
+              "y": 795.2,
+              "w": 634.1,
+              "h": 183.5
+            }
+          ]
+        },
+        {
+          "page": 4,
+          "captures": [
+            {
+              "id": "C35",
+              "x": 113.8,
+              "y": 378.8,
+              "w": 207.9,
+              "h": 256.7
+            },
+            {
+              "id": "C36",
+              "x": 340.6,
+              "y": 487.8,
+              "w": 241.9,
+              "h": 172.9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "VOTI_GUIDE.md",
+      "sourceSha256": "14ad17eb1979b36727749fd7f9aa94281d693f040db106ca217db08f33d05503",
+      "images": [
+        {
+          "path": "diagrams/S1.svg",
+          "sha256": "8fbd562979a1ae979b28947acaa360e70ea7c10ee2772ee02c25d3409b557ce1"
+        },
+        {
+          "path": "diagrams/S3.svg",
+          "sha256": "4427ea80690e07d5e210a97e11079e05b2e9eb74b906bc52de514e25e25939b0"
+        },
+        {
+          "path": "../guide-assets/02-mes-espaces.png",
+          "sha256": "f21e44f5bb833fcc79de9543d622c9e4854440fbdc1b4e276ab0ba41a6d82503"
+        },
+        {
+          "path": "../guide-assets/06-nouveau-membre.png",
+          "sha256": "68ba6316da1005e5c932dc70df4ed59673d27be66fc44514db3297af08ec2da2"
+        },
+        {
+          "path": "crops/14-carte-exemple.png",
+          "sha256": "250ed476b99124c51fa385e1a648fb4abaf5be7841a061eb0810f747ede5abcd"
+        },
+        {
+          "path": "../guide-assets/16-gerer-cartes-liste.png",
+          "sha256": "57ba776e03d0df8385bc7b0fe1eb5735667f0f3f1276a70097982c32e262b499"
+        },
+        {
+          "path": "../guide-assets/19-pdf-nouveau-lot-session.png",
+          "sha256": "bfe069f5fd18765c5a8e49747a66d8cbb2ada251c281b7d99794078b66b4f8c2"
+        },
+        {
+          "path": "../guide-assets/22-express-audience.png",
+          "sha256": "7faff9333e10bf0c0c6a288dcf7e6af9bd16c0d15d819d47e69ebd3253d267c6"
+        },
+        {
+          "path": "../guide-assets/27-guidee-resultats.png",
+          "sha256": "7fc321b23d6a5f764409bb4276d5bde02755a0d5e2bd7241bbf78f6004c4e8f3"
+        },
+        {
+          "path": "crops/30-editer-sondage-reglages.png",
+          "sha256": "e5c7ca0c8040166d621cf3c1d4fa38e2dbebe6a6ffeccf58b6a366de82462e35"
+        },
+        {
+          "path": "../guide-assets/29-brouillon-gestion.png",
+          "sha256": "2d332aa3801f26101ccb304c10c91a65453a842e78fb3dd04db5780a57b0baf0"
+        },
+        {
+          "path": "diagrams/S2.svg",
+          "sha256": "588168e811e40f336c2147527b975025b30b6c7d3a8e543bf092f2eb9518fecc"
+        },
+        {
+          "path": "../guide-assets/35-carte-reconnue-choix.png",
+          "sha256": "93b8a4c4b2ce8392145ab423257e23ef5feeba4c8c3dc316445eddc0b1b7ea0c"
+        },
+        {
+          "path": "../guide-assets/36-confirmer-vote.png",
+          "sha256": "449403cb8099b9488fb9cf457063bbe36d1abd6372de0a9f26595854b6ec1d72"
+        },
+        {
+          "path": "../guide-assets/31-suivi-attente-resultats.png",
+          "sha256": "a1f0a3f0fc54b986dffe4f99336bf5c0074b81fd294b732cc47782d02e746fc5"
+        },
+        {
+          "path": "diagrams/S4.svg",
+          "sha256": "1aa5b01ceb3a8d545b1aeb6df336403177d2e45ce91d9cc94835d9a8e7e267ec"
+        },
+        {
+          "path": "../guide-assets/33-resultats-disponibles.png",
+          "sha256": "3432445e19ab99f011d1a45463a5e2bdbf3f380bf938e9d1fa9d32747c05e529"
+        }
+      ],
+      "name": "VOTI_GUIDE",
+      "title": "Guide Voti — Comprendre et utiliser",
+      "pages": 21,
+      "bytes": 860659,
+      "sha256": "cb84094c3f9278e1a212529a46f0a23a61c3264a639d2c87be33caa2285b9f9f",
+      "layout": [
+        {
+          "page": 1,
+          "captures": []
+        },
+        {
+          "page": 2,
+          "captures": []
+        },
+        {
+          "page": 3,
+          "captures": []
+        },
+        {
+          "page": 4,
+          "captures": [
+            {
+              "id": "C02",
+              "x": 72.3,
+              "y": 60.5,
+              "w": 649.2,
+              "h": 296.1
+            }
+          ]
+        },
+        {
+          "page": 5,
+          "captures": [
+            {
+              "id": "C06",
+              "x": 72.3,
+              "y": 312.0,
+              "w": 649.2,
+              "h": 545.4
+            }
+          ]
+        },
+        {
+          "page": 6,
+          "captures": [
+            {
+              "id": "C14",
+              "x": 72.3,
+              "y": 656.8,
+              "w": 649.2,
+              "h": 362.3
+            }
+          ]
+        },
+        {
+          "page": 7,
+          "captures": [
+            {
+              "id": "C16",
+              "x": 72.3,
+              "y": 529.2,
+              "w": 649.2,
+              "h": 440.4
+            }
+          ]
+        },
+        {
+          "page": 8,
+          "captures": [
+            {
+              "id": "C19",
+              "x": 72.3,
+              "y": 235.1,
+              "w": 649.2,
+              "h": 303.5
+            }
+          ]
+        },
+        {
+          "page": 9,
+          "captures": [
+            {
+              "id": "C22",
+              "x": 72.3,
+              "y": 387.1,
+              "w": 649.2,
+              "h": 421.1
+            }
+          ]
+        },
+        {
+          "page": 10,
+          "captures": [
+            {
+              "id": "C27",
+              "x": 72.3,
+              "y": 227.7,
+              "w": 649.2,
+              "h": 572.3
+            }
+          ]
+        },
+        {
+          "page": 11,
+          "captures": [
+            {
+              "id": "C30",
+              "x": 72.3,
+              "y": 769.2,
+              "w": 649.2,
+              "h": 84.0
+            }
+          ]
+        },
+        {
+          "page": 12,
+          "captures": [
+            {
+              "id": "C29",
+              "x": 72.3,
+              "y": 533.2,
+              "w": 649.2,
+              "h": 357.2
+            }
+          ]
+        },
+        {
+          "page": 13,
+          "captures": []
+        },
+        {
+          "page": 14,
+          "captures": [
+            {
+              "id": "C35",
+              "x": 72.3,
+              "y": 60.5,
+              "w": 302.4,
+              "h": 380.3
+            },
+            {
+              "id": "C36",
+              "x": 396.9,
+              "y": 60.5,
+              "w": 302.4,
+              "h": 191.1
+            }
+          ]
+        },
+        {
+          "page": 15,
+          "captures": [
+            {
+              "id": "C31",
+              "x": 72.3,
+              "y": 60.5,
+              "w": 649.2,
+              "h": 503.7
+            }
+          ]
+        },
+        {
+          "page": 16,
+          "captures": [
+            {
+              "id": "C33",
+              "x": 72.3,
+              "y": 637.4,
+              "w": 649.2,
+              "h": 334.2
+            }
+          ]
+        },
+        {
+          "page": 17,
+          "captures": []
+        },
+        {
+          "page": 18,
+          "captures": []
+        },
+        {
+          "page": 19,
+          "captures": []
+        },
+        {
+          "page": 20,
+          "captures": []
+        },
+        {
+          "page": 21,
+          "captures": []
+        }
+      ]
+    },
+    {
+      "source": "VOTI_AIDE_DEPANNAGE.md",
+      "sourceSha256": "ba2cc9e4f8011a1f1f45db89a66d0ee59bdb7fe2e3f5e7acc38af7f95635050c",
+      "images": [],
+      "name": "VOTI_AIDE_DEPANNAGE",
+      "title": "Aide & dépannage Voti",
+      "pages": 5,
+      "bytes": 70996,
+      "sha256": "c1008e00397c34e20c5ed2588a89f69f211ac4939c386ca30aaac095d7393315",
+      "layout": [
+        {
+          "page": 1,
+          "captures": []
+        },
+        {
+          "page": 2,
+          "captures": []
+        },
+        {
+          "page": 3,
+          "captures": []
+        },
+        {
+          "page": 4,
+          "captures": []
+        },
+        {
+          "page": 5,
+          "captures": []
+        }
+      ]
+    }
+  ]
+}
