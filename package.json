@@ -42,7 +42,8 @@
     "test:spaces-migration": "node scripts/spaces-migration-checks.mjs",
     "audit:bundle": "node scripts/audit-bundle.mjs",
     "test:groups-hd-v2": "node scripts/free-pilot-integration.mjs --spaces-browser-only --spaces-browser --groups-hd-v2",
-    "test:groups-hd-v2-pdf": "node scripts/test-card-background-pdf.mjs .browser-tests/voti-groups-hd-v2"
+    "test:groups-hd-v2-pdf": "node scripts/test-card-background-pdf.mjs .browser-tests/voti-groups-hd-v2",
+    "test:mascot": "node --test tests/mascot.test.js && node scripts/browser-test.mjs --mascot"
   },
   "devDependencies": {
     "esbuild": "0.28.2",

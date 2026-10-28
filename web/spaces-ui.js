@@ -1,3 +1,4 @@
+import {mascot} from './mascot.js';
 import {rememberCard,clearCards,eraseCard,availableCards,forgetCard} from './card-session.js';
 import {backdropToggle} from './card-batch-ui.js';
 import {editActions,guardEditNavigation} from './edit-actions.js';
@@ -102,7 +103,7 @@ export class SpacesUI {
     document.body.dataset.votiRole='member';
     this.outcome=null;
     this.app.replaceChildren();this.title('Présente ta Carte Voti');this.intent=pollId?{pollId,extra,choiceId}:null;
-    this.app.append(node('p','Ta carte ouvre seulement ton espace participant. Elle ne sera pas conservée sur cet appareil.'),
+    this.app.append(append(node('div',undefined,{class:'card-prompt-intro'}),mascot({variant:'card-scan'}),node('p','Ta carte ouvre seulement ton espace participant. Elle ne sera pas conservée sur cet appareil.')),
       pollActions(this.button('Scanner ma Carte Voti',async b=>{const credential=await scanMemberCard(b);if(!credential||!b.isConnected)return;this.setMember(credential);
         try{const profile=await this.call('getMemberHome',{},credential);if(!b.isConnected||this.session.credential!==credential)return;this.profile=profile;
           if(pollId){const response=await this.call('getMemberPoll',{pollId},credential);if(!b.isConnected||this.session.credential!==credential)return;if(extra==='results')await this.showResults(response.poll,null);else this.participantPoll(response.poll,choiceId,response.alreadyParticipated);}
@@ -151,7 +152,7 @@ export class SpacesUI {
   }
   success(pollId,commentSent){
     this.epoch++;
-    this.app.replaceChildren();this.title('Merci !');this.app.append(node('p','Ton vote a bien été enregistré.'),...(commentSent?[node('p','Ton commentaire a aussi été envoyé.')]:[]),node('p','Ta carte et ton identité ont été oubliées sur cet appareil.'),
+    this.app.replaceChildren();this.title('Merci !');this.app.append(append(node('div',undefined,{class:'vote-success-intro'}),mascot({variant:'success'}),node('p','Ton vote a bien été enregistré.')),...(commentSent?[node('p','Ton commentaire a aussi été envoyé.')]:[]),node('p','Ta carte et ton identité ont été oubliées sur cet appareil.'),
       pollActions(this.button('Participant suivant',()=>{this.outcome=null;this.cardPrompt(pollId);},'primary'),link('Accueil','#home')));
   }
   recognizedMember(){if(this.profile&&this.session.credential)this.app.append(node('p',`Carte reconnue : ${this.profile.displayName}`,{class:'recognized-member',role:'status'}));}

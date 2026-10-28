@@ -5,6 +5,7 @@ import {EventEmitter,once} from 'node:events';
 import {mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {ROOT} from './build.mjs';
+import {serveMascotAsset} from './mascot-assets.mjs';
 import {servePwaAsset} from './pwa-static.mjs';
 import {serveVisualAsset} from './visual-static.mjs';
 import {navigateAndWait,waitForApplication} from './browser-navigation.mjs';
@@ -15,7 +16,7 @@ await mkdir(profile,{recursive:true});
 const html=await readFile(resolve(ROOT,'index.html'),'utf8');let revision=1;
 assert.match(html,/<link rel="manifest" href="\.\/manifest\.webmanifest">/,'Construire le frontend avant test:pwa.');
 const server=createServer(async(req,res)=>{
-  if(await servePwaAsset(req,res,ROOT)||await serveVisualAsset(req,res,ROOT))return;
+  if(await serveMascotAsset(req,res,ROOT)||await servePwaAsset(req,res,ROOT)||await serveVisualAsset(req,res,ROOT))return;
   if(!['/','/index.html','/voti/','/voti/index.html'].includes(new URL(req.url,'http://localhost').pathname)){res.writeHead(404);res.end();return;}
   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'});
   res.end(html.replace('</body>',`<!-- PWA_TEST_BUILD_${revision} --></body>`));

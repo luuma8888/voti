@@ -1,3 +1,4 @@
+import {mascotEmptyState} from './mascot.js';
 import {sessionCardsPanel,cardSelectionControls,memberCardSelection} from './card-batch-ui.js';
 import {withSpaceIcon} from './space-icons.js';
 import {presetThumbnail,VISUAL_PRESETS,resolveVisual,visualImage} from './visual-presets.js';
@@ -45,7 +46,7 @@ export function renderSpaceManagement(ui,data,section='overview',entity=null,cat
   const tiled=['members','groups'].includes(section)&&preferences[section]==='tiles';
   const viewControls=()=>{const controls=el('div',undefined,{class:'space-view-controls',role:'group','aria-label':'Affichage des '+(section==='members'?'membres':'groupes')});for(const[value,label]of [['list','Liste'],['tiles','Vignettes']]){const b=el('button',label,{type:'button','aria-pressed':String((tiled?'tiles':'list')===value)});b.addEventListener('click',()=>{preferences[section]=value;try{localStorage.setItem(preferenceKey,JSON.stringify(preferences));}catch{ui.notify('Cette préférence ne peut pas être conservée sur cet appareil.');}renderSpaceManagement(ui,data,section,null,catalog);});controls.append(b);}if(manageCardsButton){const toolbar=el('div',undefined,{class:'space-list-toolbar'});toolbar.append(controls,manageCardsButton);content.append(toolbar);}else content.append(controls);};
   const listVisual=(type,id)=>{const v=resolveVisual(type,id,catalog);if(!v)return null;if(!tiled)return presetThumbnail(type,id,catalog);const img=visualImage(v,'medium','space-tile-visual');img.loading='lazy';img.decoding='async';return img;};
-  const empty=(text)=>content.append(el('p',text,{class:'space-empty'}));
+  const empty=(text)=>{const titles={members:'Aucun membre pour le moment',groups:'Aucun groupe pour le moment',polls:'Aucun sondage pour le moment'};content.append(titles[section]?mascotEmptyState(titles[section],text,{className:'space-empty'}):el('p',text,{class:'space-empty'}));};
   if(entity){
     content.append(nav('← Retour : '+(SECTIONS.find(([key])=>key===section)?.[1]??''),base+'/'+section,'space-back'));
     if(section==='polls'&&entity==='new'){title('Nouveau sondage');const task=el('div',undefined,{class:'space-task-form'});content.append(task);ui.newPoll(data,task);return;}

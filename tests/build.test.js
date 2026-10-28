@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { build, ROOT } from '../scripts/build.mjs';
+import {mascotCatalog} from '../scripts/mascot-assets.mjs';
 
 test('build autonome : tous les modules embarqués, aucun script/CSS externe', async () => {
   const html = await build();
@@ -34,14 +35,22 @@ test('build autonome : tous les modules embarqués, aucun script/CSS externe', a
   }
 });
 
-test('les trois WebP de marque sont embarqués exactement, sans PNG source', async () => {
+test('logo et fond embarqués exactement, quatre postures locales à la demande, sans PNG source', async () => {
   const html = await build();
-  for (const name of ['logo', 'background', 'mascot']) {
+  for (const name of ['logo', 'background']) {
     const file = await readFile(resolve(ROOT, `assets/branding/voti-${name}.webp`));
     assert.equal(file.toString('ascii', 8, 12), 'WEBP');
     assert.ok(html.includes(`data:image/webp;base64,${file.toString('base64')}`));
   }
-  assert.equal((html.match(/data:image\/webp;base64,/g) || []).length, 3);
+  assert.equal((html.match(/data:image\/webp;base64,/g) || []).length, 2);
+  const map=JSON.parse(html.match(/<script type="importmap">(.*?)<\/script>/s)[1]);
+  const module=Buffer.from(map.imports['voti/web/mascot.js'].split(',')[1],'base64').toString();
+  const catalog=await mascotCatalog(ROOT);assert.equal(Object.keys(catalog).length,4);
+  for(const a of Object.values(catalog)){
+    assert.ok(module.includes(a.file));
+    const bytes=await readFile(resolve(ROOT,a.file));
+    assert.ok(!html.includes(bytes.toString('base64')),'posture non préchargée dans le HTML');
+  }
   assert.doesNotMatch(html, /data:image\/png|branding\/source|__VOTI_(?:LOGO|BACKGROUND|MASCOT)__/);
 });
 

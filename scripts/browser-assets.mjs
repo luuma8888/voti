@@ -54,7 +54,7 @@ export async function browserAssetScenario() {
   assert(document.querySelector('.brand').textContent.trim() === 'Voti' && document.querySelector('.brand-icon').alt === '', 'Logo décoratif avec texte HTML Voti');
   await until(() => document.querySelector('.brand-icon').naturalWidth === 512, 'logo embarqué');
   assert(document.querySelector('.brand-icon').getBoundingClientRect().height === 32, 'Logo compact');
-  assert(document.querySelectorAll('#app .mascot').length === 1 && document.querySelector('#app .mascot').getBoundingClientRect().height <= 112, 'Mascotte ponctuelle dans bibliothèque vide');
+  assert(document.querySelectorAll('#app .mascot').length === 1 && document.querySelector('#app .mascot').getBoundingClientRect().height <= 170, 'Mascotte ponctuelle dans bibliothèque vide');
   assert(!!document.querySelector('.main-nav a[href="#new"]') && !document.querySelector('#app .mascot').closest('button,a'), 'Mascotte décorative non bloquante');
   assert((await adapter.listMetadata()).length === 0, 'Branding absent d’IndexedDB');
 
@@ -114,7 +114,7 @@ export async function browserAssetScenario() {
   assert(!/base64|data:image|byteLength/.test(localStorage.getItem(key)), 'Aucun blob/base64 en localStorage');
   await go('#home', 'Mes sondages');
   await until(() => document.querySelector('.image-thumbnail img')?.naturalWidth > 0, 'vignette');
-  assert(document.querySelector('.image-thumbnail').getBoundingClientRect().width === 56 && document.querySelectorAll('#app .mascot').length === 0, 'Vignette compacte, mascotte absente de la liste');
+  assert(document.querySelector('.image-thumbnail').getBoundingClientRect().width === 56 && document.querySelectorAll('.poll-list .mascot').length === 0 && document.querySelectorAll('.home-welcome .mascot').length === 1, 'Vignette compacte, mascotte réservée à l’accueil hors des lignes');
   await go('#edit/'+id, 'Que veux-tu demander');
   await upload('Image du sondage', await makeFile('image/webp', 900, 600, '#137680'));
   await finishEdit();

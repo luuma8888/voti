@@ -2,6 +2,7 @@ import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build as bundle } from 'esbuild';
+import {mascotCatalog} from './mascot-assets.mjs';
 import {embeddedVisuals} from './visual-assets.mjs';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,8 +14,9 @@ export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
  */
 export async function build() {
   const visuals=await embeddedVisuals(ROOT);
+  const mascots=await mascotCatalog(ROOT);
   const branding = {};
-  for (const name of ['logo', 'background', 'mascot']) {
+  for (const name of ['logo', 'background']) {
     const bytes = await readFile(resolve(ROOT, `assets/branding/voti-${name}.webp`));
     if (bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WEBP') throw new Error(`Asset de marque WebP invalide : ${name}`);
     branding[name] = `data:image/webp;base64,${bytes.toString('base64')}`;
@@ -34,6 +36,7 @@ export async function build() {
   }
   for (const file of files) {
     let source = await readFile(resolve(ROOT, file), 'utf8');
+    if(file==='web/mascot.js')source=source.replace('export const MASCOT_ASSETS = {};',`export const MASCOT_ASSETS = ${JSON.stringify(mascots)};`);
     if(file==='web/visual-presets.js')source=source.replace('export const VISUAL_PRESETS = {member:[],group:[]};',`export const VISUAL_PRESETS = ${JSON.stringify(visuals)};`);
     if (file === 'web/relay-config.js' && process.env.VOTI_RELAY_URL) {
       const config = { relayId: process.env.VOTI_RELAY_ID || 'voti-local', baseUrl: process.env.VOTI_RELAY_URL,
@@ -63,7 +66,7 @@ export async function build() {
   const map = JSON.stringify({ imports }).replaceAll('<', '\\u003c');
   const html = template.replace('/* VOTI_STYLES */', css)
     .replace('<!-- VOTI_MODULES -->', `<script type="text/plain" id="third-party-licenses">${licenses}</script>\n  <script type="importmap">${map}</script>\n  <script type="module">import "voti/web/app.js";</script>`)
-    .replace('__VOTI_LOGO__', branding.logo).replace('__VOTI_MASCOT__', branding.mascot)
+    .replace('__VOTI_LOGO__', branding.logo)
     .replace('__VOTI_BACKGROUND__', branding.background);
   await writeFile(resolve(ROOT, 'index.html'), html);
   return html;

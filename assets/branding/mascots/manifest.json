@@ -1,0 +1,83 @@
+{
+  "pack": "Voti mascot assets for Codex",
+  "version": "1.0",
+  "assets": [
+    {
+      "id": "mascot-welcome",
+      "use": "Accueil principal",
+      "source_dimensions": {
+        "width": 505,
+        "height": 746
+      },
+      "web_dimensions": {
+        "width": 487,
+        "height": 720
+      },
+      "web_file": "mascot-welcome-36369c377f73.webp",
+      "web_bytes": 82334,
+      "source_file": "../source/mascots/mascot-welcome.png",
+      "source_bytes": 383420,
+      "transparent_background": true,
+      "web_sha256": "36369c377f73d062bf4f0b330b6beb19c0469c9396c2ae354b61dcc32d91f441",
+      "source_sha256": "5d2810bbd00fefb83610d0655b7a426139dad49f80b850de59fcde1aa9eb1ad5"
+    },
+    {
+      "id": "mascot-success",
+      "use": "Confirmation positive après vote",
+      "source_dimensions": {
+        "width": 445,
+        "height": 724
+      },
+      "web_dimensions": {
+        "width": 443,
+        "height": 720
+      },
+      "web_file": "mascot-success-7697c6282f77.webp",
+      "web_bytes": 82546,
+      "source_file": "../source/mascots/mascot-success.png",
+      "source_bytes": 362332,
+      "transparent_background": true,
+      "web_sha256": "7697c6282f77ff69ddf8a2858d4585ea5ec6fa4ea630a44cc076dd74c38c1f34",
+      "source_sha256": "368a480e540fb9ff830044c68989dc4ea7d6e45176883c0d00bdaaf061adcf1f"
+    },
+    {
+      "id": "mascot-card-scan",
+      "use": "Écran « Présenter ma Carte Voti »",
+      "source_dimensions": {
+        "width": 503,
+        "height": 708
+      },
+      "web_dimensions": {
+        "width": 503,
+        "height": 708
+      },
+      "web_file": "mascot-card-scan-0b7e9ee58584.webp",
+      "web_bytes": 76442,
+      "source_file": "../source/mascots/mascot-card-scan.png",
+      "source_bytes": 403951,
+      "transparent_background": true,
+      "web_sha256": "0b7e9ee58584dfa295c5668848dce1458c48763c6306e3473f1f47d7682b58c7",
+      "source_sha256": "97da9177531973416ee775b3aee67d10bbc41b53744d5a877da008094c98f1a5"
+    },
+    {
+      "id": "mascot-empty",
+      "use": "États vides",
+      "source_dimensions": {
+        "width": 396,
+        "height": 571
+      },
+      "web_dimensions": {
+        "width": 396,
+        "height": 571
+      },
+      "web_file": "mascot-empty-4fb491086f6c.webp",
+      "web_bytes": 52266,
+      "source_file": "../source/mascots/mascot-empty.png",
+      "source_bytes": 286370,
+      "transparent_background": true,
+      "web_sha256": "4fb491086f6ccedf0ce4edaf41a5722d2170969bf702d6671055b8a2b83bd3bb",
+      "source_sha256": "372a8570af17a1ff61e3814cec0536f4142279c711f9b5e2a0d4292359c40f36"
+    }
+  ],
+  "zip_sha256": "b51f66ce1ecd25c2c82b394c7603d7b7308ad0d29399b8023b533eb980d117f2"
+}

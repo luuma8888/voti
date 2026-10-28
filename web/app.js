@@ -1,3 +1,4 @@
+import {mascot,mascotEmptyState} from './mascot.js';
 import { defaultRules, defaultStyle, THEMES } from '../shared/model.js';
 import { createPoll, getPoll as localPoll, publishPoll, closePoll, castVote, updateSemantics, updateStyle } from '../shared/poll-engine.js';
 import { getResults } from '../shared/result-rules.js';
@@ -45,7 +46,6 @@ let remoteImages = null;
 let renderSequence = 0;
 function getPoll(current, id) { return remoteViews.get(id) || localPoll(current, id); }
 function activeImages() { return remoteImages || images; }
-function mascot() { return el('img', null, { src: document.getElementById('brand-mascot').src, alt: '', width: '112', height: '101', class: 'mascot' }); }
 function publicLink(id, results = false) { return publicPollRoute(id, results); }
 function questionBlock(poll, staged) {
   const box = el('section', null, { class: 'question-block' });
@@ -336,12 +336,14 @@ function home() {
     if (known) { entry.status = known.status; entry.statusLabel = STATUS_LABELS[known.status]; }
     entry.actions = [{ label: 'Résultats', href: publicLink(entry.id, true), primary: true }, { label: 'Gérer', href: `#poll/${entry.id}` }];
   }
-  app.append(append(el('div', null, { class: 'library-heading' }), title, link('+ Nouveau sondage', '#new', 'primary new-poll')),
-    el('p', `${entries.length} sondage${entries.length > 1 ? 's' : ''} · ${entries.filter(entry => entry.status === 'published').length} ouverts · ${entries.filter(entry => entry.available).length} résultats disponibles`, { class: 'library-summary' }));
-  app.append(actions(link('Espaces & groupes','#spaces'),link('Présenter ma Carte Voti','#member')));
-  if (!entries.length) app.append(append(el('div', null, { class: 'empty-state empty-library' }),
-    el('img', null, { src: document.getElementById('brand-mascot').src, alt: '', width: '88', height: '79', class: 'mascot' }),
-    el('p', 'Votre premier sondage commence ici. Posez une question et proposez quelques choix.')));
+  const welcome=el('div',null,{class:'home-welcome'}),intro=el('div',null,{class:'home-welcome-content'});
+  intro.append(append(el('div', null, { class: 'library-heading' }), title, link('+ Nouveau sondage', '#new', 'primary new-poll')),
+    el('p', `${entries.length} sondage${entries.length > 1 ? 's' : ''} · ${entries.filter(entry => entry.status === 'published').length} ouverts · ${entries.filter(entry => entry.available).length} résultats disponibles`, { class: 'library-summary' }),
+    actions(link('Espaces & groupes','#spaces'),link('Présenter ma Carte Voti','#member')));
+  welcome.append(intro,mascot({variant:'welcome'}));app.append(welcome);
+  if (!entries.length) app.append(mascotEmptyState('Aucun sondage pour le moment',
+    'Votre premier sondage commence ici. Posez une question et proposez quelques choix.',
+    {illustrated:false,heading:'h2',className:'empty-library'}));
   const toolbar = el('div', null, { class: 'library-toolbar' });
   const search = el('input', null, { type: 'search', placeholder: 'Rechercher un sondage…', autocomplete: 'off', 'data-testid': 'poll-search' });
   search.value = libraryView.search;
@@ -755,7 +757,7 @@ function vote(id, qrChoiceId) {
 }
 function showVoteSuccess(id,resultsLink) {
   app.replaceChildren(); heading('Merci !'); images.sweep();
-  app.append(append(el('section',null,{class:'card vote-success'}),mascot(),el('span','✓',{class:'success-icon','aria-hidden':'true'}),
+  app.append(append(el('section',null,{class:'card vote-success'}),mascot({variant:'success'}),el('span','✓',{class:'success-icon','aria-hidden':'true'}),
     el('p','Ton vote a bien été enregistré.'),actions(link('Revenir à mes sondages','#home'),link('Résultats',resultsLink))));
   if(voteOutcome?.commentSent){const card=app.querySelector('.vote-success');card.append(el('p','Ton commentaire a aussi été envoyé.'));
     if(voteOutcome.commentVisibility==='public_with_results')card.append(el('p','Il sera visible seulement s’il est approuvé et lorsque les résultats seront disponibles.',{class:'help'}));}

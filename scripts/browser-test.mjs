@@ -18,6 +18,7 @@ import { browserParticipationScenario,browserParticipationPdf,remoteParticipatio
 import {browserSpacesStage} from './browser-spaces.mjs';
 import {spaceLayoutSetup,spaceLayoutCheck,spaceLayoutCreator,spaceLayoutActions,spaceLayoutCreatorChecks,spaceCreationView,spaceCreationChecks} from './browser-space-layout.mjs';
 import {spaceShellChecks,spacePolishView,cardPolishPdfs} from './browser-space-polish.mjs';
+import {runMascotReview} from './browser-mascot.mjs';
 import {runGroupsHdV2} from './run-groups-hd-v2.mjs';
 import {runCardBackgroundBatch} from './run-card-background-batch.mjs';
 import {runCardUx} from './run-card-ux.mjs';
@@ -408,7 +409,9 @@ try {
   await command('Page.setLifecycleEventsEnabled', { enabled: true }, sessionId);
   await command('Emulation.setDeviceMetricsOverride', { width: 1200, height: 820, deviceScaleFactor: 1, mobile: false }, sessionId);
   await navigateReady(sessionId, url);
-  if(process.argv.includes('--member-scanner')) {
+  if(process.argv.includes('--mascot')) {
+    await runMascotReview({command,evaluate,navigateReady,startDevServer,sessionId,url,requests,runtimeErrors});
+  } else if(process.argv.includes('--member-scanner')) {
     await startDevServer();await navigateReady(sessionId,'http://127.0.0.1:4173/voti/');const checks=await evaluate(sessionId,`(${browserScannerUx.toString()})('voti-member-v1.'+'a'.repeat(64))`);if(runtimeErrors.length)throw new Error('Exceptions scanner.');if(requests.some(url=>/^https?:/.test(url)&&!url.startsWith('http://127.0.0.1:4173/')))throw new Error('Réseau scanner.');console.log(`Scanner Chromium local : ${checks} contrôles réussis.`);
   } else if(process.argv.includes('--groups-hd-v2')) {
     if(!process.env.VOTI_TEST_FREE_PILOT)throw new Error('Tests locaux uniquement.');

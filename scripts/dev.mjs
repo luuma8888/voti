@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { build, ROOT } from './build.mjs';
 import {serveVisualAsset} from './visual-static.mjs';
+import {serveMascotAsset} from './mascot-assets.mjs';
 import {servePwaAsset} from './pwa-static.mjs';
 
 await build();
@@ -10,6 +11,7 @@ const server = createServer(async (request, response) => {
   if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }
   const path = new URL(request.url, 'http://localhost').pathname;
   if(await servePwaAsset(request,response,ROOT))return;
+  if(await serveMascotAsset(request,response,ROOT))return;
   if(await serveVisualAsset(request,response,ROOT))return;
   if (!['/', '/index.html', '/voti/', '/voti/index.html'].includes(path)) { response.writeHead(404); response.end('Introuvable'); return; }
   try {

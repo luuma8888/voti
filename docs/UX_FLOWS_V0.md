@@ -418,3 +418,24 @@ jamais recalculés. Aucun champ métier ou stockage de préférence n’est ajou
 Pour les Créateurs, le nombre est lu via `getAudienceSize`, sans liste des membres
 et avec les contrôles d’audience existants. Cela nécessite une future publication
 coordonnée du Worker compatible avant le frontend ; aucun déploiement dans ce lot.
+
+## Mascotte — présence ponctuelle (octobre 2026)
+
+La mascotte Voti est utilisée comme présence ponctuelle d’accueil et de réussite,
+principalement sur l’accueil, les états vides Membres/Groupes/Sondages, l’attente
+« Présente ta Carte Voti » et les confirmations positives de vote. Elle ne
+constitue pas un élément décoratif systématique et ne représente aucun âge ni rôle.
+Les listes remplies, les formulaires, les accès et les actions sensibles n’en
+reçoivent pas. L’accueil garde une seule illustration, même lorsque sa liste est vide.
+
+Quatre postures officielles distinctes sont résolues depuis le manifeste du pack
+`VOTI_MASCOT_ASSETS_CODEX`. Les WebP fournis sont conservés sans réencodage et
+chargés depuis les assets locaux selon la vue, avec noms physiques versionnés
+par leur empreinte. Aucun CDN, animation ou stockage métier supplémentaire.
+Le PNG source reste un fichier d’archive, pas une ressource chargée par la page.
+
+Les images sont décoratives (`alt=""`, ignorées des lecteurs d’écran) ; messages
+et actions restent textuels. Le motif QR de la posture Carte est illustratif et
+ne déclenche rien. La mascotte disparaît visuellement derrière le scanner ouvert ;
+elle n’est pas répétée lorsque la Carte est reconnue. Les actions de scan, de
+sortie et de passage au Participant suivant conservent leur fonctionnement.
