@@ -18,6 +18,7 @@ import { browserParticipationScenario,browserParticipationPdf,remoteParticipatio
 import {browserSpacesStage} from './browser-spaces.mjs';
 import {spaceLayoutSetup,spaceLayoutCheck,spaceLayoutCreator,spaceLayoutActions,spaceLayoutCreatorChecks,spaceCreationView,spaceCreationChecks} from './browser-space-layout.mjs';
 import {spaceShellChecks,spacePolishView,cardPolishPdfs} from './browser-space-polish.mjs';
+import {runLayoutConsistency,checkLiveLayoutRefresh} from './browser-layout-consistency.mjs';
 import {runMascotReview} from './browser-mascot.mjs';
 import {runGroupsHdV2} from './run-groups-hd-v2.mjs';
 import {runCardBackgroundBatch} from './run-card-background-batch.mjs';
@@ -25,6 +26,7 @@ import {runCardUx} from './run-card-ux.mjs';
 import {runVisualReview} from './run-visual-review.mjs';
 import {browserSpacesUx,browserScannerUx,browserPollUx} from './browser-spaces-ux.mjs';
 
+if(process.argv.includes('--layout-consistency'))Object.assign(process.env,{VOTI_RELAY_URL:'http://127.0.0.1:8787',VOTI_RELAY_ID:'layout-test'});
 await build();
 const url = pathToFileURL(resolve(ROOT, 'index.html')).href;
 // Profil isolé conservé dans le dépôt ; jamais le profil réel du navigateur.
@@ -409,7 +411,9 @@ try {
   await command('Page.setLifecycleEventsEnabled', { enabled: true }, sessionId);
   await command('Emulation.setDeviceMetricsOverride', { width: 1200, height: 820, deviceScaleFactor: 1, mobile: false }, sessionId);
   await navigateReady(sessionId, url);
-  if(process.argv.includes('--mascot')) {
+  if(process.argv.includes('--layout-consistency')) {
+    await runLayoutConsistency({command,evaluate,navigateReady,startDevServer,sessionId,runtimeErrors});
+  } else if(process.argv.includes('--mascot')) {
     await runMascotReview({command,evaluate,navigateReady,startDevServer,sessionId,url,requests,runtimeErrors});
   } else if(process.argv.includes('--member-scanner')) {
     await startDevServer();await navigateReady(sessionId,'http://127.0.0.1:4173/voti/');const checks=await evaluate(sessionId,`(${browserScannerUx.toString()})('voti-member-v1.'+'a'.repeat(64))`);if(runtimeErrors.length)throw new Error('Exceptions scanner.');if(requests.some(url=>/^https?:/.test(url)&&!url.startsWith('http://127.0.0.1:4173/')))throw new Error('Réseau scanner.');console.log(`Scanner Chromium local : ${checks} contrôles réussis.`);
@@ -445,7 +449,7 @@ try {
       for(const[view,suffix]of views){
         // Force a different route only when the requested task was already open.
         await evaluate(sessionId,`(async()=>{const target=${JSON.stringify('#space/'+fixture.spaceId+suffix)};if(location.hash===target){location.hash='#home';await new Promise(resolve=>{const wait=()=>document.querySelector('#app h1')?.textContent==='Mes sondages'?resolve():requestAnimationFrame(wait);wait();});}location.hash=target;})()`);
-        await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{const root=document.querySelector('[data-space-section]');if(root&&root.dataset.spaceSection===${JSON.stringify(suffix.split('/')[1]||'overview')}&&Boolean(document.querySelector('.space-task-form'))===${Boolean(suffix.split('/')[2])})return resolve();if(Date.now()-start>15000)return reject(new Error('Vue absente : ${view}'));requestAnimationFrame(wait);};wait();})`);
+        await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{const root=document.querySelector('[data-space-section]');if(root&&root.dataset.spaceSection===${JSON.stringify(suffix.split('/')[1]||'overview')}&&Boolean(document.querySelector('.space-task-form'))===${Boolean(suffix.split('/')[2])})return resolve();if(Date.now()-start>15000)return reject(new Error('Vue absente : ${view} | '+document.querySelector('#app').textContent.slice(0,300)));requestAnimationFrame(wait);};wait();})`);
         await new Promise(resolve=>setTimeout(resolve,1000));
         await evaluate(sessionId,`(${spaceCreationView.toString()})(${JSON.stringify(view)})`);
         if(view==='polls')await evaluate(sessionId,`new Promise((resolve,reject)=>{const start=Date.now();const wait=()=>{if(![...document.querySelectorAll('.space-poll-metadata')].some(n=>n.textContent==='Audience et résultats…'))return resolve();if(Date.now()-start>15000)return reject(new Error('Résumé sondage non chargé'));requestAnimationFrame(wait);};wait();})`);
@@ -488,6 +492,7 @@ try {
     await writeFile(resolve(directory,'index.html'),'<!doctype html><meta charset="utf-8"><title>Voti v0.6.2 — revue locale</title><style>body{font-family:system-ui;background:#eee}section{display:inline-block;vertical-align:top;margin:12px}img{display:block;max-width:600px;max-height:700px}a{display:block}</style><h1>Vues réelles · fixtures locales</h1>'+files.map(name=>`<section><a href="${name}">${name}</a><img src="${name}"></section>`).join(''));
     if(runtimeErrors.length)throw new Error('Exceptions UI v0.6.2.');
     if(requests.some(u=>/^https?:/.test(u)&&!u.startsWith('http://127.0.0.1:')))throw new Error('Réseau externe UI.');
+    checks+=await checkLiveLayoutRefresh({command,evaluate,navigateReady,sessionId,fixture});
     console.log(`UI Espaces v0.6.2 : ${checks} contrôles structure/densité/rôles/shell persistant ; ${files.length} captures réelles, 360/390/1200/1440/1920.`);
   } else if(process.argv.includes('--spaces')) {
     if(!process.env.VOTI_TEST_FREE_PILOT)throw new Error('La recette cartes exige le Worker local sans R2.');

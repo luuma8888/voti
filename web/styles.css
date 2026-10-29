@@ -96,7 +96,7 @@ button:disabled { opacity:.55; cursor:default; }
 .main-nav a:hover,.main-nav a[aria-current] { color:var(--accent); background:var(--soft); }
 .main-nav a[aria-current] { box-shadow:inset 0 -2px var(--accent); }
 #theme-toggle { font-size:13px; white-space:nowrap; }
-main,footer { max-width:1080px; margin:auto; padding:18px 24px; }
+main,footer { max-width:var(--site-width,1760px); margin:auto; padding:18px 24px; }
 main { background:var(--main); border-bottom:1px solid var(--line); }
 .breadcrumb { margin:0 0 16px; font-size:12px; color:var(--muted); }
 h1,h2,h3 { line-height:1.25; overflow-wrap:anywhere; }
@@ -343,7 +343,7 @@ body:has(.confirmation-dialog[open]) { overflow:hidden; }
 .qr-preselection { background:var(--soft); padding:12px; border-radius:10px; }
 @media print { .secret-transfer { display:none!important; } }
 .qr-icon { width:24px; height:24px; flex:0 0 24px; }
-main:has(.poster-studio) { max-width:1480px; }
+
 .poster-studio.card { padding:14px; }
 .poster-studio>.help { margin:0 0 12px; }
 .studio-grid { display:grid; grid-template-columns:300px minmax(0,1fr); gap:18px; height:var(--studio-height,calc(100dvh - 180px)); }
@@ -437,7 +437,7 @@ main:has(.poster-studio) { max-width:1480px; }
 .public-comment { border-inline-start:3px solid var(--accent); padding:8px 12px; background:var(--soft); border-radius:6px; }
 .comments-admin .actions { flex-wrap:wrap; }
 /* Espaces v0.6.2 : un lieu navigable, des listes calmes et des tâches à la demande. */
-main:has(.space-workspace) { max-width:1480px; }
+
 .space-workspace { display:grid; grid-template-columns:190px minmax(0,1fr); gap:28px 38px; }
 .space-heading { grid-column:1/-1; display:flex; align-items:center; gap:24px; padding:4px 0 24px; border-bottom:1px solid var(--line); }
 .space-heading h1 { margin:0 0 5px; font-size:clamp(1.6rem,3vw,2.2rem); }
@@ -580,12 +580,11 @@ body[data-space-management] { padding-bottom:0; }
   .space-poll-form[data-creation-mode=guided] .space-create-actions { margin-top:16px; }
 }
 @media print { .space-global-return { display:none!important; } }
-/* Coque partagée : pages de lecture bornées, listes/gestion réellement fluides. */
+/* Coque stable, y compris avant le démarrage JS : les limites de lecture
+   appartiennent au contenu, jamais au shell ni à la présence d’une route. */
 @media screen {
-  body { --content-width:1080px; --site-width:1760px; }
-  body:has(.library-heading),body:has([data-space-library]),body:has(.space-workspace),body:has(.member-card-page) { --content-width:var(--site-width); }
-  body:has(.poster-studio) { --content-width:1480px; }
-  main,footer,main:has(.space-workspace) { width:100%; max-width:var(--content-width); }
+  body { --site-width:1760px; --content-width:var(--site-width); --standard-width:1080px; --reading-width:800px; }
+  main,footer { width:100%; max-width:var(--site-width); }
   .topbar { padding-inline:max(16px,calc((100vw - var(--content-width))/2 + 24px)); }
   footer { box-shadow:none; background:var(--header); }
   .space-list { max-width:1180px; }
@@ -764,7 +763,7 @@ body:has(.visual-selector[open]){overflow:hidden}
 .space-poll-page form > .actions { margin-top:24px; }
 .space-poll-page .vote-choices { margin-bottom:0; }
 .space-poll-page > .button { margin-block:12px; }
-.space-poll-management { display:grid; gap:22px; max-width:1120px; }
+.space-poll-management { display:grid; gap:22px; min-width:0; }
 .space-poll-management h2,.space-poll-management h3 { margin-top:0; }
 .space-poll-management .poll-actions { margin:0; }
 .poll-state-panel { background:var(--soft); border-inline-start:4px solid var(--accent); border-radius:14px; padding:20px; }
@@ -780,7 +779,7 @@ body:has(.visual-selector[open]){overflow:hidden}
 .poll-edit,.poll-appearance,.poll-danger { padding:16px 18px; border:1px solid var(--line); border-radius:14px; }
 .poll-edit > summary,.poll-appearance > summary { font-weight:750; cursor:pointer; padding:4px 0; }
 .poll-edit[open] > summary { margin-bottom:18px; }
-.poll-edit-form { max-width:800px; }
+.poll-edit-form { max-width:var(--reading-width,800px); }
 .poll-edit-form fieldset { min-width:0; margin:0 0 20px; padding:16px; border:0; }
 .poll-edit-form legend { font-size:1.1rem; font-weight:750; padding:0 6px; }
 .poll-edit-essential { border-inline-start:3px solid var(--accent)!important; }
@@ -846,3 +845,37 @@ body:has(.member-scanner[open]) .mascot-card-scan { visibility:hidden; }
   .mascot-card-scan { width:62px; }
 }
 @media print { .card-prompt-intro>.mascot { display:none; } }
+
+/* Réserver la place du défilement évite aussi un décalage entre loader court
+   et écran long sur les navigateurs à barre de défilement classique. */
+@media screen and (min-width:681px) { html { scrollbar-gutter:stable; } }
+/* Lecture et actions internes : le cadre extérieur reste identique au loader. */
+@media screen {
+  #app > form, #app > .recognized-member { max-width:var(--reading-width); }
+  #app > .result-row, #app > .space-results-state { max-width:var(--standard-width); }
+  #app > .card { max-width:var(--standard-width); }
+  #app > .card:has(.vote-choices,.confirmation), #app > .vote-success { max-width:var(--reading-width); }
+  #app > p { max-width:70ch; }
+  #app > .poster-studio { max-width:1480px; }
+  .poll-summary, .poll-appearance > .field { max-width:var(--reading-width); }
+  .poll-overview { display:grid; gap:22px; min-width:0; }
+  .poll-overview > * { min-width:0; }
+  .poll-overview .poll-actions { align-self:start; }
+  .poll-overview .space-poll-actions { margin:0; }
+  .space-results-state > p { max-width:65ch; }
+  body[data-voti-role=member] #app > form { width:100%; margin-inline:auto; }
+  body[data-voti-role=member] #app:not(:has(> .card-prompt-intro)) > :is(h1,p,.actions,.recognized-member,.vote-success-intro,.space-results-state,.result-row) { width:100%; max-width:var(--reading-width); margin-inline:auto; }
+}
+@media screen and (min-width:1000px) {
+  .poll-overview { grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); grid-template-areas:"state results" "actions results" "share share"; align-items:start; }
+  .poll-overview .poll-state-panel { grid-area:state; }
+  .poll-overview > .poll-actions { grid-area:actions; }
+  .poll-overview .poll-results-action { grid-area:results; }
+  .poll-overview .space-poll-actions { grid-area:share; }
+  #app:has(> .card-prompt-intro) { display:grid; grid-template-columns:200px minmax(0,1fr); column-gap:40px; max-width:var(--standard-width); margin-inline:auto; }
+  #app:has(> .card-prompt-intro) > h1 { grid-column:1/-1; }
+  #app > .card-prompt-intro { display:contents; }
+  #app > .card-prompt-intro > .mascot { grid-column:1; grid-row:2/4; width:120px; justify-self:center; align-self:center; }
+  #app > .card-prompt-intro > p { grid-column:2; grid-row:2; align-self:end; }
+  #app:has(> .card-prompt-intro) > .actions { grid-column:2; grid-row:3; align-self:start; }
+}
