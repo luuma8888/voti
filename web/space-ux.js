@@ -51,6 +51,7 @@ export function cardsFilename(name,member=null,count=1) {
 /** Un seul moteur et une seule construction de brouillon pour guidé/rapide. */
 export function makeSpacePollDraft(values,spaceId,options) {
   const poll=createPoll(emptyState(),{question:values.question,choices:values.answers.split('\n').map(s=>s.trim()).filter(Boolean),participationIdentityMode:values.identity,commentMode:values.comments,commentVisibility:values.visibility},options).polls[0];
+  if(values.voting){poll.definition={...poll.definition,...values.voting};}
   poll.resultRules.releaseMode=values.release;poll.resultRules.minimumResponses=Number(values.minimum);
   validateRules(poll.resultRules,true);
   const ids=values.groupIds;

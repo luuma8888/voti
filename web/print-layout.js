@@ -1,3 +1,4 @@
+import {voteMode} from '../shared/vote-modes.js';
 import { ensure } from '../shared/validation.js';
 import { validateDefinition } from '../shared/validation.js';
 import { participationRules, normalizedText } from '../shared/participation.js';
@@ -84,6 +85,7 @@ function basePlan(poll,design,measure,mediaSizes={}) {
 }
 
 export function makeStudioPlan(poll,design,{baseUrl,measure=(t,size)=>[...t].length*size*.6,mediaSizes={}}={}) {
+  if(voteMode(poll.definition)!=='single_choice'&&design.mode==='choices')throw Error('Les QR par réponse sont disponibles uniquement pour les sondages à choix unique.');
   const id=poll.remoteRef?.pollId;
   ensure(isPublicPollId(id)&&poll.remoteRef.revision>0,'Publie d’abord ce sondage en ligne pour créer ses QR de partage.');
   const tools=basePlan(poll,design,measure,mediaSizes),{plan,content,text,words,surface,image,imageFrame,qr,page,header,spacing}=tools;

@@ -1,3 +1,4 @@
+import {voteModesChecks} from './vote-modes-checks.mjs';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
@@ -38,6 +39,7 @@ try {
   }
   if(process.argv.includes('--visual-identities')){const repeat=wrangler(['d1','migrations','apply',relayId,...args,'--local',...persist],{stdio:['ignore','pipe','pipe']});repeat.stdout.resume();repeat.stderr.resume();check((await once(repeat,'exit'))[0]===0);checks+=await visualIdentitiesChecks({adapter:adapter(),sql});}
   if(process.argv.includes('--spaces'))checks+=await spacesChecks({adapter:adapter(),sql});
+  if(process.argv.includes('--vote-modes'))checks+=await voteModesChecks({adapter:adapter(),sql});
   if(!process.argv.includes('--spaces-browser-only')){
   checks+=await participationChecks({adapter:adapter(),sql});
   const state = draft(), poll = state.polls[0];

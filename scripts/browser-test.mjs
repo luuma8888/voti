@@ -1,3 +1,4 @@
+import {runVoteModesBrowser} from './browser-vote-modes.mjs';
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -411,7 +412,9 @@ try {
   await command('Page.setLifecycleEventsEnabled', { enabled: true }, sessionId);
   await command('Emulation.setDeviceMetricsOverride', { width: 1200, height: 820, deviceScaleFactor: 1, mobile: false }, sessionId);
   await navigateReady(sessionId, url);
-  if(process.argv.includes('--layout-consistency')) {
+  if(process.argv.includes('--vote-modes-ui')) {
+    await runVoteModesBrowser({command,evaluate,sessionId});
+  } else if(process.argv.includes('--layout-consistency')) {
     await runLayoutConsistency({command,evaluate,navigateReady,startDevServer,sessionId,runtimeErrors});
   } else if(process.argv.includes('--mascot')) {
     await runMascotReview({command,evaluate,navigateReady,startDevServer,sessionId,url,requests,runtimeErrors});

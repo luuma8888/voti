@@ -1,3 +1,5 @@
+import {multiVote} from './multi-vote.js';
+import {voteMode} from '../shared/vote-modes.js';
 import {mascot} from './mascot.js';
 import {rememberCard,clearCards,eraseCard,availableCards,forgetCard} from './card-session.js';
 import {backdropToggle} from './card-batch-ui.js';
@@ -54,7 +56,7 @@ export class SpacesUI {
   async call(command,input,credential,extras={}){if(!this.adapter)throw new Error('Relais non configuré. Les sondages libres locaux restent disponibles.');const epoch=this.epoch;
     if(isSpaceCredential(credential,'member')&&this.session.credential!==credential)throw new DOMException('La Carte Voti temporaire a expiré.','AbortError');
     const value=await this.adapter.spaceCommand({command,input,credential,...extras});
-    const sameVote=command==='castMemberVote'&&this.session.credential===credential&&location.hash.startsWith(`#/p/${input.pollId}`);
+    const sameVote=['castMemberVote','castMemberBallot'].includes(command)&&this.session.credential===credential&&location.hash.startsWith(`#/p/${input.pollId}`);
     if(epoch!==this.epoch&&!sameVote)throw new DOMException('La page a changé. La réponse ne sera pas affichée.','AbortError');return value;}
   staff(spaceId){const access=this.accesses.get(this.config?.relayId,spaceId);if(!access)throw new Error('Importe un accès administrateur ou créateur pour cet Espace.');return access.credential;}
   async getSpace(id){return this.call('getSpace',{spaceId:id},this.staff(id));}
@@ -120,12 +122,13 @@ export class SpacesUI {
       if(poll.resultsAvailable)buttons.append(link('Résultats disponibles',`#/p/${poll.pollId}/results`));if(buttons.children.length)row.append(buttons);list.append(row);}
     this.app.append(list,this.button('Terminer',()=>{this.clearMember();location.hash='#home';}));
   }
-  participantPoll(poll,qrChoice=null,alreadyParticipated=false){
+  participantPoll(poll,qrChoice=null,alreadyParticipated=false,prepared=[]){
     document.body.dataset.votiRole='member';
     this.app.replaceChildren();this.title(poll.definition.question);const id=poll.remoteRef.pollId;
     const finish=this.button('Terminer',()=>{this.clearMember();location.hash='#home';});
     if(poll.status==='closed'){this.app.append(node('p','Ce sondage est fermé.'),pollActions(link('Résultats',`#/p/${id}/results`),finish));return;}
     if(alreadyParticipated){this.app.append(node('p','Déjà participé. Aucun nouveau vote ne peut être envoyé avec cette carte.'),pollActions(link('Résultats',`#/p/${id}/results`),this.button('Participant suivant',()=>this.cardPrompt(id),'primary'),finish));return;}
+    if(voteMode(poll.definition)!=='single_choice'){this.recognizedMember();if(qrChoice)this.app.append(node('p','Ce lien de réponse ne convient pas à ce mode. Prépare ton bulletin complet ci-dessous.'));this.app.append(multiVote(poll,ids=>this.confirmVote(poll,ids,false),prepared));return;}
     if(qrChoice&&poll.definition.choices.some(c=>c.id===qrChoice)){this.confirmVote(poll,qrChoice,true);return;}
     this.recognizedMember();
     if(qrChoice)this.app.append(node('p','Le choix du QR n’est plus disponible. Choisis une réponse.'));
@@ -134,20 +137,21 @@ export class SpacesUI {
     const next=node('button','Continuer',{type:'submit',class:'primary'});form.append(choices,pollActions(next));form.addEventListener('submit',e=>{e.preventDefault();this.confirmVote(poll,form.querySelector('input:checked').value,false);});this.app.append(form);
   }
   confirmVote(poll,choiceId,fromQr){
-    this.app.replaceChildren();this.title('Tu choisis : '+poll.definition.choices.find(c=>c.id===choiceId).label);
+    this.app.replaceChildren();const multi=Array.isArray(choiceId),ranked=voteMode(poll.definition)==='ranked_choice';this.title(multi?(ranked?'Ton classement':'Tu as choisi'):'Tu choisis : '+poll.definition.choices.find(c=>c.id===choiceId).label);if(multi){const summary=node(ranked?'ol':'ul',undefined,{class:'ballot-review'});for(const id of choiceId)summary.append(node('li',poll.definition.choices.find(c=>c.id===id).label));this.app.append(summary);}
     this.recognizedMember();
     const form=node('form'),state={},fields=submissionFields(poll.definition,state,{memberIdentity:this.profile?.displayName??null});
     const actionId=crypto.randomUUID();let frozen=null,busy=false;
     const confirm=node('button','Oui, je confirme',{type:'submit',class:'primary'});
-    const other=this.button('Autre choix',()=>{history.replaceState(null,'',location.pathname+location.search+`#/p/${poll.remoteRef.pollId}`);this.participantPoll(poll);});
+    const other=this.button('Autre choix',()=>{history.replaceState(null,'',location.pathname+location.search+`#/p/${poll.remoteRef.pollId}`);this.participantPoll(poll,null,false,multi?choiceId:[]);});
+    let resetChoices=null;if(multi){other.textContent=ranked?'Modifier mon classement':'Modifier mes choix';resetChoices=this.button(ranked?'Recommencer mon classement':'Recommencer mes choix',()=>this.participantPoll(poll,null,false,[]));form.append(resetChoices);}
     if(fromQr)form.append(node('p','Choix proposé par le QR. Confirme-le ou choisis une autre réponse.'));
     form.append(fields.element,append(node('div',undefined,{class:'actions'}),other,confirm));
-    form.addEventListener('submit',async e=>{e.preventDefault();if(busy)return;busy=true;this.submitting=true;confirm.disabled=true;other.disabled=true;
-      try{if(!frozen){const submission=fields.validate();frozen={pollId:poll.remoteRef.pollId,actionId,choiceId,comment:submission.comment,expectedDefinitionHash:await semanticHash(poll)};fields.freeze();}
-        await this.call('castMemberVote',frozen,this.session.credential);const commentSent=Boolean(frozen.comment);this.clearMember();this.channel?.postMessage({type:'clear'});state.displayName='';state.comment='';frozen=null;
+    form.addEventListener('submit',async e=>{e.preventDefault();if(busy)return;busy=true;this.submitting=true;confirm.disabled=true;other.disabled=true;if(resetChoices)resetChoices.disabled=true;
+      try{if(!frozen){const submission=fields.validate();frozen={pollId:poll.remoteRef.pollId,actionId,...(multi?{selectionIds:choiceId}:{choiceId}),comment:submission.comment,expectedDefinitionHash:await semanticHash(poll)};fields.freeze();}
+        await this.call(multi?'castMemberBallot':'castMemberVote',frozen,this.session.credential);const commentSent=Boolean(frozen.comment);this.clearMember();this.channel?.postMessage({type:'clear'});state.displayName='';state.comment='';frozen=null;
         this.outcome={pollId:poll.remoteRef.pollId,commentSent};this.success(poll.remoteRef.pollId,commentSent);
       }catch(error){if(form.isConnected){if(error.code==='REVISION_CONFLICT'){try{const next=await this.call('getMemberPoll',{pollId:poll.remoteRef.pollId},this.session.credential);this.participantPoll(next.poll,fromQr?choiceId:null,next.alreadyParticipated);this.notify('Le sondage a changé. Aucun vote envoyé : vérifie les nouvelles règles avant de confirmer.');}catch(e){this.clearMember();this.cardPrompt(poll.remoteRef.pollId);this.error(e);}}else if(['ALREADY_PARTICIPATED','INVALID_CAPABILITY','NOT_ELIGIBLE'].includes(error.code)){this.clearMember();this.app.replaceChildren();this.title(error.code==='ALREADY_PARTICIPATED'?'Déjà participé':'Carte non autorisée');this.app.append(node('p','Aucun nouveau vote n’a été enregistré.'),link('Accueil','#home'));}else this.error(error);}}
-      finally{busy=false;this.submitting=false;if(confirm.isConnected){confirm.disabled=false;other.disabled=false;}}
+      finally{busy=false;this.submitting=false;if(confirm.isConnected){confirm.disabled=false;other.disabled=multi&&Boolean(frozen);if(resetChoices)resetChoices.disabled=Boolean(frozen);if(multi&&frozen)this.notify('Confirmation incertaine. Réessaie la même confirmation pour retrouver le résultat sans créer un autre bulletin.');}}
     });this.app.append(form);
   }
   success(pollId,commentSent){
@@ -255,7 +259,7 @@ export class SpacesUI {
       if(!accepted){await this.call('acceptInvitation',registration,this.invitation);accepted=true;}this.setMember(registration.memberCredential);const profile=await this.call('getMemberHome',{},registration.memberCredential);this.invitation=null;this.showCard({credential:registration.memberCredential,displayName:profile.displayName,memberVisualId:profile.visualId??null,spaceName:profile.space.name,groups:profile.groups.map(g=>({name:g.name,visualId:g.visual_id??null}))});registration=null;this.notify('Invitation acceptée. Télécharge ta carte pour la garder.');}));
   }
   newPoll(data,box){
-    box.append(spacePollEditor(data,{readAudienceSize:async ids=>(await this.call('getAudienceSize',{spaceId:data.spaceId,pollAudience:{spaceId:data.spaceId,mode:ids.length?'groups':'space',groupIds:ids,resultsAudience:'poll_audience'}},this.staff(data.spaceId))).eligible,button:(...args)=>this.button(...args),groupSelection:(...args)=>this.groupSelection(...args),submit:async(values,metadata)=>{const {poll,pollAudience}=makeSpacePollDraft(values,data.spaceId);const prep=await this.call('prepareSpacePublication',{spaceId:data.spaceId,poll,pollAudience,expectedRevision:data.revision},this.staff(data.spaceId));(this.pollMinimumModes??=new Map()).set(prep.pollId,metadata?.automaticMinimum===true);location.hash=`#space/${data.spaceId}/poll/${prep.pollId}`;}}));
+    box.append(spacePollEditor(data,{readModes:()=>this.call('getVoteModes',{spaceId:data.spaceId},this.staff(data.spaceId)),readAudienceSize:async ids=>(await this.call('getAudienceSize',{spaceId:data.spaceId,pollAudience:{spaceId:data.spaceId,mode:ids.length?'groups':'space',groupIds:ids,resultsAudience:'poll_audience'}},this.staff(data.spaceId))).eligible,button:(...args)=>this.button(...args),groupSelection:(...args)=>this.groupSelection(...args),submit:async(values,metadata)=>{const {poll,pollAudience}=makeSpacePollDraft(values,data.spaceId);const prep=await this.call('prepareSpacePublication',{spaceId:data.spaceId,poll,pollAudience,expectedRevision:data.revision},this.staff(data.spaceId));(this.pollMinimumModes??=new Map()).set(prep.pollId,metadata?.automaticMinimum===true);location.hash=`#space/${data.spaceId}/poll/${prep.pollId}`;}}));
   }
   async managePoll(poll,spaceId){
     const id=poll.remoteRef.pollId,credential=this.staff(spaceId);let panelElement;
@@ -270,6 +274,10 @@ export class SpacesUI {
     this.app.replaceChildren();this.title('Les résultats');const result=poll.results,id=poll.remoteRef.pollId;if(spaceId)this.app.append(link('← Gérer le sondage',`#space/${spaceId}/poll/${id}`));
     if(!spaceId)this.app.append(pollActions(this.button('Terminer',()=>{this.clearMember();location.hash='#home';})));
     if(!result.available||!spaceId&&poll.accessRules.pollAudience.resultsAudience==='admins_only'){const attendance=spaceId?await this.call('getPollAttendance',{pollId:id},this.staff(spaceId)):null,state=resultsState(poll,{admin:Boolean(spaceId),attendance});this.app.append(append(node('section',undefined,{class:'space-results-state','data-result-state':state.code}),node('h2',state.title),node('p',state.detail)));return;}
+    if(result.mode){
+      const ranked=result.mode==='ranked_choice';this.app.append(node('h2',poll.definition.question,{class:'mode-results-question'}),node('p',`${result.totalBallots} participations`),node('p',ranked?`Le premier choix reçoit ${result.limit} points, puis un point de moins par rang. Les choix non classés reçoivent 0 point.${poll.definition.voteConfig.rule==='up_to'?' Le total de points distribués peut varier selon le nombre de préférences exprimées.':''}`:'Plusieurs réponses étaient possibles. Les pourcentages portent sur les participants et peuvent dépasser 100 % au total.'));
+      for(const c of result.choices){const box=node('section',undefined,{class:'result-row'}),max=ranked?Math.max(1,...result.choices.map(x=>x.points)):Math.max(1,result.totalBallots),bar=node('progress',undefined,{max,value:ranked?c.points:c.count,'aria-label':c.label,'aria-valuetext':ranked?`${c.points} points`:`${c.count} participants sur ${result.totalBallots}`});box.append(node('h3',(ranked?c.rank+'. ':'')+c.label+(c.tied?' · Égalité':'')),node('p',ranked?`${c.points} points`:`${c.count} participants · ${c.percentage.toFixed(1)} %`),bar);this.app.append(box);}if(result.comments?.items?.length){this.app.append(node('h3','Commentaires visibles'));for(const c of result.comments.items)this.app.append(node('p',c.text));}this.app.append(node('p','L’export PDF des résultats expérimentaux n’est pas encore disponible.'));return;
+    }
     this.app.append(node('h2',poll.definition.question),node('p',`${result.totalBallots} réponses`));
     for(const c of result.choices){const section=append(node('section',undefined,{class:'result-row'}),node('h3',c.label),node('p',`${c.count} · ${c.percentage.toFixed(1)} %`));for(const comment of result.comments?.items?.filter(m=>m.choiceId===c.id)||[])section.append(node('p',comment.text));this.app.append(section);}
     const credential=spaceId?this.staff(spaceId):this.session.credential;

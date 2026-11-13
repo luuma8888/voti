@@ -1,3 +1,4 @@
+import {voteMode,aggregateSelections} from '../../shared/vote-modes.js';
 import { RelayError, relayEnsure as need, remoteRef, isPublicPollId, isAdminCapability } from '../../shared/relay.js';
 import { emptyState, canonical, semanticHash } from '../../shared/model.js';
 import { validateState, validateDefinition, validateRules, validateStyle, object, isAssetId } from '../../shared/validation.js';
@@ -73,7 +74,7 @@ export class CloudflareRelay {
   }
   async projection(id, authorized = false) {
     // Un seul SELECT : statut/règles/révision et agrégats correspondent au même instant.
-    const row = await this.sql(`SELECT p.*, (SELECT COUNT(*) FROM ballots WHERE poll_id=p.poll_id) total,
+    const row = await this.sql(`SELECT p.*, (SELECT json_group_array(json(selection_json)) FROM ballots WHERE poll_id=p.poll_id AND selection_json IS NOT NULL) mode_ballots, (SELECT COUNT(*) FROM ballots WHERE poll_id=p.poll_id) total,
       (SELECT count(*) FROM poll_member_eligibility WHERE poll_id=p.poll_id) eligible,
       (SELECT coalesce(sum(consumed),0) FROM poll_member_eligibility WHERE poll_id=p.poll_id) consumed,
       (SELECT json_group_object(choice_id,n) FROM (SELECT choice_id,COUNT(*) n FROM ballots WHERE poll_id=p.poll_id GROUP BY choice_id)) counts
@@ -89,6 +90,7 @@ export class CloudflareRelay {
       const counts = JSON.parse(row.counts || '{}');
       results = { available: true, totalBallots: row.total, ...(grouped?{eligibleTotal:row.eligible}:{}), choices: definition.choices.map(c => ({ id: c.id, label: c.label,
         count: counts[c.id] || 0, percentage: (counts[c.id] || 0) / row.total * 100 })) };
+      if(voteMode(definition)!=='single_choice')results={available:true,eligibleTotal:row.eligible,...aggregateSelections(definition,JSON.parse(row.mode_ballots||'[]'))};
       if (participationRules(definition).commentVisibility === 'public_with_results') {
         const comments = await this.comments(id, null);
         if (comments.count) results.comments = comments;
@@ -98,21 +100,22 @@ export class CloudflareRelay {
       definition, style: JSON.parse(row.style), accessRules: JSON.parse(row.access_rules), resultRules: rules, results };
   }
   async comments(id, cursor) {
+    const mode=voteMode(JSON.parse((await this.row(id)).definition)),multi=mode!=='single_choice';
     const { results } = await this.sql(`SELECT comment_id,choice_id,text,
       (SELECT COUNT(*) FROM comments WHERE poll_id=? AND moderation_status='visible') total
       FROM comments WHERE poll_id=? AND moderation_status='visible' AND comment_id>? ORDER BY comment_id LIMIT 26`, id, id, cursor ?? '').all();
-    return { count: results[0]?.total ?? (await this.sql("SELECT COUNT(*) total FROM comments WHERE poll_id=? AND moderation_status='visible'", id).first()).total,
-      items: results.slice(0,25).map(c => ({ commentId: c.comment_id, choiceId: c.choice_id, text: c.text })), nextCursor: results.length > 25 ? results[24].comment_id : null };
+    return { ...(multi?{mode}:{}),count: results[0]?.total ?? (await this.sql("SELECT COUNT(*) total FROM comments WHERE poll_id=? AND moderation_status='visible'", id).first()).total,
+      items: results.slice(0,25).map(c => ({ commentId: c.comment_id, choiceId: multi?null:c.choice_id, text: c.text })), nextCursor: results.length > 25 ? results[24].comment_id : null };
   }
   async participations(row, cursor) {
-    const identified = participationRules(JSON.parse(row.definition)).participationIdentityMode === 'identified';
-    const { results } = await this.sql(identified ? `SELECT b.choice_id,x.participation_id,x.display_name,c.comment_id,c.text,c.moderation_status,c.revision
+    const identified = participationRules(JSON.parse(row.definition)).participationIdentityMode === 'identified',mode=voteMode(JSON.parse(row.definition)),multi=mode!=='single_choice';
+    const { results } = await this.sql(identified ? `SELECT b.choice_id,b.selection_json,x.participation_id,x.display_name,c.comment_id,c.text,c.moderation_status,c.revision
       FROM participations x JOIN ballots b ON b.poll_id=x.poll_id AND b.participation_id=x.participation_id
       LEFT JOIN comments c ON c.poll_id=b.poll_id AND c.action_id=b.action_id
       WHERE x.poll_id=? AND x.participation_id>? ORDER BY x.participation_id LIMIT 26` :
       `SELECT choice_id,comment_id,text,moderation_status,revision FROM comments WHERE poll_id=? AND comment_id>? ORDER BY comment_id LIMIT 26`, row.poll_id, cursor ?? '').all();
-    return { remoteRef: this.ref(row), participationIdentityMode: identified ? 'identified' : 'anonymous',
-      entries: results.slice(0,25).map(c => ({ choiceId: c.choice_id, ...(identified ? { participationId: c.participation_id, displayName: c.display_name } : {}),
+    return { ...(multi?{mode}:{}),remoteRef: this.ref(row), participationIdentityMode: identified ? 'identified' : 'anonymous',
+      entries: results.slice(0,25).map(c => ({ choiceId: multi&&!identified?null:c.choice_id, ...(identified&&c.selection_json?{selectionIds:JSON.parse(c.selection_json)}:{}), ...(identified ? { participationId: c.participation_id, displayName: c.display_name } : {}),
         ...(c.comment_id ? { comment: { commentId: c.comment_id, text: c.text, moderationStatus: c.moderation_status, revision: c.revision } } : {}) })),
       nextCursor: results.length > 25 ? (identified ? results[24].participation_id : results[24].comment_id) : null };
   }

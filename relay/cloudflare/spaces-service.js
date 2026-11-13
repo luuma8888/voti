@@ -1,3 +1,4 @@
+import {voteMode,validateSelections} from '../../shared/vote-modes.js';
 import {RelayError,relayEnsure as need,isPublicPollId} from '../../shared/relay.js';
 import {canonical,semanticHash} from '../../shared/model.js';
 import {validatePoll,validateDefinition,validateRules} from '../../shared/validation.js';
@@ -80,6 +81,7 @@ export class SpacesService {
         this.sql("INSERT INTO space_access(access_id,space_id,role,group_scopes,credential_digest) VALUES(?,?,'admin',NULL,?)",crypto.randomUUID(),data.spaceId,digest)]);
       return this.view(await this.staff(data.spaceId,credential));
     }
+    if(command==='getVoteModes'){await this.staff(data.spaceId,credential);await this.sql('SELECT selection_json FROM ballots LIMIT 0').all();return{kind:'voteModes',version:1};}
     if(command==='acceptInvitation')return this.acceptInvitation(data,credential);
     if(command==='getMemberHome'){
       const member=await this.member(credential),groups=(await this.sql(`SELECT g.group_id,g.name${data.includeVisuals?',g.visual_id':''} FROM group_memberships m JOIN groups g USING(group_id) WHERE m.member_id=? AND g.status='active'`,member.member_id).all()).results;
@@ -90,9 +92,9 @@ export class SpacesService {
       return {kind:'member',memberId:member.member_id,displayName:member.display_name,...(data.includeVisuals?{visualId:member.visual_id}:{}),space:{spaceId:member.space_id,name:member.space_name},groups,
         polls:polls.map(p=>({pollId:p.poll_id,question:JSON.parse(p.definition).question,status:p.status,alreadyParticipated:Boolean(p.consumed),resultsAvailable:p.results_audience==='poll_audience'&&groupResultsAvailable(p.status,JSON.parse(p.result_rules),p.consumed_total,p.snapshot_size)}))};
     }
-    if(['getMemberPoll','getMemberResults','getMemberComments','castMemberVote'].includes(command)){
+    if(['getMemberPoll','getMemberResults','getMemberComments','castMemberVote','castMemberBallot'].includes(command)){
       const member=await this.eligible(data.pollId,credential,['getMemberResults','getMemberComments'].includes(command));
-      if(command==='castMemberVote')return{kind:'vote',receipt:await this.vote(data,member)};
+      if(['castMemberVote','castMemberBallot'].includes(command))return{kind:'vote',receipt:await this.vote(data,member,command==='castMemberBallot')};
       const poll=await this.relay.projection(data.pollId,true);
       if(['getMemberResults','getMemberComments'].includes(command))need(poll.accessRules.pollAudience.resultsAudience==='poll_audience','ACCESS_DENIED');
       if(command==='getMemberResults'){need(poll.results.available,'RESULTS_LOCKED');return{kind:'results',results:{remoteRef:poll.remoteRef,...poll.results}};}
@@ -107,7 +109,7 @@ export class SpacesService {
       if(command==='getSpaceComments'){const view=await this.relay.projection(data.pollId,true);need(view.results.available,'RESULTS_LOCKED');need(participationRules(view.definition).commentVisibility==='public_with_results','NOT_FOUND');need(data.cursor===null||isPublicPollId(data.cursor),'INVALID_REQUEST');return{kind:'comments',page:await this.relay.comments(data.pollId,data.cursor)};}
       if(command==='getSpacePoll')return{kind:'poll',poll:row.status==='draft'?{remoteRef:this.relay.ref(row),status:'draft',locked:false,definitionHash:null,definition:JSON.parse(row.definition),style:JSON.parse(row.style),accessRules:JSON.parse(row.access_rules),resultRules:JSON.parse(row.result_rules),results:{available:false,minimumResponses:JSON.parse(row.result_rules).minimumResponses,releaseMode:JSON.parse(row.result_rules).releaseMode}}:await this.relay.projection(data.pollId,true)};
       if(command==='updateSpacePoll'){
-        need(!row.locked,'POLL_LOCKED');need(row.status!=='closed','POLL_CLOSED');try{validateDefinition(data.definition);validateRules(data.resultRules,true);}catch{throw new RelayError('INVALID_DEFINITION');}
+        need(!row.locked,'POLL_LOCKED');need(row.status!=='closed','POLL_CLOSED');try{validateDefinition(data.definition,undefined,true);validateRules(data.resultRules,true);}catch{throw new RelayError('INVALID_DEFINITION');}
         const audience=validatePollAudience(data.pollAudience),old=await this.audience(row.poll_id),access=await this.staff(old.spaceId,credential);
         need(audience.spaceId===old.spaceId&&creatorAllowsAudience(access,audience),'ACCESS_DENIED');await this.groupIds(old.spaceId,audience.groupIds);
         if(row.status!=='draft')need(audience.mode===old.mode&&canonical(audience.groupIds)===canonical([...old.groupIds].sort()),'POLL_LOCKED');
@@ -218,21 +220,25 @@ export class SpacesService {
   async attendance(row){
     const mode=participationRules(JSON.parse(row.definition)).participationIdentityMode;
     const counts=await this.sql('SELECT count(*) eligible,coalesce(sum(consumed),0) consumed FROM poll_member_eligibility WHERE poll_id=?',row.poll_id).first();
-    let members=null;if(mode==='identified')members=(await this.sql(`SELECT m.member_id,coalesce(identity.display_name,m.display_name) display_name,e.consumed,x.participation_id,b.choice_id,c.comment_id,c.text
+    let members=null;if(mode==='identified')members=(await this.sql(`SELECT m.member_id,coalesce(identity.display_name,m.display_name) display_name,e.consumed,x.participation_id,b.choice_id,b.selection_json,c.comment_id,c.text
       FROM poll_member_eligibility e JOIN space_members m USING(member_id) LEFT JOIN member_participations x ON x.poll_id=e.poll_id AND x.member_id=e.member_id
       LEFT JOIN participations identity ON identity.participation_id=x.participation_id
       LEFT JOIN ballots b ON b.participation_id=x.participation_id LEFT JOIN comments c ON c.participation_id=x.participation_id WHERE e.poll_id=? ORDER BY m.display_name`,row.poll_id).all()).results;
+    if(members)members=members.map(({selection_json,...m})=>({...m,...(selection_json?{selectionIds:JSON.parse(selection_json)}:{})}));
     return{kind:'attendance',identityMode:mode,consumed:counts.consumed,eligible:counts.eligible,members};
   }
-  async vote(data,member){
+  async vote(data,member,multi=false){
     const row=await this.relay.publicRow(data.pollId),definition=JSON.parse(row.definition),identified=participationRules(definition).participationIdentityMode==='identified';
+    need(multi===(voteMode(definition)!=='single_choice'),'INVALID_REQUEST');
+    let selections=null;
+    if(multi){try{selections=JSON.stringify(validateSelections(definition,data.selectionIds));}catch{throw new RelayError('INVALID_CHOICE');}data={...data,choiceId:JSON.parse(selections)[0]};}
     need(row.semantic_hash===data.expectedDefinitionHash,'REVISION_CONFLICT');
     need(data.actionId!==data.pollId&&!definition.choices.some(c=>c.id===data.actionId)&&!await this.sql('SELECT 1 FROM space_members WHERE member_id=?',data.actionId).first(),'INVALID_REQUEST');
     const previous=await this.sql('SELECT choice_id,submission_digest,participation_id FROM ballots WHERE poll_id=? AND action_id=?',data.pollId,data.actionId).first();
     // Un renommage du membre ne change pas le contenu d’une soumission déjà acceptée.
     const historic=identified&&previous?await this.sql('SELECT p.display_name FROM participations p JOIN member_participations x USING(participation_id) WHERE p.participation_id=? AND x.member_id=?',previous.participation_id,member.member_id).first():null;
     let submission;try{submission=normalizeSubmission(definition,{comment:data.comment,...(identified?{displayName:historic?.display_name??member.display_name}:{})});}catch(error){throw new RelayError(error.code==='INVALID_PARTICIPATION'?'INVALID_PARTICIPATION':'INVALID_COMMENT');}
-    const digest=await submissionDigest(data.pollId,data.actionId,data.choiceId,submission);
+    const digest=await submissionDigest(data.pollId,data.actionId,multi?selections:data.choiceId,submission);
     if(member.consumed){need(previous&&previous.choice_id===data.choiceId&&previous.submission_digest===digest,'ALREADY_PARTICIPATED');
       if(identified)need(await this.sql('SELECT 1 FROM member_participations WHERE participation_id=? AND member_id=?',previous.participation_id,member.member_id).first(),'ALREADY_PARTICIPATED');
       const view=await this.relay.projection(data.pollId,true);return{accepted:true,alreadyAccepted:true,remoteRef:view.remoteRef,status:view.status,locked:view.locked,results:member.audience.resultsAudience==='admins_only'?{available:false,minimumResponses:view.resultRules.minimumResponses,releaseMode:view.resultRules.releaseMode}:view.results};}
@@ -244,7 +250,8 @@ export class SpacesService {
       this.sql('UPDATE poll_member_eligibility SET consumed=1 WHERE poll_id=? AND member_id=?',data.pollId,member.member_id),
       this.sql('INSERT INTO controlled_vote_guards VALUES(?,?)',data.pollId,guard)];
     if(identified)statements.push(this.sql('INSERT INTO participations(participation_id,poll_id,display_name) VALUES(?,?,?)',participationId,data.pollId,member.display_name),this.sql('INSERT INTO member_participations VALUES(?,?,?)',participationId,data.pollId,member.member_id));
-    statements.push(this.sql('INSERT INTO ballots(poll_id,action_id,choice_id,participation_id,submission_digest) VALUES(?,?,?,?,?)',data.pollId,data.actionId,data.choiceId,participationId,digest));
+    if(multi)statements.push(this.sql('INSERT INTO ballots(poll_id,action_id,choice_id,participation_id,submission_digest,selection_json) VALUES(?,?,?,?,?,?)',data.pollId,data.actionId,data.choiceId,participationId,digest,selections));
+    else statements.push(this.sql('INSERT INTO ballots(poll_id,action_id,choice_id,participation_id,submission_digest) VALUES(?,?,?,?,?)',data.pollId,data.actionId,data.choiceId,participationId,digest));
     if(submission.comment)statements.push(this.sql("INSERT INTO comments(comment_id,poll_id,action_id,choice_id,text,moderation_status,revision,participation_id) VALUES(?,?,?,?,?,'pending',1,?)",crypto.randomUUID(),data.pollId,data.actionId,data.choiceId,submission.comment,participationId));
     statements.push(this.sql('DELETE FROM controlled_vote_guards WHERE poll_id=? AND guard_id=?',data.pollId,guard),this.sql('DELETE FROM mutation_guards WHERE id=?',guard));
     try{await this.db.batch(statements);}catch{

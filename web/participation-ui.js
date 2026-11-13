@@ -1,3 +1,4 @@
+import {voteMode} from '../shared/vote-modes.js';
 import { participationRules, normalizeSubmission, characterCount } from '../shared/participation.js';
 import { confirmAction } from './confirmation.js';
 
@@ -50,10 +51,10 @@ export function commentsAdministration(poll,{load,mutate,error}) {
       const entries=[];let cursor=null;
       do {const page=await load(cursor);if(!active)return;entries.push(...page.entries);cursor=page.nextCursor;if(entries.length>=500&&cursor)throw new Error('Affichage limité à 500 participations.');}while(cursor);
       content.replaceChildren();status.textContent=entries.length?`${entries.length} entrée(s)`:'Aucun commentaire ou participation pour le moment.';
-      for(const choice of poll.definition.choices){const group=entries.filter(e=>e.choiceId===choice.id);if(!group.length)continue;
+      for(const choice of voteMode(poll.definition)==='single_choice'?poll.definition.choices:[{label:'Réponses du sondage'}]){const group=voteMode(poll.definition)==='single_choice'?entries.filter(e=>e.choiceId===choice.id):entries;if(!group.length)continue;
         const section=node('section',undefined,{class:'comment-group'});section.append(node('h3',choice.label));
         for(const entry of group){const row=node('article',undefined,{class:'comment-entry'});
-          if(entry.displayName)row.append(node('strong',entry.displayName));
+          if(entry.displayName)row.append(node('strong',entry.displayName));if(entry.selectionIds){const list=node(voteMode(poll.definition)==='ranked_choice'?'ol':'ul');for(const id of entry.selectionIds)list.append(node('li',poll.definition.choices.find(c=>c.id===id)?.label));row.append(list);}
           if(entry.comment){const c=entry.comment;row.append(node('p',c.text,{class:'comment-text'}));
             if(rules.commentVisibility==='public_with_results')row.append(node('span',{pending:'En attente',visible:'Visible avec les résultats',hidden:'Masqué'}[c.moderationStatus],{class:'badge'}));
             const actions=node('div',undefined,{class:'actions'});

@@ -1,3 +1,4 @@
+import {voteMode} from '../shared/vote-modes.js';
 import { buildPollUrl, buildChoiceUrl, buildResultsUrl, buildAdminTransferUrl } from '../shared/qr-links.js';
 import { createQrMatrix, renderQrSvg, qrPng, downloadBlob } from './qr.js';
 
@@ -26,14 +27,15 @@ export function sharingPanel(poll, { baseUrl, getAdminKey, error, notify, openSt
   const publicPanels=[];
   const publicSection=title=>{const box=node('section',null,'share-content');box.id='share-'+crypto.randomUUID();box.hidden=true;box.setAttribute('role','region');const heading=node('h2',title);heading.id=box.id+'-title';heading.tabIndex=-1;box.setAttribute('aria-labelledby',heading.id);box.append(heading);panel.append(box);publicPanels.push(box);return box;};
   const choices = node('div', null, 'qr-grid');
-  for (const choice of poll.definition.choices) choices.append(qrCard(choice.label, buildChoiceUrl(id, choice.id, baseUrl), `choix-${id}-${choice.id}`));
-  const choiceSection=publicSection('Un QR pour chaque choix');choiceSection.append(node('p', 'Ce QR ouvre directement la confirmation de ce choix. Le vote n’est envoyé qu’après validation.'), choices);
+  for (const choice of voteMode(poll.definition)==='single_choice'?poll.definition.choices:[]) choices.append(qrCard(choice.label, buildChoiceUrl(id, choice.id, baseUrl), `choix-${id}-${choice.id}`));
+  const choiceSection=publicSection('Un QR pour chaque choix');if(voteMode(poll.definition)!=='single_choice')choiceSection.append(node('p','Les QR par réponse sont disponibles uniquement pour les sondages à choix unique.'));choiceSection.append(node('p', 'Ce QR ouvre directement la confirmation de ce choix. Le vote n’est envoyé qu’après validation.'), choices);
   const resultSection=publicSection('QR des résultats');resultSection.append(qrCard('Voir les résultats', buildResultsUrl(id, baseUrl), `resultats-${id}`));
   function show(target,entry){for(const box of publicPanels)box.hidden=box!==target;for(const button of shortcuts.querySelectorAll('[aria-expanded]'))button.setAttribute('aria-expanded',String(button===entry));target.querySelector('h2').focus({preventScroll:true});target.scrollIntoView({block:'nearest'});}
   for(const [title,description,kind,operation] of [
     ['Un QR pour chaque choix','Chaque QR ouvre directement la confirmation d’une réponse.','choice',choiceSection],
     ['QR des résultats','Pour consulter les résultats lorsqu’ils sont disponibles.','results',resultSection],
     ['Créer une affiche PDF','Compose une affiche avec QR, couleurs et images.','poster',null]]){
+    if(kind==='choice'&&voteMode(poll.definition)!=='single_choice'){shortcuts.append(node('p','Les QR par réponse sont disponibles uniquement pour les sondages à choix unique.'));continue;}
     const entry=control('',()=>operation?show(operation,entry):openStudio());entry.className='share-shortcut';entry.append(illustration(kind),node('strong',title),node('span',description));shortcuts.append(entry);
     if(operation){entry.setAttribute('aria-controls',operation.id);entry.setAttribute('aria-expanded','false');}else entry.dataset.action='studio';
   }

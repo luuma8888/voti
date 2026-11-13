@@ -1,3 +1,4 @@
+import {voteConfiguration,voteMode} from './vote-modes.js';
 import { SCHEMA_VERSION, THEMES, recalculateStats, semanticHash } from './model.js';
 import { definitionVersion, participationRules, normalizeSubmission, normalizedText, submissionDigest, MAX_COMMENT_LENGTH, MAX_DISPLAY_NAME_LENGTH } from './participation.js';
 import { validatePollAudience, GROUP_RELEASE_MODES } from './spaces.js';
@@ -29,14 +30,15 @@ export function isAssetId(value) {
   return typeof value === 'string' && /^sha256-[a-f0-9]{64}$/.test(value);
 }
 
-export function validateDefinition(definition, version = definitionVersion(definition ?? {})) {
+export function validateDefinition(definition, version = definitionVersion(definition ?? {}), spaceModes = false) {
   ensure([1, 2, 3, 4].includes(version), 'Version de définition inconnue.');
-  object(definition, ['question', 'description', 'mode', 'privacy', 'choices', ...(version >= 2 ? ['pollImageAssetId'] : []),
-    ...(version >= 3 ? ['participationIdentityMode', 'commentMode', 'commentVisibility'] : [])], 'Définition');
+  object(definition, ['question', 'description', ...(Object.hasOwn(definition,'mode')?['mode']:[]), 'privacy', 'choices', ...(version >= 2 ? ['pollImageAssetId'] : []),
+    ...(version >= 3 ? ['participationIdentityMode', 'commentMode', 'commentVisibility'] : []), ...(Object.hasOwn(definition,'voteConfig')?['voteConfig']:[])], 'Définition');
   if (version >= 2) ensure(definition.pollImageAssetId === null || isAssetId(definition.pollImageAssetId), 'Référence image du sondage invalide.');
   text(definition.question, 240, 'Question');
   text(definition.description, 1000, 'Description', true);
-  ensure(definition.mode === 'single_choice', 'Seul le choix unique est disponible.');
+  ensure(spaceModes||voteMode(definition)==='single_choice','Le Mode libre conserve un seul choix.');
+  voteConfiguration(definition);
   if (version >= 3) {
     ensure(['anonymous', 'identified'].includes(definition.participationIdentityMode), 'Mode de participation invalide.');
     ensure(['disabled', 'optional'].includes(definition.commentMode), 'Mode de commentaire invalide.');
@@ -86,7 +88,7 @@ export function validatePoll(poll, version = poll?.schemaVersion) {
   ensure(poll.closedAt === null || poll.closedAt >= poll.publishedAt, 'Fermeture antérieure à la publication.');
   ensure(poll.lockedAt === null || (poll.publishedAt !== null && poll.lockedAt >= poll.publishedAt && (poll.closedAt === null || poll.lockedAt <= poll.closedAt)), 'Verrouillage incohérent.');
   ensure(poll.lockedAt === null ? poll.definitionHash === null : /^[a-f0-9]{64}$/.test(poll.definitionHash), 'Empreinte de verrouillage invalide.');
-  validateDefinition(poll.definition, version);
+  validateDefinition(poll.definition, version, version===4);
   validateStyle(poll.style);
   validateRules(poll.resultRules,version===4);
   validateAccess(poll.accessRules);

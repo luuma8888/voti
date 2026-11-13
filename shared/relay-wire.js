@@ -51,11 +51,13 @@ export function validateProjection(value) {
     object(value, ['available', 'minimumResponses', 'releaseMode', ...('totalBallots' in value ? ['totalBallots'] : [])], 'Résultats');
     need(Number.isSafeInteger(value.minimumResponses) && value.minimumResponses > 0 && ['threshold', 'closed','all_eligible','all_eligible_or_closed'].includes(value.releaseMode), 'RELAY_UNAVAILABLE');
   } else {
-    object(value, ['available', 'totalBallots', 'choices', ...('eligibleTotal' in value?['eligibleTotal']:[]), ...('comments' in value ? ['comments'] : [])], 'Résultats');
+    object(value, ['available', 'totalBallots', 'choices', ...('eligibleTotal' in value?['eligibleTotal']:[]), ...('mode' in value?['mode','limit']:[]), ...('comments' in value ? ['comments'] : [])], 'Résultats');
+    if('mode' in value)need(['multiple_choice','ranked_choice'].includes(value.mode)&&Number.isSafeInteger(value.limit)&&value.limit>=1&&value.limit<=6,'RELAY_UNAVAILABLE');
     if('eligibleTotal' in value)need(Number.isSafeInteger(value.eligibleTotal)&&value.eligibleTotal>=value.totalBallots,'RELAY_UNAVAILABLE');
     if ('comments' in value) validateCommentPage(value.comments);
     need(Array.isArray(value.choices) && value.choices.length >= 2 && value.choices.length <= 6, 'RELAY_UNAVAILABLE');
     for (const choice of value.choices) {
+      if(value.mode==='ranked_choice'){object(choice,['id','label','points','rank','tied'],'Score');need(isUuid(choice.id)&&typeof choice.label==='string'&&Number.isSafeInteger(choice.points)&&choice.points>=0&&Number.isSafeInteger(choice.rank)&&choice.rank>=1&&typeof choice.tied==='boolean','RELAY_UNAVAILABLE');continue;}
       object(choice, ['id', 'label', 'count', 'percentage'], 'Résultat');
       need(typeof choice.id === 'string' && typeof choice.label === 'string' && Number.isSafeInteger(choice.count) && choice.count >= 0 && Number.isFinite(choice.percentage) && choice.percentage >= 0 && choice.percentage <= 100, 'RELAY_UNAVAILABLE');
     }
@@ -70,13 +72,15 @@ export function validateRelayResponse(method, value, relayId, pollId) {
   need(ref.relayId === relayId && ref.pollId === pollId, 'RELAY_UNAVAILABLE');
   if (method === 'getComments') { const { remoteRef: _ref, ...page } = value; validateCommentPage(page); }
   else if (method === 'getParticipations') {
-    object(value, ['remoteRef', 'participationIdentityMode', 'entries', 'nextCursor'], 'Administration');
+    object(value, ['remoteRef', 'participationIdentityMode', 'entries', 'nextCursor',...(Object.hasOwn(value,'mode')?['mode']:[])], 'Administration');
+    if(value.mode)need(['multiple_choice','ranked_choice'].includes(value.mode),'RELAY_UNAVAILABLE');
     need(['anonymous', 'identified'].includes(value.participationIdentityMode) && Array.isArray(value.entries) && value.entries.length <= 25, 'RELAY_UNAVAILABLE');
     need(value.nextCursor === null || isUuid(value.nextCursor), 'RELAY_UNAVAILABLE');
     for (const entry of value.entries) {
       const identified = value.participationIdentityMode === 'identified';
-      object(entry, ['choiceId', ...(identified ? ['participationId', 'displayName'] : []), ...('comment' in entry ? ['comment'] : [])], 'Participation administrateur');
-      need(isUuid(entry.choiceId) && (identified || entry.comment), 'RELAY_UNAVAILABLE');
+      object(entry, ['choiceId', ...(identified&&Object.hasOwn(entry,'selectionIds')?['selectionIds']:[]), ...(identified ? ['participationId', 'displayName'] : []), ...('comment' in entry ? ['comment'] : [])], 'Participation administrateur');
+      need((isUuid(entry.choiceId)||(value.mode&&entry.choiceId===null)) && (identified || entry.comment), 'RELAY_UNAVAILABLE');
+      if(entry.selectionIds)need(identified&&Array.isArray(entry.selectionIds)&&entry.selectionIds.length<=6&&entry.selectionIds.every(isUuid)&&new Set(entry.selectionIds).size===entry.selectionIds.length,'RELAY_UNAVAILABLE');
       if (identified) need(isUuid(entry.participationId) && normalizedText(entry.displayName, MAX_DISPLAY_NAME_LENGTH, 'Nom', true) === entry.displayName, 'RELAY_UNAVAILABLE');
       if (entry.comment) {
         object(entry.comment, ['commentId', 'text', 'moderationStatus', 'revision'], 'Commentaire administrateur');
@@ -99,7 +103,7 @@ export function validateRelayResponse(method, value, relayId, pollId) {
     need(value.accepted === true && typeof value.alreadyAccepted === 'boolean', 'RELAY_UNAVAILABLE'); validateProjection(value.results);
   } else {
     object(value, ['remoteRef', 'status', 'locked', 'definitionHash', 'definition', 'style', 'accessRules', 'resultRules', 'results'], 'Sondage');
-    validateDefinition(value.definition); validateStyle(value.style); validateRules(value.resultRules,value.accessRules?.audience==='context');
+    validateDefinition(value.definition,undefined,value.accessRules?.audience==='context'); validateStyle(value.style); validateRules(value.resultRules,value.accessRules?.audience==='context');
     validateAccess(value.accessRules);
     need(value.locked ? /^[a-f0-9]{64}$/.test(value.definitionHash) : value.definitionHash === null, 'RELAY_UNAVAILABLE');
     validateProjection(value.results);
@@ -110,11 +114,12 @@ export function validateRelayResponse(method, value, relayId, pollId) {
 }
 
 export function validateCommentPage(page) {
-  object(page, ['count', 'items', 'nextCursor'], 'Commentaires publics');
+  if(page.mode)need(['multiple_choice','ranked_choice'].includes(page.mode),'RELAY_UNAVAILABLE');
+  object(page, ['count', 'items', 'nextCursor',...(Object.hasOwn(page,'mode')?['mode']:[])], 'Commentaires publics');
   need(Number.isSafeInteger(page.count) && page.count >= 0 && Array.isArray(page.items) && page.items.length <= 25 && page.items.length <= page.count, 'RELAY_UNAVAILABLE');
   need(page.nextCursor === null || isUuid(page.nextCursor), 'RELAY_UNAVAILABLE');
   for (const item of page.items) {
     object(item, ['commentId', 'choiceId', 'text'], 'Commentaire public');
-    need(isUuid(item.commentId) && isUuid(item.choiceId) && normalizedText(item.text, MAX_COMMENT_LENGTH, 'Commentaire', true) === item.text, 'RELAY_UNAVAILABLE');
+    need(isUuid(item.commentId) && (page.mode?item.choiceId===null:isUuid(item.choiceId)) && normalizedText(item.text, MAX_COMMENT_LENGTH, 'Commentaire', true) === item.text, 'RELAY_UNAVAILABLE');
   }
 }

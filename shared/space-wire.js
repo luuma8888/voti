@@ -7,6 +7,7 @@ import {isVisualId} from './visual-ids.js';
 
 /** Contrat fournisseur-neutre ; les credentials transitent exclusivement en Bearer. */
 export const SPACE_COMMAND_FIELDS=Object.freeze({
+  getVoteModes:['spaceId'],
   createSpace:['spaceId','name','expectedRevision'],getSpace:['spaceId'],getAudienceSize:['spaceId','pollAudience'],
   renameSpace:['spaceId','name','expectedRevision'],archiveSpace:['spaceId','expectedRevision'],
   createGroup:['spaceId','groupId','name','expectedRevision'],renameGroup:['spaceId','groupId','name','expectedRevision'],archiveGroup:['spaceId','groupId','expectedRevision'],
@@ -22,6 +23,7 @@ export const SPACE_COMMAND_FIELDS=Object.freeze({
   publishSpacePoll:['pollId','expectedRevision'],getSpacePoll:['pollId'],getMemberPoll:['pollId'],
   updateSpacePoll:['pollId','definition','resultRules','pollAudience','expectedRevision'],
   getMemberResults:['pollId'],getMemberComments:['pollId','cursor'],
+  castMemberBallot:['pollId','actionId','selectionIds','comment','expectedDefinitionHash'],
   castMemberVote:['pollId','actionId','choiceId','comment','expectedDefinitionHash'],getPollAttendance:['pollId'],getSpaceComments:['pollId','cursor'],
 });
 export function validateSpaceCommand(command,input){
@@ -31,6 +33,7 @@ export function validateSpaceCommand(command,input){
   if(Object.hasOwn(input,'visualId'))need(isVisualId(['createMember','updateMember'].includes(command)?'member':'group',input.visualId),'INVALID_REQUEST');
   if(Object.hasOwn(input,'includeVisuals'))need(typeof input.includeVisuals==='boolean','INVALID_REQUEST');
   for(const key of ['spaceId','groupId','memberId','accessId','invitationId','pollId','actionId'])if(Object.hasOwn(input,key))need(isPublicPollId(input[key]),'INVALID_REQUEST');
+  if(Object.hasOwn(input,'selectionIds'))need(Array.isArray(input.selectionIds)&&input.selectionIds.length>=1&&input.selectionIds.length<=6&&input.selectionIds.every(isUuid),'INVALID_REQUEST');
   if(Object.hasOwn(input,'choiceId'))need(isUuid(input.choiceId),'INVALID_REQUEST');
   if(Object.hasOwn(input,'expectedDefinitionHash'))need(typeof input.expectedDefinitionHash==='string'&&/^[a-f0-9]{64}$/.test(input.expectedDefinitionHash),'INVALID_REQUEST');
   if(Object.hasOwn(input,'expectedRevision'))need(Number.isSafeInteger(input.expectedRevision)&&input.expectedRevision>=0,'INVALID_REQUEST');
@@ -39,13 +42,14 @@ export function validateSpaceCommand(command,input){
 /** Enveloppe bornée ; projections nommées, jamais un export arbitraire de D1. */
 export function validateSpaceResponse(value,relayId=null,pollId=null){
   need(value&&typeof value==='object'&&!Array.isArray(value)&&typeof value.kind==='string','RELAY_UNAVAILABLE');
-  const keys={space:['kind','spaceId','name','status','revision','access','staffAccesses','groups','members','invitations','polls'],
+  const keys={voteModes:['kind','version'],space:['kind','spaceId','name','status','revision','access','staffAccesses','groups','members','invitations','polls'],
     member:['kind','memberId','displayName','space','groups','polls'],mutation:['kind','spaceId','revision'],
     prepared:['kind','pollId','revision'],acceptedInvitation:['kind','spaceId','memberId'],
     poll:['kind','poll'],memberPoll:['kind','poll','alreadyParticipated'],results:['kind','results'],comments:['kind','page'],
     audienceSize:['kind','eligible'],vote:['kind','receipt'],attendance:['kind','identityMode','consumed','eligible','members']};
   need(Object.hasOwn(keys,value.kind),'RELAY_UNAVAILABLE');
   try{object(value,[...keys[value.kind],...(value.kind==='member'&&Object.hasOwn(value,'visualId')?['visualId']:[])],'Réponse Espace');}catch{need(false,'RELAY_UNAVAILABLE');}
+  if(value.kind==='voteModes')need(value.version===1,'RELAY_UNAVAILABLE');
   if(value.kind==='audienceSize')need(Number.isSafeInteger(value.eligible)&&value.eligible>=0&&value.eligible<=200,'RELAY_UNAVAILABLE');
   if(value.kind==='member'&&Object.hasOwn(value,'visualId'))need(isVisualId('member',value.visualId),'RELAY_UNAVAILABLE');
   if(['mutation','prepared','acceptedInvitation'].includes(value.kind)){
@@ -59,7 +63,7 @@ export function validateSpaceResponse(value,relayId=null,pollId=null){
       object(ref,['relayId','pollId','revision'],'Référence distante');remoteRef(ref.relayId,ref.pollId,ref.revision);
       need(value.kind==='poll'&&poll.locked===false&&poll.definitionHash===null&&poll.results.available===false,'RELAY_UNAVAILABLE');
       object(poll,['remoteRef','status','locked','definitionHash','definition','style','accessRules','resultRules','results'],'Brouillon Espace');
-      validateDefinition(poll.definition);validateStyle(poll.style);validateAccess(poll.accessRules);validateRules(poll.resultRules,true);validateProjection(poll.results);
+      validateDefinition(poll.definition,undefined,true);validateStyle(poll.style);validateAccess(poll.accessRules);validateRules(poll.resultRules,true);validateProjection(poll.results);
     }else validateRelayResponse('getPoll',poll,ref.relayId,ref.pollId);
     if(value.kind==='memberPoll')need(typeof value.alreadyParticipated==='boolean','RELAY_UNAVAILABLE');
   }
@@ -91,7 +95,7 @@ export function validateSpaceResponse(value,relayId=null,pollId=null){
   }};reject(value);
   if(value.kind==='attendance'){
     need(['anonymous','identified'].includes(value.identityMode)&&Number.isSafeInteger(value.consumed)&&Number.isSafeInteger(value.eligible)&&value.consumed>=0&&value.consumed<=value.eligible,'RELAY_UNAVAILABLE');
-    if(value.identityMode==='anonymous')need(value.members===null,'RELAY_UNAVAILABLE');else{need(Array.isArray(value.members)&&value.members.length<=200,'RELAY_UNAVAILABLE');for(const m of value.members){object(m,['member_id','display_name','consumed','participation_id','choice_id','comment_id','text'],'Suivi identifié');need(isPublicPollId(m.member_id)&&memberName(m.display_name)===m.display_name&&[0,1].includes(m.consumed),'RELAY_UNAVAILABLE');}}
+    if(value.identityMode==='anonymous')need(value.members===null,'RELAY_UNAVAILABLE');else{need(Array.isArray(value.members)&&value.members.length<=200,'RELAY_UNAVAILABLE');for(const m of value.members){object(m,['member_id','display_name','consumed','participation_id','choice_id','comment_id','text',...(Object.hasOwn(m,'selectionIds')?['selectionIds']:[])],'Suivi identifié');need(isPublicPollId(m.member_id)&&memberName(m.display_name)===m.display_name&&[0,1].includes(m.consumed),'RELAY_UNAVAILABLE');}}
   }
   return structuredClone(value);
 }
