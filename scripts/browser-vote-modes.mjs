@@ -5,7 +5,7 @@ export async function modeScene(scene){
  const app=document.getElementById('app'),button=text=>[...app.querySelectorAll('button')].find(b=>b.textContent===text),ok=(c,m)=>{if(!c)throw Error(m);};
  if(scene==='setup'){
   const {SpacesUI}=await import('voti/web/spaces-ui.js'),{createPoll}=await import('voti/shared/poll-engine.js'),{emptyState}=await import('voti/shared/model.js'),{TemporaryMemberSession,createSpaceCredential}=await import('voti/shared/spaces.js');
-  const ui=Object.assign(Object.create(SpacesUI.prototype),{app,epoch:0,session:new TemporaryMemberSession(),profile:{displayName:'Soleil A'},clearError:()=>{},notify:()=>{},error:e=>{window.__modeError=e.message;},adapter:{spaceCommand:async r=>{window.__modeWrites++;window.__modePayload=r;if(window.__failModeOnce){window.__failModeOnce=false;throw Error('Réseau fictif indisponible');}return{};}}});
+  const ui=Object.assign(Object.create(SpacesUI.prototype),{app,epoch:0,session:new TemporaryMemberSession(),profile:{displayName:'Soleil A'},clearError:()=>{},notify:()=>{},error:e=>{window.__modeError=e.message;},adapter:{spaceCommand:async r=>{if(r.command==='getMemberPoll')return{poll:{...window.__modePoll,status:'closed'}};window.__modeWrites++;window.__modePayload=r;if(window.__failModeOnce){window.__failModeOnce=false;const e=Error('Échec fictif');if(window.__modeFailureCode){e.code=window.__modeFailureCode;window.__modeFailureCode=null;}throw e;}return{};}}});
   window.__modeUi=ui;window.__modeBase=createPoll(emptyState(),{question:'Quelle activité vendredi ?',choices:['Parc','Cinéma','Jeux','Piscine','Lecture','Musique'],commentMode:'disabled'}).polls[0];window.__modeWrites=0;
   window.__modeNew=()=>{ui.session.set(createSpaceCredential('member'));ui.profile={displayName:'Soleil A'};};return;
  }
@@ -34,6 +34,9 @@ export async function modeScene(scene){
   ok(window.__modeWrites===1,'un seul envoi malgré double clic');ok(!ui.session.credential&&!ui.profile,'identité effacée');ok(window.__modePayload.command==='castMemberBallot','contrat nouveau dédié');window.__modeWrites=0;
  }
  if(scene==='legacy-qr'){ui.participantPoll(window.__modePoll,base.definition.choices[0].id);ok(app.querySelector('.multi-vote')&&!button('Oui, je confirme')&&app.textContent.includes('ne convient pas'),'ancien QR incompatible ne présélectionne rien');}
+ if(scene==='closed-during-confirmation'){
+  window.__failModeOnce=true;window.__modeFailureCode='POLL_CLOSED';button('Oui, je confirme').click();for(let i=0;i<120&&!app.textContent.includes('Ce sondage est fermé.');i++)await new Promise(requestAnimationFrame);ok(app.textContent.includes('Ce sondage est fermé.')&&button('Terminer'),'fermeture reconnue sans blocage incertain');ok(!app.querySelector('.vote-success-intro'),'pas de succès après fermeture');window.__modeWrites=0;
+ }
  if(scene==='network'){
   window.__failModeOnce=true;button('Oui, je confirme').click();for(let i=0;i<120&&button('Oui, je confirme')?.disabled;i++)await new Promise(requestAnimationFrame);
   const first=JSON.stringify(window.__modePayload);ok(!app.querySelector('.vote-success-intro'),'pas de faux succès');ok(button('Modifier mon classement').disabled&&button('Recommencer mon classement').disabled,'bulletin gelé tant que confirmation incertaine');
@@ -77,7 +80,7 @@ export async function runVoteModesBrowser({command,evaluate,sessionId}){
    await stage('submit');await stage(mode);await stage('choose-two');await stage('results');if(width===1440)await shot('results-'+mode);
   }
  }
- await stage('ranked');await stage('bounds');await stage('ranked');await stage('legacy-qr');await stage('choose-two');await stage('reset');await stage('choose-two');await stage('review');await stage('network');
+ await stage('ranked');await stage('bounds');await stage('ranked');await stage('legacy-qr');await stage('choose-two');await stage('reset');await stage('choose-two');await stage('review');await stage('network');await stage('ranked');await stage('choose-two');await stage('review');await stage('closed-during-confirmation');
  await stage('creation');await shot('creation-modes');await stage('configure-multiple');await shot('configuration-multiple');await stage('configure-ranked');await shot('configuration-ranked');await stage('creation-behaviour');
  assert.equal((await evaluate(sessionId,'__modeWrites')),0);console.log('UI modes : 4 largeurs, sélection/rangs avant clic, reset, récapitulatif, confirmation, identité et résultats : PASS.');
 }

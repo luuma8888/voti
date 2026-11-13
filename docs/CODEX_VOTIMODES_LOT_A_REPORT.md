@@ -117,7 +117,7 @@ les Cartes, les guides pilotes, les assets, la mascotte et la PWA ne sont pas mo
 
 - Tests calcul/contrats/migration ciblés : 15 tests PASS, dont mode absent,
   mode nul refusé, ancien INSERT, données historiques préservées, quotas, scores et égalités.
-- Worker/D1 local : 219 contrôles PASS, dont 89 spécifiques aux nouveaux modes.
+- Worker/D1 local : 221 contrôles PASS, dont 91 spécifiques aux nouveaux modes.
 - Suite gestion Espace : 2965 contrôles PASS, dont 12 refreshs stables.
 - Navigateur nouveaux modes : quatre largeurs, onze captures privées ; contrôle
   du rang avant sélection, reset, récapitulatif, confirmation et identité : PASS
@@ -142,8 +142,8 @@ validation de la transaction et la préparation de publication.
 
 - `npm test` : PASS sur la suite complète ; les derniers cas de garde ont aussi
   été rejoués dans `npm run test:vote-modes` (15 tests).
-- `npm run test:vote-modes` : PASS, 219 contrôles HTTP/Worker/D1 locaux,
-  dont 89 dédiés aux nouveaux modes et à leur confidentialité.
+- `npm run test:vote-modes` : PASS, 221 contrôles HTTP/Worker/D1 locaux,
+  dont 91 dédiés aux nouveaux modes et à leur confidentialité.
 - `npm run test:vote-modes-ui` : PASS, quatre largeurs (390/768/1200/1440),
   onze captures inspectées dans `.browser-tests/vote-modes/`, profil isolé.
 - `npm run test:spaces` : PASS, 196 contrôles backend historiques et 368 Chromium
@@ -158,12 +158,12 @@ La revue visuelle a fait supprimer une barre de commandes flottante qui recouvra
 les choix classés sur mobile. Le nouveau contrôle et ses captures ont été rejoués
 après correction. Les échecs initiaux des sondes/fixtures n’ont pas été comptés PASS.
 
-Build frontend : 1 746 259 octets ; SHA-256
-`fde25e67ee0477824587c2fe37bd802a7a7e2451d53b8b4aa8e2462934044faa`.
+Build frontend : 1 746 423 octets ; SHA-256
+`635a8ab5da739b623a63dcba893560e336820708358c71dc7828e1c4907b94c0`.
 
 Migration distante : seule `0006_vote_modes.sql` était en attente ; appliquée avec
 succès à `voti-production`. Aucun ancien bulletin n’est réécrit.
-Worker `voti-relay` : version `cbadbbd6-3e4b-4026-8dd6-6a0e7e7cee57`,
+Worker `voti-relay` : version `4f6b4e11-46d5-452f-b6d6-db5f19797ce4`,
 URL `https://voti-relay.voti-luuma8888.workers.dev`.
 Smokes de production avant frontend : getVoteModes autorisé/version 1, refus d’un
 credential fictif invalide (403), getAudienceSize existant agrégé : PASS.
@@ -178,3 +178,25 @@ nouveaux modes : ne pas revenir à une ancienne interprétation des agrégats.
 Les sondages expérimentaux restent signalés Expérimental ; le Single reste stable.
 
 LOT B non implémenté. Mode libre, guides pilotes et tag de baseline non modifiés.
+
+## Correctif distinct de clôture de release
+
+Le commit initial `fa73a0f05f341c8b5db4b1650d7e6375ddff73e9` a été publié
+par Pages et son HTML vérifié ; Chromium vierge a ouvert Mes sondages sans erreur
+JS bloquante détectée, sans importer d’accès ni écrire de données métier.
+
+Avant clôture, deux courses de confirmation ont été traitées dans un correctif
+séparé, sans réécriture du commit initial :
+
+- le contrôle expectedDefinitionHash précède la validation du quota reçu : un
+  ancien bulletin après édition reçoit REVISION_CONFLICT, et le parcours actuel
+  recharge les règles plutôt que de rester gelé sur un refus de quantité ;
+- pour un nouveau mode, POLL_CLOSED pendant confirmation recharge l’état fermé,
+  tandis qu’un échec réseau incertain conserve le même bulletin gelé pour reprise.
+
+`npm run test:vote-modes` : 15 tests et 221 contrôles HTTP/D1 PASS, dont la
+preuve que le conflit de révision ne consomme aucune participation.
+`npm run test:vote-modes-ui` : PASS, y compris fermeture pendant confirmation.
+`check`, build production et `git diff --check` : PASS.
+Le Worker correctif ci-dessus a été publié avant le frontend correctif,
+getVoteModes/version 1 confirmé en production. Aucune migration supplémentaire.

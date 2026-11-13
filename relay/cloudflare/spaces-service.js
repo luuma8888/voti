@@ -229,10 +229,10 @@ export class SpacesService {
   }
   async vote(data,member,multi=false){
     const row=await this.relay.publicRow(data.pollId),definition=JSON.parse(row.definition),identified=participationRules(definition).participationIdentityMode==='identified';
+    need(row.semantic_hash===data.expectedDefinitionHash,'REVISION_CONFLICT');
     need(multi===(voteMode(definition)!=='single_choice'),'INVALID_REQUEST');
     let selections=null;
     if(multi){try{selections=JSON.stringify(validateSelections(definition,data.selectionIds));}catch{throw new RelayError('INVALID_CHOICE');}data={...data,choiceId:JSON.parse(selections)[0]};}
-    need(row.semantic_hash===data.expectedDefinitionHash,'REVISION_CONFLICT');
     need(data.actionId!==data.pollId&&!definition.choices.some(c=>c.id===data.actionId)&&!await this.sql('SELECT 1 FROM space_members WHERE member_id=?',data.actionId).first(),'INVALID_REQUEST');
     const previous=await this.sql('SELECT choice_id,submission_digest,participation_id FROM ballots WHERE poll_id=? AND action_id=?',data.pollId,data.actionId).first();
     // Un renommage du membre ne change pas le contenu d’une soumission déjà acceptée.

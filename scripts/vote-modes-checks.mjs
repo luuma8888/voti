@@ -47,5 +47,13 @@ export async function voteModesChecks({adapter,sql}){
  const participation=await adapter.getParticipations({pollId:named.id,adminCapability:staff,cursor:null});ok(participation.entries.length===2&&participation.entries.every(e=>e.selectionIds.length===4),'participations identifiées complètes');
  await reject(call('getMemberResults',{pollId:named.id},members[0].card),'ACCESS_DENIED');
  const namedResults=(await call('getSpacePoll',{pollId:named.id})).poll.results;ok(namedResults.available&&namedResults.choices[0].points===8,'barème complet 4/3/2/1 serveur');
+ // Une modification de quota avant premier vote doit suivre le parcours CAS existant.
+ const changed=createPoll(emptyState(),{question:'Révision fictive',choices:['A','B','C'],commentMode:'disabled'}).polls[0];changed.definition.mode='multiple_choice';changed.definition.voteConfig={version:1,limit:3,rule:'up_to'};
+ const audience={spaceId,mode:'space',groupIds:[],resultsAudience:'poll_audience'};
+ const prepChanged=await call('prepareSpacePublication',{spaceId,poll:changed,pollAudience:audience,expectedRevision:await revision()});await call('publishSpacePoll',{pollId:changed.id,expectedRevision:prepChanged.revision});
+ const before=(await call('getSpacePoll',{pollId:changed.id})).poll,oldHash=await semanticHash(before),definition=structuredClone(before.definition);definition.voteConfig.limit=2;
+ await call('updateSpacePoll',{pollId:changed.id,definition,resultRules:before.resultRules,pollAudience:audience,expectedRevision:before.remoteRef.revision});
+ await reject(call('castMemberBallot',{pollId:changed.id,actionId:crypto.randomUUID(),selectionIds:changed.definition.choices.map(c=>c.id),comment:null,expectedDefinitionHash:oldHash},members[0].card),'REVISION_CONFLICT');
+ ok((await call('getPollAttendance',{pollId:changed.id})).consumed===0,'révision refusée avant consommation');
  console.log('Modes expérimentaux Worker/D1 : '+checks+' contrôles réussis.');return checks;
 }
